@@ -363,7 +363,7 @@ applicationData.customer = mergeDeep(
     }
 
     // ── openApplication ──
-    async function openApplication(dealId, applicationId) {
+    async function openApplication(dealId, applicationId, options = {}) {
       saveDraft(false);
       const previousCustomer = mergeDeep({}, applicationData.customer || {});
       const previousSync = mergeDeep({}, applicationData.crmSync || {});
@@ -422,8 +422,13 @@ applicationData.customer = mergeDeep(
       if (applicationData.deal.selectedServices.length) recalculatePayment();
       saveDraft(false);
       requestRender();
+      if (options.stayOnDashboard) return;
       showWizard();
       showStep(applicationData.currentStep || 1);
+    }
+
+    function selectApplication(dealId, applicationId) {
+      return openApplication(dealId, applicationId, { stayOnDashboard: true });
     }
 
 export {
@@ -432,5 +437,5 @@ export {
   loadApplicationDraftIndex, loadStoredApplicationDraft, draftsToApplicationCards,
   getHiddenIndexKey, loadHiddenApplicationKeys, saveHiddenApplicationKeys,
   isApplicationHidden, hideApplicationCard, confirmRemoveApplication, autoSave,
-  startNewApplication, openApplication
+  startNewApplication, openApplication, selectApplication
 };

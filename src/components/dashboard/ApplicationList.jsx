@@ -1,7 +1,9 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
 import { getApplicationCards, isFullyPaidStatus } from "../../core/derive.js";
-import { startNewApplication, openApplication, confirmRemoveApplication } from "../../core/drafts.js";
+import {
+  startNewApplication, openApplication, selectApplication, confirmRemoveApplication
+} from "../../core/drafts.js";
 
 // Reproduces renderApplicationCard() (source 2396-2427) as JSX. React escapes
 // text by default, so the explicit escapeHtml() calls are no longer needed.
@@ -12,9 +14,26 @@ function ApplicationCard({ app }) {
     (app.dealId && app.dealId === currentDealId) ||
     (!app.dealId && app.applicationId && app.applicationId === currentAppId)
   );
+  const selectCard = () => selectApplication(app.dealId || "", app.applicationId || "");
+  const handleCardKeyDown = (event) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectCard();
+    }
+  };
   const statusClass = app.status === "Submitted" || isFullyPaidStatus(app.paymentStatus) ? "done" : "open";
   return (
-    <article className={`application-card ${active ? "active" : ""}`}>
+    <article
+      className={`application-card ${active ? "active" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      aria-label={`Select ${app.title || "application"}`}
+      onClick={selectCard}
+      onKeyDown={handleCardKeyDown}
+      style={{ cursor: "pointer" }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
         <div>
           <h3>{app.title || "Application"}</h3>
@@ -33,7 +52,10 @@ function ApplicationCard({ app }) {
           <button
             className="btn danger"
             type="button"
-            onClick={() => confirmRemoveApplication(app.dealId || "", app.applicationId || "")}
+            onClick={(event) => {
+              event.stopPropagation();
+              confirmRemoveApplication(app.dealId || "", app.applicationId || "");
+            }}
           >
             Remove
           </button>
@@ -41,7 +63,10 @@ function ApplicationCard({ app }) {
         <button
           className="btn primary"
           type="button"
-          onClick={() => openApplication(app.dealId || "", app.applicationId || "")}
+          onClick={(event) => {
+            event.stopPropagation();
+            openApplication(app.dealId || "", app.applicationId || "");
+          }}
         >
           Continue
         </button>
