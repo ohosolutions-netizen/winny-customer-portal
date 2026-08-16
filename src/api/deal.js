@@ -610,6 +610,7 @@ if (isDealSaved()) {
           };
        applicationData.deal.travellers.push({
             id:           uid("traveller"),
+            familyId:     "family-1",
             type:         "Primary Applicant",
             firstName:    readField("customer.firstName"),
             lastName:     readField("customer.lastName"),

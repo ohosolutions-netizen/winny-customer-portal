@@ -1,0 +1,156 @@
+.family-entry-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid rgba(6, 201, 181, .38);
+  border-radius: 12px;
+  background: rgba(6, 201, 181, .06);
+  color: #075f57;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.traveller-family {
+  padding: 16px;
+  border: 1.5px solid #d7e3f4;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(19, 45, 86, .05);
+}
+
+.traveller-family-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.traveller-family-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .65px;
+  text-transform: uppercase;
+}
+
+.traveller-family-head h4 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.traveller-family-count {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--soft-blue);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.traveller-family-members {
+  display: grid;
+  gap: 11px;
+}
+
+.traveller-family .traveller-card {
+  border-color: #dce5f2;
+  background: #f9fbff;
+}
+
+.family-member-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px 13px;
+  border: 1.5px dashed rgba(6, 201, 181, .7);
+  border-radius: 10px;
+  background: rgba(6, 201, 181, .04);
+  color: #008f80;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.family-member-add:hover,
+.family-member-add:focus-visible {
+  border-color: var(--teal);
+  background: rgba(6, 201, 181, .1);
+  transform: translateY(-1px);
+}
+
+.add-family-group {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 2px dashed rgba(6, 201, 181, .45);
+  border-radius: 14px;
+  background: rgba(6, 201, 181, .045);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.add-family-group:hover,
+.add-family-group:focus-visible {
+  border-color: var(--teal);
+  background: rgba(6, 201, 181, .09);
+  transform: translateY(-1px);
+}
+
+.add-family-group-icon {
+  font-size: 25px;
+}
+
+.add-family-group-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.add-family-group-copy strong {
+  color: var(--navy);
+  font-size: 14px;
+}
+
+.add-family-group-copy small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.add-family-group-plus {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 50%;
+  background: rgba(6, 201, 181, .16);
+  color: #008f80;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+@media (max-width: 640px) {
+  .traveller-family {
+    padding: 12px;
+  }
+
+  .traveller-family-head {
+    align-items: flex-start;
+  }
+
+  .add-family-group {
+    padding: 14px;
+  }
+}

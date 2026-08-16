@@ -1,7 +1,6 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
 import { isDealSaved } from "../../core/derive.js";
-import { addTraveller } from "../../core/deal.js";
 import { saveDealDetails } from "../../api/deal.js";
 import { Field } from "../fields/Field.jsx";
 import MultiSelectCountry from "../fields/MultiSelectCountry.jsx";
@@ -45,18 +44,9 @@ export default function DetailsPane() {
       </section>
 
       <section className={`wizard-panel ${dealSaved ? "" : "hidden"}`}>
-        <div className="panel-head"><div><h3>Travellers</h3><p>Primary applicant, spouse, children, or additional travellers.</p></div></div>
+        <div className="panel-head"><div><h3>Families &amp; Travellers</h3><p>Group applicants family-wise while keeping an individual record for every traveller.</p></div></div>
         <div className="panel-body">
           <TravellerList />
-          <button className="add-fam-btn" type="button" onClick={() => addTraveller()}
-            style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderRadius: 13, border: "2px dashed rgba(6,201,181,.4)", background: "rgba(6,201,181,.04)", cursor: "pointer", textAlign: "left", transition: "all .2s", marginTop: 12 }}>
-            <span style={{ fontSize: 24 }}>👨‍👩‍👧</span>
-            <div>
-              <strong style={{ display: "block", fontSize: 14, fontWeight: 800, color: "var(--ink)", marginBottom: 2 }}>Add another traveller</strong>
-              <small style={{ fontSize: 12, color: "var(--muted)" }}>Spouse, child, parent, or additional applicant</small>
-            </div>
-            <span style={{ marginLeft: "auto", width: 32, height: 32, borderRadius: "50%", background: "rgba(6,201,181,.15)", display: "grid", placeItems: "center", color: "var(--teal)", fontSize: 18, fontWeight: 800, flexShrink: 0 }}>+</span>
-          </button>
         </div>
       </section>
 

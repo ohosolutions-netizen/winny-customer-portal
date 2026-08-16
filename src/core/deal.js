@@ -55,9 +55,35 @@ import { getAddonProducts } from "./catalog.js";
     }
 
     // ── travellers ──
-    function addTraveller() {
+    const DEFAULT_FAMILY_ID = "family-1";
+
+    function createTraveller(familyId = DEFAULT_FAMILY_ID) {
+      return {
+        id: uid("traveller"),
+        familyId,
+        type: "Additional Traveller",
+        firstName: "",
+        lastName: "",
+        dob: "",
+        relationship: "",
+        nationality: applicationData.customer.nationality || "",
+        email: "",
+        mobile: "",
+        countries: [],
+        crmId: ""
+      };
+    }
+
+    function addTraveller(familyId = DEFAULT_FAMILY_ID) {
       if (!isDealSaved()) { toast("Save the Deal first, then add travellers."); return; }
-      applicationData.deal.travellers.push({ id: uid("traveller"), type: "Additional Traveller", firstName: "", lastName: "", dob: "", relationship: "", nationality: applicationData.customer.nationality || "", email: "", mobile: "", countries: [], crmId: "" });
+      applicationData.deal.travellers.push(createTraveller(familyId));
+      requestRender();
+      markAutoSavePending();
+    }
+
+    function addFamilyGroup() {
+      if (!isDealSaved()) { toast("Save the Deal first, then add a family group."); return; }
+      applicationData.deal.travellers.push(createTraveller(uid("family")));
       requestRender();
       markAutoSavePending();
     }
@@ -256,7 +282,8 @@ function togglePackage(id) {
       if (!primary) {
         primary = {
           id: uid("traveller"),
-          type: "Primary Applicant",  
+          familyId: DEFAULT_FAMILY_ID,
+          type: "Primary Applicant",
           dob: "",
           relationship: "Self",
           nationality: "",
@@ -295,7 +322,7 @@ function togglePackage(id) {
 
 export {
   getDestinationCountries, reconcileTravellerCountries, applyTravellerCrmIds,
-  toggleTravellerCountry, addTraveller, removeTraveller, addCoordinator,
+  toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
   togglePackage, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
   addPendingToBasket, removeBasketItem, toggleAddon, setUSAAddons,

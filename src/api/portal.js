@@ -42,13 +42,19 @@ const requestEmail = isPortalReadRequest
           ...applicationData.deal,
           serviceNames:   getSelectedServiceNames(),
           serviceType:    getSelectedServiceNames() || applicationData.deal.goal || "",
-          travellers: applicationData.deal.travellers.map((traveller) => ({
-  ...traveller,
-  relationship: deriveTravellerRelationship(
-    traveller,
-    applicationData.deal.travellers
-  )
-})),
+          travellers: applicationData.deal.travellers.map((traveller) => {
+            // familyId groups cards in the portal only. Keep the CRM traveller
+            // payload identical to the pre-grouping contract.
+            const crmTraveller = { ...traveller };
+            delete crmTraveller.familyId;
+            return {
+              ...crmTraveller,
+              relationship: deriveTravellerRelationship(
+                traveller,
+                applicationData.deal.travellers
+              )
+            };
+          }),
           // Include CRM Product IDs for each selected service
           selectedCrmProductIds: applicationData.deal.selectedServices.map((id) => {
             const pkg = packageCatalog.find((p) => p.id === id);
