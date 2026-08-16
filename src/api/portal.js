@@ -42,6 +42,14 @@ const requestEmail = isPortalReadRequest
           ...applicationData.deal,
           serviceNames:   getSelectedServiceNames(),
           serviceType:    getSelectedServiceNames() || applicationData.deal.goal || "",
+          // Persist family membership separately from traveller CRM fields so
+          // application hydration can rebuild the same family cards.
+          travellerFamilyGroups: Object.fromEntries(
+            applicationData.deal.travellers.map((traveller) => [
+              traveller.id,
+              traveller.familyId || "family-1"
+            ])
+          ),
           travellers: applicationData.deal.travellers.map((traveller) => {
             // familyId groups cards in the portal only. Keep the CRM traveller
             // payload identical to the pre-grouping contract.
@@ -353,6 +361,14 @@ const contact = await findContactByEmail(loggedInEmail);
 function hydrateApplicationDetails(details) {
   if (!details) return;
 
+  const existingFamilyByTravellerId = new Map();
+  const existingFamilyByCrmId = new Map();
+  (applicationData.deal.travellers || []).forEach((traveller) => {
+    if (!traveller.familyId) return;
+    if (traveller.id) existingFamilyByTravellerId.set(String(traveller.id), traveller.familyId);
+    if (traveller.crmId) existingFamilyByCrmId.set(String(traveller.crmId), traveller.familyId);
+  });
+
   const savedPayload =
     details.savedPayload &&
     typeof details.savedPayload === "object"
@@ -372,6 +388,21 @@ function hydrateApplicationDetails(details) {
       applicationData.deal || {},
       savedPayload.deal
     );
+
+    const travellerFamilyGroups =
+      applicationData.deal.travellerFamilyGroups &&
+      typeof applicationData.deal.travellerFamilyGroups === "object"
+        ? applicationData.deal.travellerFamilyGroups
+        : {};
+
+    (applicationData.deal.travellers || []).forEach((traveller) => {
+      traveller.familyId =
+        travellerFamilyGroups[traveller.id] ||
+        existingFamilyByTravellerId.get(String(traveller.id || "")) ||
+        existingFamilyByCrmId.get(String(traveller.crmId || "")) ||
+        traveller.familyId ||
+        "family-1";
+    });
   }
 
       if (savedPayload.payment) {
@@ -968,6 +999,7 @@ applicationData.stepStatus.dealCompleted =
         return {
           id:           `crm-traveller-${row.id||row.ID||index}`,
           crmId:        row.id || row.ID || "",
+          familyId:     "family-1",
           type:
   readZohoValue(row.Traveller_Type) === "Primary Applicant"
     ? "Primary Applicant"
