@@ -14,7 +14,7 @@ import {
   hasApplicationInfo, hasMeaningfulApplicationContent, getApplicationCardKey,
   normalizeApplicationTitle, isFullyPaidStatus, getApplicationCards,
   recalculatePayment, syncCustomerToTraveller,
-  getApplicationCompletionPercent, getApplicationStage
+  getApplicationCompletionPercent, getApplicationJourneyStageIndex, getApplicationStage
 } from "./derive.js";
 import { showDashboard, showWizard, showStep } from "./navigation.js";
 import {
@@ -176,6 +176,7 @@ localStorage.setItem(indexKey, JSON.stringify(drafts));
         destination: draft?.deal?.destination || "",
         serviceType: (draft?.deal?.serviceBasket || []).map((item) => item.name).filter(Boolean).join(", "),
         stage: getApplicationStage(draft),
+        stageIndex: getApplicationJourneyStageIndex(draft),
         progressPercent: getApplicationCompletionPercent(draft),
         paymentStatus: draft?.payment?.status || "Pending",
         status: draft?.stepStatus?.submitted ? "Submitted" : "In Progress",

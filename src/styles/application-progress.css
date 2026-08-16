@@ -1,0 +1,121 @@
+.application-stage-tracker {
+  margin-top: 2px;
+  padding: 13px 12px 10px;
+  border: 1px solid #e2e8f3;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.application-stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+}
+
+.application-stage-head strong {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: #dceafe;
+  color: var(--navy);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.application-stage-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.application-stage-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(70px, 1fr));
+  min-width: 500px;
+  margin-top: 12px;
+}
+
+.application-stage-rail {
+  position: absolute;
+  z-index: 0;
+  top: 17px;
+  right: calc(100% / 12);
+  left: calc(100% / 12);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #dde5ef;
+}
+
+.application-stage-rail span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #07966f, var(--teal));
+  transition: width 0.25s ease;
+}
+
+.application-stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+
+.application-stage-node {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 3px solid #ced9e6;
+  border-radius: 50%;
+  background: #f6f8fb;
+  color: #8b9ab0;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.application-stage.done .application-stage-node {
+  border-color: #07966f;
+  background: #07966f;
+  color: #fff;
+}
+
+.application-stage.current .application-stage-node {
+  border-color: #087cf0;
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 0 0 5px #dbeafe;
+}
+
+.application-stage-label {
+  max-width: 72px;
+  color: #8b97ad;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.application-stage.done .application-stage-label {
+  color: #07835f;
+}
+
+.application-stage.current .application-stage-label {
+  color: #087cb7;
+}
+
+@media (max-width: 700px) {
+  .application-stage-tracker {
+    padding-inline: 10px;
+  }
+}

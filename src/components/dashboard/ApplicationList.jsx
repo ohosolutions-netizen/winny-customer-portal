@@ -1,5 +1,6 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
+import { journeyStages } from "../../config/config.js";
 import { getApplicationCards, isFullyPaidStatus } from "../../core/derive.js";
 import {
   startNewApplication, openApplication, selectApplication, confirmRemoveApplication
@@ -26,6 +27,9 @@ function ApplicationCard({ app }) {
   const progressPercent = Number.isFinite(Number(app.progressPercent))
     ? Math.max(0, Math.min(100, Number(app.progressPercent)))
     : 0;
+  const stageIndex = Number.isInteger(Number(app.stageIndex))
+    ? Math.max(0, Math.min(journeyStages.length - 1, Number(app.stageIndex)))
+    : Math.max(0, Math.min(journeyStages.length - 1, Math.round(progressPercent / 20)));
   return (
     <article
       className={`application-card ${active ? "active" : ""}`}
@@ -50,20 +54,33 @@ function ApplicationCard({ app }) {
         {app.stage ? <span>{app.stage}</span> : null}
       </div>
       <p>{app.serviceType || "Service selection pending"}</p>
-      <div className="application-progress">
-        <div className="progress-top" style={{ marginBottom: 7, fontSize: 12 }}>
+      <div className="application-stage-tracker" aria-label={`${app.title || "Application"} progress`}>
+        <div className="application-stage-head">
           <span>Application progress</span>
-          <strong>{progressPercent}%</strong>
+          <strong>Stage {stageIndex + 1} of {journeyStages.length}</strong>
         </div>
-        <div
-          className="progress-bg"
-          role="progressbar"
-          aria-label={`${app.title || "Application"} progress`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progressPercent}
-        >
-          <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
+        <div className="application-stage-scroll">
+          <div className="application-stage-track" role="list">
+            <div className="application-stage-rail" aria-hidden="true">
+              <span style={{ width: `${(stageIndex / (journeyStages.length - 1)) * 100}%` }}></span>
+            </div>
+            {journeyStages.map((stage, index) => {
+              const stageState = index < stageIndex ? "done" : index === stageIndex ? "current" : "upcoming";
+              return (
+                <div
+                  className={`application-stage ${stageState}`}
+                  key={stage}
+                  role="listitem"
+                  aria-current={stageState === "current" ? "step" : undefined}
+                >
+                  <span className="application-stage-node" aria-hidden="true">
+                    {stageState === "done" ? "✓" : index + 1}
+                  </span>
+                  <span className="application-stage-label">{stage}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
       <div className="application-actions">

@@ -201,6 +201,11 @@ return [...byKey.values()]
         destination: incoming.destination || existing.destination || "",
         serviceType: incoming.serviceType || existing.serviceType || "",
         stage: incoming.stage || existing.stage || "",
+        stageIndex: Number.isInteger(Number(incoming.stageIndex))
+          ? Math.max(0, Math.min(5, Number(incoming.stageIndex)))
+          : Number.isInteger(Number(existing.stageIndex))
+            ? Math.max(0, Math.min(5, Number(existing.stageIndex)))
+            : 0,
         progressPercent: Number.isFinite(Number(incoming.progressPercent))
           ? Math.max(0, Math.min(100, Number(incoming.progressPercent)))
           : Number.isFinite(Number(existing.progressPercent))
@@ -226,6 +231,7 @@ return [...byKey.values()]
         destination: applicationData.deal.destination || "",
         serviceType: getSelectedServiceNames() || applicationData.deal.goal || "",
         stage: getCurrentStage(),
+        stageIndex: getJourneyStageIndex(),
         progressPercent: getCompletionPercent(),
         paymentStatus: applicationData.payment.status || "Pending",
         status: applicationData.stepStatus.submitted ? "Submitted" : "In Progress",
