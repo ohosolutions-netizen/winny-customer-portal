@@ -9,7 +9,7 @@ export default function TopNav() {
         <div className="wmark" aria-hidden="true"></div>
         <div>
           <h1 className="brand-name">Winny Global</h1>
-          <p className="brand-sub">Customer Portal</p>
+          <p className="brand-sub">Customer Portalv2</p>
         </div>
       </div>
       <div className="nav-actions"></div>
