@@ -148,12 +148,15 @@ localStorage.setItem(indexKey, JSON.stringify(drafts));
         const drafts = JSON.parse(localStorage.getItem(getDraftIndexKey()) || "{}");
         if (dealId && drafts[`deal:${dealId}`]) return drafts[`deal:${dealId}`];
         if (applicationId && drafts[`app:${applicationId}`]) return drafts[`app:${applicationId}`];
-        const currentTitle = normalizeApplicationTitle(applicationData.deal.dealName || "");
+        const allowTitleFallback = !dealId && !applicationId;
+        const currentTitle = allowTitleFallback
+          ? normalizeApplicationTitle(applicationData.deal.dealName || "")
+          : "";
         const match = Object.values(drafts).find((draft) => {
           if (!draft) return false;
           if (dealId && String(draft?.deal?.crmDealId || "") === String(dealId)) return true;
           if (applicationId && String(draft?.applicationId || "") === String(applicationId)) return true;
-          return currentTitle && normalizeApplicationTitle(draft?.deal?.dealName || "") === currentTitle;
+          return allowTitleFallback && currentTitle && normalizeApplicationTitle(draft?.deal?.dealName || "") === currentTitle;
         });
         if (match) return match;
       } catch (error) {
@@ -368,6 +371,8 @@ applicationData.customer = mergeDeep(
     async function openApplication(dealId, applicationId, options = {}) {
       const loadSequence = ++applicationLoadSequence;
       const stayOnDashboard = options.stayOnDashboard === true;
+      const applicationPreview = options.applicationPreview || null;
+      state.applicationSelectionLoading = stayOnDashboard;
       saveDraft(false);
       const previousCustomer = mergeDeep({}, applicationData.customer || {});
       const previousSync = mergeDeep({}, applicationData.crmSync || {});
@@ -381,6 +386,13 @@ applicationData.customer = mergeDeep(
       if (dealId) {
         applicationData.deal.crmDealId = dealId;
         applicationData.deal.dealSavedToCRM = true;
+      }
+      if (!localDraft && applicationPreview) {
+        applicationData.deal.dealName = applicationPreview.title || "";
+        applicationData.deal.destination = applicationPreview.destination || "";
+        applicationData.payment.status = applicationPreview.paymentStatus || "Pending";
+        applicationData.stepStatus.submitted = applicationPreview.status === "Submitted";
+        applicationData.lastSavedAt = applicationPreview.lastSavedAt || applicationPreview.createdTime || "";
       }
 
       // Card selection is optimistic: update the dashboard immediately while
@@ -423,10 +435,15 @@ applicationData.customer = mergeDeep(
     );
   } finally {
     if (!stayOnDashboard) hideLoader();
+    if (stayOnDashboard && loadSequence === applicationLoadSequence) {
+      state.applicationSelectionLoading = false;
+      requestRender();
+    }
   }
 }
 
       if (loadSequence !== applicationLoadSequence) return;
+      state.applicationSelectionLoading = false;
       state.dealSubStep = 1;
       state.activeCifCategory = null;
       state.activeCifTraveller = null;
@@ -440,8 +457,11 @@ applicationData.customer = mergeDeep(
       showStep(applicationData.currentStep || 1);
     }
 
-    function selectApplication(dealId, applicationId) {
-      return openApplication(dealId, applicationId, { stayOnDashboard: true });
+    function selectApplication(dealId, applicationId, applicationPreview) {
+      return openApplication(dealId, applicationId, {
+        stayOnDashboard: true,
+        applicationPreview
+      });
     }
 
 export {

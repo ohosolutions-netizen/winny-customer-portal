@@ -14,7 +14,7 @@ function ApplicationCard({ app }) {
     (app.dealId && app.dealId === currentDealId) ||
     (!app.dealId && app.applicationId && app.applicationId === currentAppId)
   );
-  const selectCard = () => selectApplication(app.dealId || "", app.applicationId || "");
+  const selectCard = () => selectApplication(app.dealId || "", app.applicationId || "", app);
   const handleCardKeyDown = (event) => {
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {

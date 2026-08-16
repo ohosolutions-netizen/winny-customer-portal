@@ -164,7 +164,7 @@ import { isApplicationHidden } from "./drafts.js";
       };
       (state.portalApplications || []).forEach(addApp);
       (state.localApplicationDrafts || []).forEach(addApp);
-      if (hasApplicationInfo()) {
+      if (hasApplicationInfo() && !state.applicationSelectionLoading) {
   const currentCard = applicationCardFromCurrent();
 
   if (!isApplicationHidden(currentCard)) {

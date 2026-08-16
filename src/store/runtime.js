@@ -92,6 +92,7 @@ export const state = {
       activeView: "dashboard",
       portalApplications: [],
       localApplicationDrafts: [],
+      applicationSelectionLoading: false,
       dealSubStep: 1,
       activeCifCategory: null,
       activeGenericCifCategory: null,
