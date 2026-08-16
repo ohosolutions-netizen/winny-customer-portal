@@ -1,9 +1,8 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
-import { journeyStages } from "../../config/config.js";
 import {
   hasApplicationInfo, getCurrentStage, getStageNote,
-  getJourneyStageIndex, isDocumentChecklistClear
+  isDocumentChecklistClear
 } from "../../core/derive.js";
 import { startNewApplication } from "../../core/drafts.js";
 import { showWizard, showStep } from "../../core/navigation.js";
@@ -14,7 +13,6 @@ import ApplicationList from "./ApplicationList.jsx";
 // faithful; markup/classes are unchanged.
 export default function Dashboard() {
   const hasInfo = hasApplicationInfo();
-  const doneIndex = getJourneyStageIndex();
 
   const applicationId = hasInfo ? (applicationData.applicationId || "New") : "New";
   const currentStage = hasInfo ? getCurrentStage() : "No application found";
@@ -44,29 +42,6 @@ export default function Dashboard() {
       </aside>
 
       <main className="dash-main">
-        <section className="card" style={{ marginBottom: 18 }}>
-          <div className="panel-head">
-            <div>
-              <h3>Progress Tracker</h3>
-              <p>Preserves the existing journey stages as a single-page stepper.</p>
-            </div>
-          </div>
-          <div className="panel-body">
-            <div className="stepper" id="dashboardStepper">
-              {hasInfo
-                ? journeyStages.map((stage, index) => {
-                    const st = index < doneIndex ? "done" : index === doneIndex ? "active" : "locked";
-                    return (
-                      <div key={stage} className={`step ${st}`}>
-                        <span className="step-dot">{index + 1}</span>{stage}
-                      </div>
-                    );
-                  })
-                : null}
-            </div>
-          </div>
-        </section>
-
         <div className="portal-hero" style={{ gridTemplateColumns: "1fr" }}>
           <article className="hero-card">
             <span className="eyebrow">Guided application workspace</span>

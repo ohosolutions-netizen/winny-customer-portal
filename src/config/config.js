@@ -80,8 +80,7 @@
       "Journey Begins",
       "Payment Complete",
       "Case Questions",
-      "Document Submission",
-      "Case File (CIF)",
+      "Case File (CIF) and Document Submission",
       "Review & Confirm",
       "Submitted"
     ];

@@ -37,8 +37,8 @@
 .application-stage-track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(7, minmax(74px, 1fr));
-  min-width: 560px;
+  grid-template-columns: repeat(6, minmax(82px, 1fr));
+  min-width: 520px;
   margin-top: 14px;
 }
 
@@ -46,8 +46,8 @@
   position: absolute;
   z-index: 0;
   top: 17px;
-  right: calc(100% / 14);
-  left: calc(100% / 14);
+  right: calc(100% / 12);
+  left: calc(100% / 12);
   height: 3px;
   overflow: hidden;
   border-radius: 99px;
@@ -99,7 +99,7 @@
 }
 
 .application-stage-label {
-  max-width: 78px;
+  max-width: 110px;
   color: #8b97ad;
   font-size: 9px;
   font-weight: 700;
