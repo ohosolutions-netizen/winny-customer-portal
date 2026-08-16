@@ -107,6 +107,7 @@
 }
 
 .application-list {
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: stretch;
 }
@@ -120,12 +121,6 @@
 
 .application-card .application-actions {
   margin-top: auto;
-}
-
-@media (max-width: 1100px) {
-  .application-list {
-    grid-template-columns: 1fr;
-  }
 }
 
 .application-stage.done .application-stage-label {
