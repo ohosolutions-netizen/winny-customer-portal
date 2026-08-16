@@ -55,10 +55,10 @@ export default function TravellerList() {
                   <Field label="First Name" path={`deal.travellers.${index}.firstName`} type="text" placeholder="First name" required />
                   <Field label="Last Name" path={`deal.travellers.${index}.lastName`} type="text" placeholder="Last name" required />
                   <SelectField label="Traveller Type" path={`deal.travellers.${index}.type`} options={["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"]} />
-                  <Field label="Date of Birth" path={`deal.travellers.${index}.dob`} type="date" placeholder="" />
+                  <Field label="Date of Birth" path={`deal.travellers.${index}.dob`} type="date" placeholder="" required />
                   <Field label="Nationality" path={`deal.travellers.${index}.nationality`} type="text" placeholder="Indian" />
                   <Field label="Email" path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" />
-                  <Field label="Mobile" path={`deal.travellers.${index}.mobile`} type="tel" placeholder="+91" />
+                  <Field label="Mobile" path={`deal.travellers.${index}.mobile`} type="tel" placeholder="+91" required />
                 </div>
               </article>
             ))}

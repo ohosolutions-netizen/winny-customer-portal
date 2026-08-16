@@ -95,6 +95,10 @@ let zPayInstance = null;
         if (validators.email(applicationData.customer.email)) return fail(validators.email(applicationData.customer.email));
         if (!isDealSaved()) return fail("Save the Deal first.");
         if (!applicationData.deal.travellers.every((t) => t.firstName && t.lastName)) return fail("Complete first and last name for every traveller.");
+        if (!applicationData.deal.travellers.every((t) => String(t.dob || "").trim())) return fail("Enter the date of birth for every traveller.");
+        if (!applicationData.deal.travellers.every((t) => String(t.mobile || "").trim())) return fail("Enter the mobile number for every traveller.");
+        const invalidTravellerMobile = applicationData.deal.travellers.find((t) => validators.phone(t.mobile));
+        if (invalidTravellerMobile) return fail("Enter a valid mobile number for every traveller.");
       }
       if (step === 2) {
         const hasBasket = (applicationData.deal.serviceBasket || []).length > 0 || (applicationData.deal.selectedAddons || []).length > 0;
