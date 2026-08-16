@@ -19,7 +19,7 @@ import {
 import { ensurePrimaryTravellerFromCustomer, applyTravellerCrmIds } from "../core/deal.js";
 import { saveDraft } from "../core/drafts.js";
 import { showWizard, showStep } from "../core/navigation.js";
-import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
+import { submitPortalCrmRequest, pollCreatorRecord, findTravellersForDeal, reconcileTravellerCrmRows } from "./portal.js";
 import { paymentsRest } from "./zoho.js";
 
 let zPayInstance = null;
@@ -612,6 +612,13 @@ if (isDealSaved()) {
         // Store IDs written back by Deluge
         if (crmResult.CRM_Deal_ID)    applicationData.deal.crmDealId    = crmResult.CRM_Deal_ID;
         if (crmResult.CRM_Contact_ID) applicationData.deal.crmContactId = crmResult.CRM_Contact_ID;
+        if (crmResult.CRM_Traveller_IDs) {
+          applicationData.crmSync.travellerIds = crmResult.CRM_Traveller_IDs;
+          applyTravellerCrmIds(crmResult.CRM_Traveller_IDs);
+        } else if (applicationData.deal.crmDealId) {
+          const crmTravellerRows = await findTravellersForDeal(applicationData.deal.crmDealId);
+          reconcileTravellerCrmRows(crmTravellerRows);
+        }
         applicationData.crmSync.requestId  = creatorRecordId;
         applicationData.crmSync.lastSyncAt = new Date().toISOString();
         applicationData.deal.dealSavedToCRM = true;
@@ -658,6 +665,19 @@ if (isDealSaved()) {
 
     async function saveDealData(options = {}) {
   const { includeTravellers = true, syncOnly = false } = options;
+
+  if (
+    includeTravellers &&
+    applicationData.deal.crmDealId &&
+    applicationData.deal.travellers.some((traveller) => !traveller.crmId)
+  ) {
+    try {
+      const crmTravellerRows = await findTravellersForDeal(applicationData.deal.crmDealId);
+      reconcileTravellerCrmRows(crmTravellerRows);
+    } catch (reconcileError) {
+      console.warn("[Winny] Could not reconcile existing CRM travellers before sync:", reconcileError);
+    }
+  }
 
   const requestType = syncOnly
     ? "Sync Application Details"

@@ -57,7 +57,11 @@ const requestEmail = isPortalReadRequest
             delete crmTraveller.familyId;
             return {
               ...crmTraveller,
+              local_id: traveller.id || "",
+              crm_id: traveller.crmId || "",
+              CRM_Traveller_ID: traveller.crmId || "",
               Date_of_Birth: traveller.dob || "",
+              Email: traveller.email || "",
               Mobile: traveller.mobile || "",
               relationship: deriveTravellerRelationship(
                 traveller,
@@ -509,43 +513,7 @@ function hydrateApplicationDetails(details) {
       hydrateTravellersFromCrm(crmTravellerRows);
     }
   } else {
-    crmTravellerRows.forEach((row) => {
-      const crmName = String(
-        readZohoValue(row.Name) ||
-        readZohoValue(row.Full_Name) ||
-        ""
-      ).trim().toLowerCase();
-
-      const crmEmail = String(
-        readZohoValue(row.Email) || ""
-      ).trim().toLowerCase();
-
-      const matchingTraveller =
-        applicationData.deal.travellers.find((traveller) => {
-          const localName =
-            `${traveller.firstName || ""} ${traveller.lastName || ""}`
-              .trim()
-              .toLowerCase();
-
-          const localEmail =
-            String(traveller.email || "")
-              .trim()
-              .toLowerCase();
-
-          return (
-            (crmEmail && localEmail === crmEmail) ||
-            (crmName && localName === crmName)
-          );
-        });
-
-      if (matchingTraveller) {
-        matchingTraveller.crmId =
-          row.id ||
-          row.ID ||
-          matchingTraveller.crmId ||
-          "";
-      }
-    });
+    reconcileTravellerCrmRows(crmTravellerRows);
   }
 
   applicationData.deal.crmDealId =
@@ -885,10 +853,49 @@ const stale =
         try { const r = await ZOHO.CRM.API.getRelatedRecords({ Entity: CONFIG.modules.deals, RecordID: dealId, RelatedList: "Traveller_Details", page: 1, per_page: 100 }); const rows = getResponseRows(r); if (rows.length) return rows; } catch(e) { console.warn(e); }
       }
       if (canUseCrmSdk() && window.ZOHO?.CRM?.API?.getAllRecords) {
-        const r = await crmGetRecords(CONFIG.modules.travellers, "id,Name,Email,Destination_Name,Service_Type,Traveller_Type,Deal_Name,Created_Time");
+        const r = await crmGetRecords(CONFIG.modules.travellers, "id,Name,First_Name,Last_Name,Email,Mobile,Date_of_Birth,Destination_Name,Service_Type,Traveller_Type,Deal_Name,Created_Time");
         return getResponseRows(r).filter((row) => readZohoId(row.Deal_Name) === String(dealId));
       }
       return [];
+    }
+
+    function reconcileTravellerCrmRows(rows) {
+      if (!Array.isArray(rows) || !rows.length) return 0;
+      const usedCrmIds = new Set(
+        applicationData.deal.travellers
+          .map((traveller) => String(traveller.crmId || ""))
+          .filter(Boolean)
+      );
+      let matchedCount = 0;
+
+      applicationData.deal.travellers.forEach((traveller) => {
+        if (traveller.crmId) return;
+        const localEmail = String(traveller.email || "").trim().toLowerCase();
+        const localName = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim().toLowerCase();
+        const localDob = String(traveller.dob || "").trim();
+
+        const matchingRow = rows.find((row) => {
+          const crmId = String(row.id || row.ID || "");
+          if (!crmId || usedCrmIds.has(crmId)) return false;
+          const crmEmail = String(readZohoValue(row.Email) || "").trim().toLowerCase();
+          const crmName = String(
+            readZohoValue(row.Name) ||
+            readZohoValue(row.Full_Name) ||
+            `${readZohoValue(row.First_Name) || ""} ${readZohoValue(row.Last_Name) || ""}`
+          ).trim().toLowerCase();
+          const crmDob = String(readZohoValue(row.Date_of_Birth) || "").trim();
+
+          if (localEmail && crmEmail && localEmail === crmEmail) return true;
+          return Boolean(localName && crmName === localName && (!localDob || !crmDob || localDob === crmDob));
+        });
+
+        if (!matchingRow) return;
+        traveller.crmId = String(matchingRow.id || matchingRow.ID);
+        usedCrmIds.add(traveller.crmId);
+        matchedCount += 1;
+      });
+
+      return matchedCount;
     }
 
     // ─── CRM HYDRATE ─────────────────────────────────────────────────────────
@@ -1030,6 +1037,6 @@ export {
   hydrateApplicationDetails, parseApplicationsResponse,
   findContactByEmail, findDealById, refreshCurrentDealFromCrm,
   fetchPaymentStatusViaPortalRequest, findLatestDealForContact, findDealsForContact,
-  pruneStaleLocalDrafts, applicationCardFromDeal, findTravellersForDeal,
+  pruneStaleLocalDrafts, applicationCardFromDeal, findTravellersForDeal, reconcileTravellerCrmRows,
   hydrateCustomerFromContact, hydrateDealFromCrm, hydrateTravellersFromCrm
 };

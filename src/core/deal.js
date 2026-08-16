@@ -35,10 +35,13 @@ import { getAddonProducts } from "./catalog.js";
       if (!raw) return;
       let pairs;
       try { pairs = typeof raw === "string" ? JSON.parse(raw) : raw; } catch (e) { console.warn("[Winny] Could not parse CRM_Traveller_IDs:", raw); return; }
+      if (!Array.isArray(pairs) && pairs && typeof pairs === "object") {
+        pairs = Object.entries(pairs).map(([localId, crmId]) => ({ localId, crmId }));
+      }
       if (!Array.isArray(pairs)) return;
       pairs.forEach((pair) => {
-        const localId = pair.local_id || pair.localId;
-        const crmId   = pair.crm_id   || pair.crmId;
+        const localId = pair.local_id || pair.localId || pair.traveller_id || pair.travellerId;
+        const crmId   = pair.crm_id || pair.crmId || pair.crm_traveller_id || pair.crmTravellerId;
         if (!localId || !crmId) return;
         const t = applicationData.deal.travellers.find((x) => x.id === localId);
         if (t) t.crmId = String(crmId);
