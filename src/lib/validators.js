@@ -8,6 +8,7 @@ export function isBirthDateField(path) {
 
 export function classifyFieldValidation(path) {
   if (!path) return null;
+  if (isBirthDateField(path)) return "birthDate";
   if (/email/i.test(path)) return "email";
   if (/phone|mobile|telephone/i.test(path)) return "phone";
   if (/passport_number/i.test(path)) return "passport";
@@ -19,5 +20,13 @@ export const validators = {
   email(value)    { return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim()) ? "" : "Enter a valid email"; },
   phone(value)    { return !value || /^[+()\-\s0-9]{7,18}$/.test(String(value).trim()) ? "" : "Enter a valid phone number"; },
   passport(value) { return !value || /^[A-Z0-9]{6,12}$/i.test(String(value).trim()) ? "" : "Enter a valid passport number"; },
-  date(value)     { return !value || !Number.isNaN(Date.parse(value)) ? "" : "Enter a valid date"; }
+  date(value)     { return !value || !Number.isNaN(Date.parse(value)) ? "" : "Enter a valid date"; },
+  birthDate(value) {
+    if (!value) return "";
+    const birthDate = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(birthDate.getTime())) return "Enter a valid date";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return birthDate < today ? "" : "Date of birth must be before today";
+  }
 };

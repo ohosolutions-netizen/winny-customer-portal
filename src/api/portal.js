@@ -57,6 +57,8 @@ const requestEmail = isPortalReadRequest
             delete crmTraveller.familyId;
             return {
               ...crmTraveller,
+              Date_of_Birth: traveller.dob || "",
+              Mobile: traveller.mobile || "",
               relationship: deriveTravellerRelationship(
                 traveller,
                 applicationData.deal.travellers

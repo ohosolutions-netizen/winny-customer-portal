@@ -96,9 +96,20 @@ let zPayInstance = null;
         if (!isDealSaved()) return fail("Save the Deal first.");
         if (!applicationData.deal.travellers.every((t) => t.firstName && t.lastName)) return fail("Complete first and last name for every traveller.");
         if (!applicationData.deal.travellers.every((t) => String(t.dob || "").trim())) return fail("Enter the date of birth for every traveller.");
+        const invalidTravellerBirthDate = applicationData.deal.travellers.find((t) => validators.birthDate(t.dob));
+        if (invalidTravellerBirthDate) return fail("Every traveller's date of birth must be before today.");
         if (!applicationData.deal.travellers.every((t) => String(t.mobile || "").trim())) return fail("Enter the mobile number for every traveller.");
         const invalidTravellerMobile = applicationData.deal.travellers.find((t) => validators.phone(t.mobile));
         if (invalidTravellerMobile) return fail("Enter a valid mobile number for every traveller.");
+        const seenFamilies = new Set();
+        const familyPrimaryTravellers = applicationData.deal.travellers.filter((traveller) => {
+          const familyId = traveller.familyId || "family-1";
+          if (seenFamilies.has(familyId)) return false;
+          seenFamilies.add(familyId);
+          return true;
+        });
+        if (!familyPrimaryTravellers.every((traveller) => String(traveller.email || "").trim())) return fail("Enter the primary applicant email for every family.");
+        if (familyPrimaryTravellers.some((traveller) => validators.email(traveller.email))) return fail("Enter a valid primary applicant email for every family.");
       }
       if (step === 2) {
         const hasBasket = (applicationData.deal.serviceBasket || []).length > 0 || (applicationData.deal.selectedAddons || []).length > 0;

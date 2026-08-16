@@ -8,6 +8,13 @@ const DEFAULT_FAMILY_ID = "family-1";
 export default function TravellerList() {
   const travellers = applicationData.deal.travellers;
   const families = [];
+  const latestBirthDate = new Date();
+  latestBirthDate.setDate(latestBirthDate.getDate() - 1);
+  const latestBirthDateValue = [
+    latestBirthDate.getFullYear(),
+    String(latestBirthDate.getMonth() + 1).padStart(2, "0"),
+    String(latestBirthDate.getDate()).padStart(2, "0")
+  ].join("-");
 
   travellers.forEach((traveller, index) => {
     const familyId = traveller.familyId || DEFAULT_FAMILY_ID;
@@ -55,9 +62,9 @@ export default function TravellerList() {
                   <Field label="First Name" path={`deal.travellers.${index}.firstName`} type="text" placeholder="First name" required />
                   <Field label="Last Name" path={`deal.travellers.${index}.lastName`} type="text" placeholder="Last name" required />
                   <SelectField label="Traveller Type" path={`deal.travellers.${index}.type`} options={["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"]} />
-                  <Field label="Date of Birth" path={`deal.travellers.${index}.dob`} type="date" placeholder="" required />
+                  <Field label="Date of Birth" path={`deal.travellers.${index}.dob`} type="date" placeholder="" max={latestBirthDateValue} required />
                   <Field label="Nationality" path={`deal.travellers.${index}.nationality`} type="text" placeholder="Indian" />
-                  <Field label="Email" path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" />
+                  <Field label={memberIndex === 0 ? "Primary Applicant Email" : "Email"} path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" required={memberIndex === 0} />
                   <Field label="Mobile" path={`deal.travellers.${index}.mobile`} type="tel" placeholder="+91" required />
                 </div>
               </article>

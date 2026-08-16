@@ -25,11 +25,8 @@ export function commitField(path, el) {
   const isCheckbox = el.type === "checkbox";
 
   if (el.type === "date" && isBirthDateField(path) && el.value) {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    if (el.value > todayStr) {
-      el.value = todayStr;
-      toast("Date of birth cannot be in the future.");
-    }
+    const birthDateError = validators.birthDate(el.value);
+    if (birthDateError) toast(birthDateError);
   }
   if (el.type === "tel" && /mobile/i.test(path)) {
     const digitsOnly = el.value.replace(/\D/g, "").slice(0, 10);
