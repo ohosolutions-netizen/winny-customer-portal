@@ -22,6 +22,8 @@ import {
 } from "../api/portal.js";
 import { hasZohoTransport } from "../api/zoho.js";
 
+let applicationLoadSequence = 0;
+
     // ── purgeEmptyLocalDrafts ──
     function purgeEmptyLocalDrafts() {
       const indexKey = getDraftIndexKey();
@@ -364,6 +366,8 @@ applicationData.customer = mergeDeep(
 
     // ── openApplication ──
     async function openApplication(dealId, applicationId, options = {}) {
+      const loadSequence = ++applicationLoadSequence;
+      const stayOnDashboard = options.stayOnDashboard === true;
       saveDraft(false);
       const previousCustomer = mergeDeep({}, applicationData.customer || {});
       const previousSync = mergeDeep({}, applicationData.crmSync || {});
@@ -379,15 +383,21 @@ applicationData.customer = mergeDeep(
         applicationData.deal.dealSavedToCRM = true;
       }
 
+      // Card selection is optimistic: update the dashboard immediately while
+      // the complete CRM/Creator application is hydrated in the background.
+      if (stayOnDashboard) requestRender();
+
       if (dealId && hasZohoTransport()) {
-  showLoader("Loading complete application details...");
+  if (!stayOnDashboard) showLoader("Loading complete application details...");
 
   try {
     const details =
       await fetchApplicationDetailsViaPortalRequest(dealId);
 
+    if (loadSequence !== applicationLoadSequence) return;
     hydrateApplicationDetails(details);
   } catch (error) {
+    if (loadSequence !== applicationLoadSequence) return;
     console.warn(
       "[Winny] Complete application hydration failed:",
       error
@@ -398,9 +408,11 @@ applicationData.customer = mergeDeep(
      * where it happens to be available.
      */
     const deal = await findDealById(dealId);
+    if (loadSequence !== applicationLoadSequence) return;
     if (deal) hydrateDealFromCrm(deal);
 
     const travellers = await findTravellersForDeal(dealId);
+    if (loadSequence !== applicationLoadSequence) return;
     if (travellers.length) {
       hydrateTravellersFromCrm(travellers);
     }
@@ -410,10 +422,11 @@ applicationData.customer = mergeDeep(
       "Application details could not be completely refreshed."
     );
   } finally {
-    hideLoader();
+    if (!stayOnDashboard) hideLoader();
   }
 }
 
+      if (loadSequence !== applicationLoadSequence) return;
       state.dealSubStep = 1;
       state.activeCifCategory = null;
       state.activeCifTraveller = null;
@@ -422,7 +435,7 @@ applicationData.customer = mergeDeep(
       if (applicationData.deal.selectedServices.length) recalculatePayment();
       saveDraft(false);
       requestRender();
-      if (options.stayOnDashboard) return;
+      if (stayOnDashboard) return;
       showWizard();
       showStep(applicationData.currentStep || 1);
     }
