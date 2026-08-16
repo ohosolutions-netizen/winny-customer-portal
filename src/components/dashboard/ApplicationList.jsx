@@ -27,9 +27,12 @@ function ApplicationCard({ app }) {
   const progressPercent = Number.isFinite(Number(app.progressPercent))
     ? Math.max(0, Math.min(100, Number(app.progressPercent)))
     : 0;
+  const stageNameIndex = journeyStages.findIndex((stage) => stage === app.stage);
   const stageIndex = Number.isInteger(Number(app.stageIndex))
     ? Math.max(0, Math.min(journeyStages.length - 1, Number(app.stageIndex)))
-    : Math.max(0, Math.min(journeyStages.length - 1, Math.round(progressPercent / 20)));
+    : stageNameIndex >= 0
+      ? stageNameIndex
+      : Math.max(0, Math.min(journeyStages.length - 1, Math.round((progressPercent / 100) * (journeyStages.length - 1))));
   return (
     <article
       className={`application-card ${active ? "active" : ""}`}

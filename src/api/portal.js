@@ -804,17 +804,19 @@ const stale =
       const stage = readZohoValue(deal.Stage) || "In Progress";
       const normalizedStage = String(stage).toLowerCase();
       const stageIndex = /submitted|closed/.test(normalizedStage)
-        ? 5
+        ? 6
         : /review/.test(normalizedStage)
-          ? 4
+          ? 5
           : /case file|cif/.test(normalizedStage)
-            ? 3
-            : /case question|questionnaire/.test(normalizedStage)
-              ? 2
-              : isFullyPaidStatus(paymentStatus) || /payment complete/.test(normalizedStage)
-                ? 1
-                : 0;
-      const progressPercent = stageIndex === 5 ? 100 : stageIndex === 4 ? 80 : stageIndex >= 2 ? (stageIndex - 1) * 20 : stageIndex * 20;
+            ? 4
+            : /document submission|documents?/.test(normalizedStage)
+              ? 3
+              : /case question|questionnaire/.test(normalizedStage)
+                ? 2
+                : isFullyPaidStatus(paymentStatus) || /payment complete/.test(normalizedStage)
+                  ? 1
+                  : 0;
+      const progressPercent = Math.round((stageIndex / 6) * 100);
       return {
         source: "crm",
         dealId,

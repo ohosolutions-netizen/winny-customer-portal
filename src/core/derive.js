@@ -202,9 +202,9 @@ return [...byKey.values()]
         serviceType: incoming.serviceType || existing.serviceType || "",
         stage: incoming.stage || existing.stage || "",
         stageIndex: Number.isInteger(Number(incoming.stageIndex))
-          ? Math.max(0, Math.min(5, Number(incoming.stageIndex)))
+          ? Math.max(0, Math.min(journeyStages.length - 1, Number(incoming.stageIndex)))
           : Number.isInteger(Number(existing.stageIndex))
-            ? Math.max(0, Math.min(5, Number(existing.stageIndex)))
+            ? Math.max(0, Math.min(journeyStages.length - 1, Number(existing.stageIndex)))
             : 0,
         progressPercent: Number.isFinite(Number(incoming.progressPercent))
           ? Math.max(0, Math.min(100, Number(incoming.progressPercent)))
@@ -271,11 +271,12 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
       const complete = [
         data?.stepStatus?.dealCompleted,
         data?.stepStatus?.questionnaireCompleted,
+        data?.stepStatus?.questionnaireCompleted && Number(data?.currentStep || 1) >= 4,
         data?.stepStatus?.cifCompleted,
         Number(data?.currentStep || 1) >= 5 && data?.stepStatus?.cifCompleted,
         data?.stepStatus?.submitted
       ].filter(Boolean).length;
-      return Math.round((complete / 5) * 100);
+      return Math.round((complete / 6) * 100);
     }
 
     function getCompletionPercent() {
@@ -283,8 +284,9 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
     }
 
     function getApplicationJourneyStageIndex(data) {
-      if (data?.stepStatus?.submitted)              return 5;
-      if (data?.stepStatus?.cifCompleted)           return 4;
+      if (data?.stepStatus?.submitted)              return 6;
+      if (data?.stepStatus?.cifCompleted)           return 5;
+      if (data?.stepStatus?.questionnaireCompleted && Number(data?.currentStep || 1) >= 4) return 4;
       if (data?.stepStatus?.questionnaireCompleted) return 3;
       if (data?.stepStatus?.dealCompleted)          return 2;
       if (isFullyPaidStatus(data?.payment?.status)) return 1;
