@@ -1,0 +1,6 @@
+node_modules
+dist
+.widget-pack
+winny-portal-widget.zip
+*.log
+.DS_Store

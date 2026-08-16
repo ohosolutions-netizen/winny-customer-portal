@@ -1,0 +1,34 @@
+{
+  "service": "CREATOR",
+  "cspDomains": {
+    "connect-src": [
+      "https://www.zohoapis.com",
+      "https://payments.zoho.in",
+      "https://creator.zoho.com",
+      "https://creatorapp.zoho.com"
+    ],
+    "script-src": [
+      "https://static.zohocdn.com",
+      "https://js.zohostatic.com"
+    ],
+    "style-src": [
+      "https://fonts.googleapis.com"
+    ],
+    "font-src": [
+      "https://fonts.gstatic.com"
+    ],
+    "img-src": [
+      "data:",
+      "https://www.zohoapis.com"
+    ]
+  },
+  "modules": {
+    "widgets": [
+      {
+        "location": "/widget/index.html",
+        "name": "Winny Customer Portal",
+        "options": {}
+      }
+    ]
+  }
+}
