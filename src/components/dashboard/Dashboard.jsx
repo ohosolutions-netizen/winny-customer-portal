@@ -1,5 +1,5 @@
 import React from "react";
-import { applicationData } from "../../store/runtime.js";
+import { applicationData, state } from "../../store/runtime.js";
 import {
   hasApplicationInfo, getCurrentStage, getStageNote,
   isDocumentChecklistClear
@@ -13,10 +13,11 @@ import ApplicationList from "./ApplicationList.jsx";
 // faithful; markup/classes are unchanged.
 export default function Dashboard() {
   const hasInfo = hasApplicationInfo();
+  const waitingForApplications = state.applicationsLoading && !hasInfo;
 
-  const applicationId = hasInfo ? (applicationData.applicationId || "New") : "New";
-  const currentStage = hasInfo ? getCurrentStage() : "No application found";
-  const stageNote = hasInfo ? getStageNote() : "Add a new application to begin.";
+  const applicationId = waitingForApplications ? "Loading..." : hasInfo ? (applicationData.applicationId || "New") : "New";
+  const currentStage = waitingForApplications ? "Loading applications" : hasInfo ? getCurrentStage() : "No application found";
+  const stageNote = waitingForApplications ? "Retrieving your latest portal data." : hasInfo ? getStageNote() : "Add a new application to begin.";
   const cards = [
     { title: "Application & Payment", desc: "Create customer profile, add travellers, select package, accept terms, and record payment.", status: applicationData.stepStatus.dealCompleted ? "Complete" : "Open", locked: false, step: 1 },
     { title: "Questionnaire", desc: "Collect travel purpose, countries, inviter, family ties, funds, and immigration history.", status: applicationData.stepStatus.questionnaireCompleted ? "Complete" : applicationData.stepStatus.dealCompleted ? "Open" : "Locked", locked: !applicationData.stepStatus.dealCompleted, step: 2 },
@@ -52,7 +53,9 @@ export default function Dashboard() {
 
         <div className="journey-grid" id="journeyCards">
           <ApplicationList />
-          {hasInfo
+          {waitingForApplications
+            ? null
+            : hasInfo
             ? cards.map((card, index) => (
                 <article key={card.title} className={`journey-card ${card.locked ? "locked" : ""}`}>
                   <div className="journey-top">

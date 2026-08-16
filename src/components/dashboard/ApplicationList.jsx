@@ -1,5 +1,5 @@
 import React from "react";
-import { applicationData } from "../../store/runtime.js";
+import { applicationData, state } from "../../store/runtime.js";
 import { journeyStages } from "../../config/config.js";
 import { getApplicationCards, isFullyPaidStatus } from "../../core/derive.js";
 import {
@@ -118,6 +118,25 @@ function ApplicationCard({ app }) {
 // are no cards, matching the original's empty-string return.
 export default function ApplicationList() {
   const applications = getApplicationCards();
+  if (!applications.length && state.applicationsLoading) {
+    return (
+      <section className="application-section" aria-busy="true" aria-live="polite">
+        <div className="application-head">
+          <div>
+            <div className="eyebrow">Applications</div>
+            <h2>Your applications</h2>
+          </div>
+        </div>
+        <div className="application-loading-state">
+          <span className="application-loading-spinner" aria-hidden="true"></span>
+          <div>
+            <strong>Loading your applications...</strong>
+            <p>Retrieving the latest application details from your portal.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
   if (!applications.length) return null;
   return (
     <section className="application-section">

@@ -11,20 +11,25 @@ import { loadDynamicProducts } from "../api/products.js";
 import { loadPortalCustomerData } from "../api/portal.js";
 
 export async function bootstrap() {
-  loadDraft();
-  await initZoho();
-  state.isZohoReady = hasZohoTransport();
+  state.applicationsLoading = true;
+  try {
+    loadDraft();
+    await initZoho();
+    state.isZohoReady = hasZohoTransport();
 
-  const loggedInEmail = await getLoggedInEmail();
-  if (loggedInEmail) {
-    applicationData.crmSync.loggedInEmail = loggedInEmail;
-    if (!applicationData.customer.email) applicationData.customer.email = loggedInEmail;
+    const loggedInEmail = await getLoggedInEmail();
+    if (loggedInEmail) {
+      applicationData.crmSync.loggedInEmail = loggedInEmail;
+      if (!applicationData.customer.email) applicationData.customer.email = loggedInEmail;
+    }
+
+    await loadDynamicProducts();
+    await loadPortalCustomerData();
+
+    if (!state.autosaveTimer) state.autosaveTimer = setInterval(autoSave, 30000);
+    console.log("[Winny] Boot transport diagnostics:", getZohoTransportDiagnostics());
+    return { loggedInEmail, isZohoReady: state.isZohoReady };
+  } finally {
+    state.applicationsLoading = false;
   }
-
-  await loadDynamicProducts();
-  await loadPortalCustomerData();
-
-  if (!state.autosaveTimer) state.autosaveTimer = setInterval(autoSave, 30000);
-  console.log("[Winny] Boot transport diagnostics:", getZohoTransportDiagnostics());
-  return { loggedInEmail, isZohoReady: state.isZohoReady };
 }

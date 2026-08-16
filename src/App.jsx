@@ -16,7 +16,9 @@ function Bootstrapper() {
   useEffect(() => {
     if (started.current) return; // guard against a double-mount re-run
     started.current = true;
-    bootstrap().then(() => bump()).catch((e) => console.error("[Winny] boot failed", e));
+    bootstrap()
+      .catch((e) => console.error("[Winny] boot failed", e))
+      .finally(() => bump());
   }, [bump]);
   return null;
 }
