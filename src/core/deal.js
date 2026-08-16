@@ -9,7 +9,7 @@ import { CONFIG, packageCatalog } from "../config/config.js";
 import { applicationData, state, blankApplication, replaceApplicationData } from "../store/runtime.js";
 import { getByPath, setByPath, uid } from "../lib/utils.js";
 import { toast, markAutoSavePending, requestRender, openConfirmModal, fail } from "../lib/ui.js";
-import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship } from "./derive.js";
+import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isDealSaved } from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { showDashboard } from "./navigation.js";
 import { getAddonProducts } from "./catalog.js";
