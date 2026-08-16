@@ -13,7 +13,8 @@ import { toast, showLoader, hideLoader, openConfirmModal, requestRender, setAuto
 import {
   hasApplicationInfo, hasMeaningfulApplicationContent, getApplicationCardKey,
   normalizeApplicationTitle, isFullyPaidStatus, getApplicationCards,
-  recalculatePayment, syncCustomerToTraveller
+  recalculatePayment, syncCustomerToTraveller,
+  getApplicationCompletionPercent, getApplicationStage
 } from "./derive.js";
 import { showDashboard, showWizard, showStep } from "./navigation.js";
 import {
@@ -174,7 +175,8 @@ localStorage.setItem(indexKey, JSON.stringify(drafts));
         title: draft?.deal?.dealName || `${[draft?.customer?.firstName, draft?.customer?.lastName].filter(Boolean).join(" ") || "Draft"} - Application`,
         destination: draft?.deal?.destination || "",
         serviceType: (draft?.deal?.serviceBasket || []).map((item) => item.name).filter(Boolean).join(", "),
-        stage: draft?.stepStatus?.submitted ? "Submitted" : "In Progress",
+        stage: getApplicationStage(draft),
+        progressPercent: getApplicationCompletionPercent(draft),
         paymentStatus: draft?.payment?.status || "Pending",
         status: draft?.stepStatus?.submitted ? "Submitted" : "In Progress",
         lastSavedAt: draft?.lastSavedAt || ""

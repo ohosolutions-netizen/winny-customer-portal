@@ -1,13 +1,12 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
-import { steps, journeyStages } from "../../config/config.js";
+import { journeyStages } from "../../config/config.js";
 import {
-  hasApplicationInfo, getCompletionPercent, getCurrentStage, getStageNote,
-  getJourneyStageIndex, isFullyPaidStatus, isDocumentChecklistClear
+  hasApplicationInfo, getCurrentStage, getStageNote,
+  getJourneyStageIndex, isDocumentChecklistClear
 } from "../../core/derive.js";
 import { startNewApplication } from "../../core/drafts.js";
 import { showWizard, showStep } from "../../core/navigation.js";
-import { formatDateTime } from "../../lib/utils.js";
 import ApplicationList from "./ApplicationList.jsx";
 
 // Reproduces the static #dashboardView shell (source 1185-1231) + renderDashboard()
@@ -15,18 +14,11 @@ import ApplicationList from "./ApplicationList.jsx";
 // faithful; markup/classes are unchanged.
 export default function Dashboard() {
   const hasInfo = hasApplicationInfo();
-  const percent = hasInfo ? getCompletionPercent() : 0;
   const doneIndex = getJourneyStageIndex();
 
   const applicationId = hasInfo ? (applicationData.applicationId || "New") : "New";
   const currentStage = hasInfo ? getCurrentStage() : "No application found";
   const stageNote = hasInfo ? getStageNote() : "Add a new application to begin.";
-  const status = hasInfo
-    ? (applicationData.stepStatus.submitted ? "Submitted" : isFullyPaidStatus(applicationData.payment.status) ? "In Progress" : "Draft")
-    : "Not started";
-  const lastSaved = hasInfo ? (applicationData.lastSavedAt ? formatDateTime(applicationData.lastSavedAt) : "Not saved") : "Not saved";
-  const payment = hasInfo ? applicationData.payment.status : "Pending";
-
   const cards = [
     { title: "Application & Payment", desc: "Create customer profile, add travellers, select package, accept terms, and record payment.", status: applicationData.stepStatus.dealCompleted ? "Complete" : "Open", locked: false, step: 1 },
     { title: "Questionnaire", desc: "Collect travel purpose, countries, inviter, family ties, funds, and immigration history.", status: applicationData.stepStatus.questionnaireCompleted ? "Complete" : applicationData.stepStatus.dealCompleted ? "Open" : "Locked", locked: !applicationData.stepStatus.dealCompleted, step: 2 },
@@ -75,20 +67,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <div className="portal-hero">
+        <div className="portal-hero" style={{ gridTemplateColumns: "1fr" }}>
           <article className="hero-card">
             <span className="eyebrow">Guided application workspace</span>
             <h1>Your complete <span className="grad-text">Winny application journey</span></h1>
             <p>Track payment, answer case questions, complete your customer information file, and submit the final application from one secure Zoho Creator widget.</p>
-          </article>
-          <article className="progress-card card">
-            <div className="progress-top"><span>Completion</span><strong id="dashPercent">{percent}%</strong></div>
-            <div className="progress-bg"><div className="progress-fill" id="dashProgressBar" style={{ width: `${percent}%` }}></div></div>
-            <div className="progress-meta">
-              <div className="mini-row"><span>Status</span><strong id="dashStatus">{status}</strong></div>
-              <div className="mini-row"><span>Last saved</span><strong id="dashLastSaved">{lastSaved}</strong></div>
-              <div className="mini-row"><span>Payment</span><strong id="dashPayment">{payment}</strong></div>
-            </div>
           </article>
         </div>
 

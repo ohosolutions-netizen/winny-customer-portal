@@ -23,6 +23,9 @@ function ApplicationCard({ app }) {
     }
   };
   const statusClass = app.status === "Submitted" || isFullyPaidStatus(app.paymentStatus) ? "done" : "open";
+  const progressPercent = Number.isFinite(Number(app.progressPercent))
+    ? Math.max(0, Math.min(100, Number(app.progressPercent)))
+    : 0;
   return (
     <article
       className={`application-card ${active ? "active" : ""}`}
@@ -47,6 +50,22 @@ function ApplicationCard({ app }) {
         {app.stage ? <span>{app.stage}</span> : null}
       </div>
       <p>{app.serviceType || "Service selection pending"}</p>
+      <div className="application-progress">
+        <div className="progress-top" style={{ marginBottom: 7, fontSize: 12 }}>
+          <span>Application progress</span>
+          <strong>{progressPercent}%</strong>
+        </div>
+        <div
+          className="progress-bg"
+          role="progressbar"
+          aria-label={`${app.title || "Application"} progress`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progressPercent}
+        >
+          <div className="progress-fill" style={{ width: `${progressPercent}%` }}></div>
+        </div>
+      </div>
       <div className="application-actions">
         {!isFullyPaidStatus(app.paymentStatus) ? (
           <button

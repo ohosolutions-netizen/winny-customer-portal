@@ -201,6 +201,11 @@ return [...byKey.values()]
         destination: incoming.destination || existing.destination || "",
         serviceType: incoming.serviceType || existing.serviceType || "",
         stage: incoming.stage || existing.stage || "",
+        progressPercent: Number.isFinite(Number(incoming.progressPercent))
+          ? Math.max(0, Math.min(100, Number(incoming.progressPercent)))
+          : Number.isFinite(Number(existing.progressPercent))
+            ? Math.max(0, Math.min(100, Number(existing.progressPercent)))
+            : 0,
         paymentStatus: incoming.paymentStatus || existing.paymentStatus || "Pending",
         status: incoming.status || existing.status || "In Progress",
         lastSavedAt: incoming.lastSavedAt || existing.lastSavedAt || "",
@@ -221,6 +226,7 @@ return [...byKey.values()]
         destination: applicationData.deal.destination || "",
         serviceType: getSelectedServiceNames() || applicationData.deal.goal || "",
         stage: getCurrentStage(),
+        progressPercent: getCompletionPercent(),
         paymentStatus: applicationData.payment.status || "Pending",
         status: applicationData.stepStatus.submitted ? "Submitted" : "In Progress",
         lastSavedAt: applicationData.lastSavedAt || ""
@@ -255,27 +261,39 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
     }
 
     // ── progress / stage ──
-    function getCompletionPercent() {
+    function getApplicationCompletionPercent(data) {
       const complete = [
-        applicationData.stepStatus.dealCompleted,
-        applicationData.stepStatus.questionnaireCompleted,
-        applicationData.stepStatus.cifCompleted,
-        applicationData.currentStep >= 5 && applicationData.stepStatus.cifCompleted,
-        applicationData.stepStatus.submitted
+        data?.stepStatus?.dealCompleted,
+        data?.stepStatus?.questionnaireCompleted,
+        data?.stepStatus?.cifCompleted,
+        Number(data?.currentStep || 1) >= 5 && data?.stepStatus?.cifCompleted,
+        data?.stepStatus?.submitted
       ].filter(Boolean).length;
       return Math.round((complete / 5) * 100);
     }
 
-    function getJourneyStageIndex() {
-      if (applicationData.stepStatus.submitted)             return 5;
-      if (applicationData.stepStatus.cifCompleted)          return 4;
-      if (applicationData.stepStatus.questionnaireCompleted)return 3;
-      if (applicationData.stepStatus.dealCompleted)         return 2;
-      if (isFullyPaidStatus(applicationData.payment.status))return 1;
+    function getCompletionPercent() {
+      return getApplicationCompletionPercent(applicationData);
+    }
+
+    function getApplicationJourneyStageIndex(data) {
+      if (data?.stepStatus?.submitted)              return 5;
+      if (data?.stepStatus?.cifCompleted)           return 4;
+      if (data?.stepStatus?.questionnaireCompleted) return 3;
+      if (data?.stepStatus?.dealCompleted)          return 2;
+      if (isFullyPaidStatus(data?.payment?.status)) return 1;
       return 0;
     }
 
-    function getCurrentStage() { return journeyStages[getJourneyStageIndex()] || journeyStages[0]; }
+    function getJourneyStageIndex() {
+      return getApplicationJourneyStageIndex(applicationData);
+    }
+
+    function getApplicationStage(data) {
+      return journeyStages[getApplicationJourneyStageIndex(data)] || journeyStages[0];
+    }
+
+    function getCurrentStage() { return getApplicationStage(applicationData); }
 
     function getStageNote() {
       if (applicationData.stepStatus.submitted)             return "Application submitted to the case team.";
@@ -332,6 +350,7 @@ export {
   unhideCurrentApplication, getApplicationCards, getApplicationCardKey,
   mergeApplicationCard, normalizeApplicationTitle, applicationCardFromCurrent,
   hasApplicationInfo, hasMeaningfulApplicationContent, isDealSaved,
+  getApplicationCompletionPercent, getApplicationJourneyStageIndex, getApplicationStage,
   getCompletionPercent, getJourneyStageIndex, getCurrentStage, getStageNote,
   isStepLocked, isStepDone, documentStatusMeta, isDocumentChecklistClear
 };
