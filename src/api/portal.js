@@ -20,6 +20,7 @@ import {
   hasApplicationInfo, isFullyPaidStatus, syncCustomerToTraveller,
   getSelectedServiceNames, deriveTravellerRelationship
 } from "../core/derive.js";
+import { getGoalDefinition } from "../core/catalog.js";
 import {
   saveDraft, getDraftIndexKey, draftsToApplicationCards, loadApplicationDraftIndex
 } from "../core/drafts.js";
@@ -32,6 +33,10 @@ import {
 const requestEmail = isPortalReadRequest
   ? (applicationData.crmSync.loggedInEmail || applicationData.customer.email || "")
   : (applicationData.customer.email || applicationData.crmSync.loggedInEmail || "");
+      const selectedServiceType =
+        getGoalDefinition(applicationData.deal.serviceTypeKey || applicationData.deal.goal)?.label ||
+        applicationData.deal.goal ||
+        "";
       const payload = {
         customer: {
           ...applicationData.customer,
@@ -41,7 +46,8 @@ const requestEmail = isPortalReadRequest
         deal: {
           ...applicationData.deal,
           serviceNames:   getSelectedServiceNames(),
-          serviceType:    getSelectedServiceNames() || applicationData.deal.goal || "",
+          serviceType:    selectedServiceType,
+          Service_Type:   selectedServiceType,
           // Persist family membership separately from traveller CRM fields so
           // application hydration can rebuild the same family cards.
           travellerFamilyGroups: Object.fromEntries(
@@ -63,6 +69,8 @@ const requestEmail = isPortalReadRequest
               Date_of_Birth: traveller.dob || "",
               Email: traveller.email || "",
               Mobile: traveller.mobile || "",
+              serviceType: selectedServiceType,
+              Service_Type: selectedServiceType,
               relationship: deriveTravellerRelationship(
                 traveller,
                 applicationData.deal.travellers
@@ -917,6 +925,14 @@ const stale =
       if (appNo) applicationData.applicationId = appNo;
       applicationData.deal.dealName      = readZohoValue(deal.Deal_Name)      || applicationData.deal.dealName;
       applicationData.deal.destination   = readZohoValue(deal.Destination)    || applicationData.deal.destination;
+      const crmServiceType = readZohoValue(deal.Service_Type);
+      const crmGoal = getGoalDefinition(crmServiceType);
+      if (crmGoal) {
+        applicationData.deal.goal = crmGoal.label;
+        applicationData.deal.serviceTypeKey = crmGoal.key;
+      } else if (crmServiceType && !applicationData.deal.goal) {
+        applicationData.deal.goal = crmServiceType;
+      }
 const crmReceivableRaw =
   readZohoValue(deal.Amount_Receivable);
 
@@ -1025,7 +1041,8 @@ applicationData.stepStatus.dealCompleted =
           relationship: readZohoValue(row.Traveller_Relation) || "",
           nationality:  readZohoValue(row.Nationality)  || "Indian",
           email:        readZohoValue(row.Email)  || "",
-          mobile:       readZohoValue(row.Mobile) || ""
+          mobile:       readZohoValue(row.Mobile) || "",
+          serviceType:  readZohoValue(row.Service_Type) || applicationData.deal.goal || ""
         };
       });
     }

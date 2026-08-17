@@ -229,7 +229,7 @@ return [...byKey.values()]
         applicationId: applicationData.applicationId || "",
         title: applicationData.deal.dealName || `${getCustomerName() || "Application"} - Application`,
         destination: applicationData.deal.destination || "",
-        serviceType: getSelectedServiceNames() || applicationData.deal.goal || "",
+        serviceType: applicationData.deal.goal || getSelectedServiceNames() || "",
         stage: getCurrentStage(),
         stageIndex: getJourneyStageIndex(),
         progressPercent: getCompletionPercent(),

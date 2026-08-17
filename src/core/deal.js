@@ -12,7 +12,7 @@ import { toast, markAutoSavePending, requestRender, openConfirmModal, fail } fro
 import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isDealSaved } from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { showDashboard } from "./navigation.js";
-import { GOAL_DEFS, getAddonProducts, getGoalCountries } from "./catalog.js";
+import { GOAL_DEFS, getAddonProducts, getGoalCountries, getGoalDefinition } from "./catalog.js";
 
     // ── destination ↔ traveller country mapping ──
     function getDestinationCountries() {
@@ -199,8 +199,36 @@ function togglePackage(id) {
 
     // ─── GOAL TILE ACTIONS ────────────────────────────────────────────────────
 
+    function getSelectedServiceTypeKey() {
+      const direct = getGoalDefinition(applicationData.deal.serviceTypeKey || applicationData.deal.goal);
+      if (direct) return direct.key;
+      const firstBasketProduct = packageCatalog.find(product =>
+        (applicationData.deal.serviceBasket || []).some(item => item.pkgId === product.id)
+      );
+      return firstBasketProduct
+        ? (GOAL_DEFS.find(goal => goal.filter(firstBasketProduct))?.key || "")
+        : "";
+    }
+
     function setGoal(goalKey) {
-      state.activeGoal     = state.activeGoal === goalKey ? null : goalKey;
+      const goal = GOAL_DEFS.find(item => item.key === goalKey);
+      if (!goal) return;
+      const selectedGoalKey = getSelectedServiceTypeKey();
+      const hasBasketServices = (applicationData.deal.serviceBasket || []).length > 0;
+      if (selectedGoalKey && selectedGoalKey !== goalKey && hasBasketServices) {
+        return fail("Only one service type can be selected per application. Remove the current product packages before changing it.");
+      }
+      if (selectedGoalKey !== goalKey) {
+        applicationData.deal.serviceCountries = {};
+        applicationData.deal.serviceTypeKey = goalKey;
+        applicationData.deal.goal = goal.label;
+        syncDestinationFromServiceCountries();
+        markAutoSavePending();
+      } else {
+        applicationData.deal.serviceTypeKey = goalKey;
+        applicationData.deal.goal = goal.label;
+      }
+      state.activeGoal = state.activeGoal === goalKey ? null : goalKey;
       if (state.activeGoal) getGoalCountrySelection(goalKey);
       state.pendingPackageId  = null;
       state.pendingAssignedTo = [];
@@ -240,6 +268,9 @@ function togglePackage(id) {
       if (!pkg) return fail("Select a package first.");
       const assigned = state.pendingAssignedTo || [];
       if (!assigned.length) return fail("Assign at least one traveller to this service.");
+      if (!state.activeGoal || getSelectedServiceTypeKey() !== state.activeGoal) {
+        return fail("Select one service type before adding product packages.");
+      }
 
       if (!applicationData.deal.serviceBasket) applicationData.deal.serviceBasket = [];
 
@@ -373,7 +404,7 @@ export {
   syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
   toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
-  togglePackage, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
+  togglePackage, getSelectedServiceTypeKey, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
   addPendingToBasket, removeBasketItem, toggleAddon, setUSAAddons,
   ensurePrimaryTravellerFromCustomer, isPaymentConfirmed, resetDraft
 };

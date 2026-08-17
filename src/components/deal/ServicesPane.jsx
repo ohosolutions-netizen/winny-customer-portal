@@ -7,7 +7,7 @@ import {
   getProductCardTheme, getProductCardIcon, getProductCardBadge, getProductCardTagline, getProductFeeNote,
 } from "../../core/catalog.js";
 import {
-  setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
+  setGoal, closeGoal, getSelectedServiceTypeKey, selectPendingPackage, toggleAssignTraveller,
   getGoalCountrySelection, toggleGoalCountry,
   addPendingToBasket, removeBasketItem, toggleAddon,
 } from "../../core/deal.js";
@@ -15,17 +15,21 @@ import CountryTravellerMap from "./CountryTravellerMap.jsx";
 
 // Reproduces renderGoalTiles() (source 14075-14093).
 function GoalTiles() {
+  const selectedGoalKey = getSelectedServiceTypeKey();
+  const serviceTypeLocked = (applicationData.deal.serviceBasket || []).length > 0;
   return (
     <div className="service-goal-grid">
       {GOAL_DEFS.map((g) => {
         const active = state.activeGoal === g.key;
+        const chosen = selectedGoalKey === g.key;
+        const disabled = serviceTypeLocked && Boolean(selectedGoalKey) && !chosen;
         return (
-          <button key={g.key} className={`goal-tile ${active ? "active" : ""}`} type="button" onClick={() => setGoal(g.key)}
-            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 10px", border: `2px solid ${active ? "var(--blue)" : "var(--line)"}`, borderRadius: 14, background: active ? "var(--soft-blue)" : "#fff", cursor: "pointer", transition: "all .2s", textAlign: "center", minHeight: 100, position: "relative" }}>
+          <button key={g.key} className={`goal-tile ${active ? "active" : ""}${chosen ? " chosen" : ""}`} type="button" onClick={() => setGoal(g.key)} disabled={disabled}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 10px", border: `2px solid ${active || chosen ? "var(--blue)" : "var(--line)"}`, borderRadius: 14, background: active || chosen ? "var(--soft-blue)" : "#fff", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .48 : 1, transition: "all .2s", textAlign: "center", minHeight: 100, position: "relative" }}>
             <div style={{ fontSize: 26, marginBottom: 7 }}>{g.icon}</div>
             <div style={{ fontSize: 12.5, fontWeight: 800, color: active ? "var(--blue)" : "var(--navy)", lineHeight: 1.3 }}>{g.label}</div>
             <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 3 }}>{g.sub}</div>
-            {active ? <div style={{ position: "absolute", top: 6, right: 8, fontSize: 10, fontWeight: 900, color: "var(--blue)" }}>▼</div> : null}
+            {chosen ? <div style={{ position: "absolute", top: 6, right: 8, fontSize: 11, fontWeight: 900, color: "var(--blue)" }}>{active ? "▼" : "✓"}</div> : null}
           </button>
         );
       })}
@@ -284,10 +288,11 @@ export default function ServicesPane() {
   return (
     <section className="wizard-panel">
       <div className="panel-head">
-        <div><h3>Choose Services</h3><p>Select a service, choose its destination, then select the product package.</p></div>
+        <div><h3>Choose Services</h3><p>Choose one service type, then select multiple destinations and product packages within it.</p></div>
       </div>
       <div className="panel-body">
         <GoalTiles />
+        {(applicationData.deal.serviceBasket || []).length ? <div className="service-type-lock-note">The selected service type is locked while product packages remain in the basket.</div> : null}
         <ActiveGoalPanel />
         {hasDestinations ? (
           <div className="service-traveller-country-map">
