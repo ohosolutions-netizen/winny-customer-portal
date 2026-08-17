@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import { packageCatalog } from "../../config/config.js";
 import { formatCurrency } from "../../lib/utils.js";
@@ -8,13 +8,15 @@ import {
 } from "../../core/catalog.js";
 import {
   setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
+  getGoalCountrySelection, toggleGoalCountry,
   addPendingToBasket, removeBasketItem, toggleAddon,
 } from "../../core/deal.js";
+import CountryTravellerMap from "./CountryTravellerMap.jsx";
 
 // Reproduces renderGoalTiles() (source 14075-14093).
 function GoalTiles() {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 18 }}>
+    <div className="service-goal-grid">
       {GOAL_DEFS.map((g) => {
         const active = state.activeGoal === g.key;
         return (
@@ -27,6 +29,66 @@ function GoalTiles() {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function CountrySelector({ goal }) {
+  const [showOther, setShowOther] = useState(false);
+  if (goal.countryMode === "none") {
+    return (
+      <div className="service-flow-note">
+        <span>🌐</span>
+        <span>This service is available online and does not require a destination.</span>
+      </div>
+    );
+  }
+
+  const selected = getGoalCountrySelection(goal.key);
+  const selectedOther = goal.otherCountries.filter(item => selected.includes(item));
+  const selectCountry = (country) => toggleGoalCountry(goal.key, country);
+
+  return (
+    <div className="service-country-step">
+      <div className="service-flow-heading">
+        <div>
+          <strong>{goal.icon} {goal.label} — {goal.countryMode === "multiple" ? "Select destinations" : "Choose destination"}</strong>
+          <small>{goal.countryMode === "multiple" ? "Select every country needed for this application." : "Choose a country to see its available product packages."}</small>
+        </div>
+      </div>
+      <div className="service-country-grid">
+        {goal.featuredCountries.map(item => {
+          const active = selected.includes(item.name);
+          return (
+            <button key={item.name} type="button" className={`service-country-card${active ? " active" : ""}`} onClick={() => selectCountry(item.name)}>
+              <span className="service-country-code">{item.code}</span>
+              <span>{item.name}</span>
+              {active ? <b>✓</b> : null}
+            </button>
+          );
+        })}
+        {goal.otherCountries.length ? (
+          <button type="button" className={`service-country-card other${showOther || selectedOther.length ? " active" : ""}`} onClick={() => setShowOther(value => !value)}>
+            <span className="service-country-code">🌍</span>
+            <span>Other</span>
+            <small>{goal.otherCountries.length} more</small>
+          </button>
+        ) : null}
+      </div>
+      {showOther ? (
+        <div className="service-other-country">
+          <label htmlFor={`other-country-${goal.key}`}>Other country</label>
+          <select id={`other-country-${goal.key}`} value="" onChange={(event) => { if (event.target.value) selectCountry(event.target.value); }}>
+            <option value="">— Select country —</option>
+            {goal.otherCountries.map(item => <option key={item} value={item}>{selected.includes(item) ? `✓ ${item}` : item}</option>)}
+          </select>
+          {selectedOther.length ? (
+            <div className="service-country-tags">
+              {selectedOther.map(item => <button key={item} type="button" onClick={() => selectCountry(item)}>{item} ×</button>)}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -129,9 +191,10 @@ function ActiveGoalPanel() {
     );
   }
   const goal = GOAL_DEFS.find((g) => g.key === state.activeGoal);
-  const products = getGoalProducts(state.activeGoal);
+  const selectedCountries = getGoalCountrySelection(state.activeGoal);
+  const countryReady = goal.countryMode === "none" || selectedCountries.length > 0;
+  const products = countryReady ? getGoalProducts(state.activeGoal, selectedCountries) : [];
   const travellers = applicationData.deal.travellers;
-  if (!products.length) return <div style={{ padding: 20, textAlign: "center", color: "var(--muted)" }}>No packages found for this category.</div>;
   return (
     <div style={{ border: "1.5px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 14, animation: "fadeUp .2s ease" }}>
       <div style={{ padding: "14px 18px", background: "#fafbff", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -139,13 +202,25 @@ function ActiveGoalPanel() {
         <button className="btn" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => closeGoal()}>✕ Close</button>
       </div>
       <div style={{ padding: 18 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
-          {products.map((pkg) => <ProductTileCard key={pkg.id} pkg={pkg} />)}
-        </div>
-        {state.pendingPackageId ? <ApplicantAssignment /> : null}
-        {state.pendingPackageId && travellers.length ? (
-          <div style={{ textAlign: "right", marginTop: 12 }}>
-            <button className="btn primary" type="button" style={{ display: "inline-flex", alignItems: "center", gap: 8 }} onClick={() => addPendingToBasket()}>➕ Add to basket →</button>
+        <CountrySelector goal={goal} />
+        {countryReady ? (
+          <div className="service-package-step">
+            <div className="service-flow-heading">
+              <div><strong>Product packages</strong><small>Choose the package that best fits this application.</small></div>
+            </div>
+            {products.length ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
+                {products.map((pkg) => <ProductTileCard key={pkg.id} pkg={pkg} />)}
+              </div>
+            ) : (
+              <div className="service-empty-packages">No product package is currently mapped to this service and destination.</div>
+            )}
+            {state.pendingPackageId ? <ApplicantAssignment /> : null}
+            {state.pendingPackageId && travellers.length ? (
+              <div style={{ textAlign: "right", marginTop: 12 }}>
+                <button className="btn primary" type="button" style={{ display: "inline-flex", alignItems: "center", gap: 8 }} onClick={() => addPendingToBasket()}>➕ Add to basket →</button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         <AddonSection />
@@ -182,6 +257,7 @@ function ServiceBasket() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13.5, fontWeight: 800 }}>{item.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>{item.applicants}</div>
+              {item.destinations?.length ? <div style={{ fontSize: 11, color: "var(--blue)", marginTop: 3 }}>📍 {item.destinations.join(", ")}</div> : null}
             </div>
             <div style={{ fontWeight: 900, color: "var(--blue)", fontSize: 14 }}>{formatCurrency(item.total)}</div>
             <button type="button" onClick={() => removeBasketItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>✕</button>
@@ -204,14 +280,21 @@ function ServiceBasket() {
 
 // Reproduces renderDealPane() sub-step 2 (source 2612-2622).
 export default function ServicesPane() {
+  const hasDestinations = Boolean(applicationData.deal.destination);
   return (
     <section className="wizard-panel">
       <div className="panel-head">
-        <div><h3>Choose Services</h3><p>Pick your goal — then select a package. Each service is added to your invoice.</p></div>
+        <div><h3>Choose Services</h3><p>Select a service, choose its destination, then select the product package.</p></div>
       </div>
       <div className="panel-body">
         <GoalTiles />
         <ActiveGoalPanel />
+        {hasDestinations ? (
+          <div className="service-traveller-country-map">
+            <div className="service-flow-heading"><div><strong>Traveller assignment by country</strong><small>Choose which travellers are applying to each selected destination.</small></div></div>
+            <CountryTravellerMap />
+          </div>
+        ) : null}
         <ServiceBasket />
       </div>
     </section>

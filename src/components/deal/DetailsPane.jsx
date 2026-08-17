@@ -3,9 +3,7 @@ import { applicationData } from "../../store/runtime.js";
 import { isDealSaved } from "../../core/derive.js";
 import { saveDealDetails } from "../../api/deal.js";
 import { Field } from "../fields/Field.jsx";
-import MultiSelectCountry from "../fields/MultiSelectCountry.jsx";
 import TravellerList from "./TravellerList.jsx";
-import CountryTravellerMap from "./CountryTravellerMap.jsx";
 import { CoordinatorList, AuthorisationList } from "./CoordinatorSection.jsx";
 
 // Reproduces renderDealPane() sub-step 1 (source 2550-2610).
@@ -33,7 +31,6 @@ export default function DetailsPane() {
             <Field label="Email Address" path="customer.email" type="email" placeholder="your@email.com" required />
             <Field label="Mobile" path="customer.mobile" type="tel" placeholder="+91 98200 00000" required />
             <Field label="Nationality" path="customer.nationality" type="text" placeholder="Indian" />
-            <MultiSelectCountry label="Destination *" path="deal.destination" />
           </div>
           {dealSaved ? null : (
             <div style={{ marginTop: 16 }}>
@@ -48,11 +45,6 @@ export default function DetailsPane() {
         <div className="panel-body">
           <TravellerList />
         </div>
-      </section>
-
-      <section className={`wizard-panel ${dealSaved ? "" : "hidden"}`}>
-        <div className="panel-head"><div><h3>🌍 Traveller ↔ Country Assignment</h3><p>For each destination country, tick which travellers are applying to it. A traveller can be assigned to more than one country.</p></div></div>
-        <div className="panel-body"><CountryTravellerMap /></div>
       </section>
 
       <section className={`wizard-panel ${dealSaved ? "" : "hidden"}`}>

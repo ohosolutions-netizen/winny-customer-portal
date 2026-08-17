@@ -4,19 +4,58 @@
 import { packageCatalog } from "../config/config.js";
 import { applicationData, state } from "../store/runtime.js";
 
+    const country = (name, code) => ({ name, code });
+
     const GOAL_DEFS = [
-      { key: "visit",    icon: "✈️",  label: "Visit & Travel",      sub: "UK, USA, Schengen...",   filter: (p) => /schengen|europe tourism|documented|usa.*b1.*b2|visitor/i.test(productSearchText(p)) },
-      { key: "work",     icon: "💼",  label: "Work Abroad",          sub: "Germany GOC, OWP...",    filter: (p) => /goc|work permit|owp/i.test(productSearchText(p)) },
-      { key: "pr",       icon: "🏠",  label: "Permanent Residency",  sub: "Australia, Canada...",   filter: (p) => /australia pr|canada pr/i.test(productSearchText(p)) },
-      { key: "coaching", icon: "📚",  label: "Coaching & Language",  sub: "IELTS, German, PTE...",  filter: (p) => /ielts|german language|pte|toefl|interview prep/i.test(productSearchText(p)) }
+      {
+        key: "study", icon: "🎓", label: "Study Abroad", sub: "Canada, UK, AUS...", countryMode: "single",
+        featuredCountries: [country("Canada", "CA"), country("United States", "US"), country("United Kingdom", "GB"), country("New Zealand", "NZ"), country("Spain", "ES"), country("Germany", "DE"), country("Malta", "MT"), country("France", "FR")],
+        otherCountries: ["Australia", "Ireland", "Italy", "Netherlands", "Finland", "Sweden", "Denmark", "Switzerland", "United Arab Emirates", "Singapore", "Malaysia", "Japan", "South Korea", "Cyprus", "Poland", "Hungary", "Czech Republic", "Portugal"],
+        filter: (p) => /study|student|admission|university|college|scholar|education/i.test(productSearchText(p))
+      },
+      {
+        key: "work", icon: "💼", label: "Work & Career", sub: "Germany, GOC...", countryMode: "single",
+        featuredCountries: [country("Germany", "DE")],
+        otherCountries: ["Canada", "Australia", "United Kingdom", "New Zealand", "United Arab Emirates", "United States"],
+        filter: (p) => /goc|opportunity card|work permit|owp|nurse|career|job seeker|ausbildung/i.test(productSearchText(p))
+      },
+      {
+        key: "pr", icon: "🏠", label: "Permanent Residency", sub: "Australia, Canada", countryMode: "single",
+        featuredCountries: [country("Australia", "AU"), country("Canada", "CA")],
+        otherCountries: ["New Zealand", "Germany", "United Kingdom", "United States", "Portugal"],
+        filter: (p) => /\bpr\b|permanent residen|express entry|nomination|migration/i.test(productSearchText(p))
+      },
+      {
+        key: "visit", icon: "✈️", label: "Visit & Travel", sub: "UK, US, Schengen...", countryMode: "multiple",
+        featuredCountries: [country("United States", "US"), country("Canada", "CA"), country("United Kingdom", "GB"), country("Australia", "AU"), country("New Zealand", "NZ"), country("Schengen", "EU"), country("China", "CN"), country("United Arab Emirates", "AE")],
+        otherCountries: ["Japan", "South Korea", "Singapore", "Malaysia", "Thailand", "Vietnam", "Indonesia", "Turkey", "South Africa", "Egypt", "Saudi Arabia"],
+        filter: (p) => /schengen|europe tourism|documented|usa.*b1.*b2|visitor|visit visa|tourist/i.test(productSearchText(p))
+      },
+      {
+        key: "coaching", icon: "📚", label: "Coaching", sub: "IELTS, PTE, TOEFL...", countryMode: "none",
+        featuredCountries: [], otherCountries: [],
+        filter: (p) => /ielts|german language|pte|toefl|language training|coaching/i.test(productSearchText(p))
+      }
     ];
 
     const ADDON_DEFS = ["Priority Processing within 7 Business Days","Visa Refusal Insurance","Specific Location","USA Priority Date Booking","Interview Preparation (5 Sessions)"];
 
-    function getGoalProducts(goalKey) {
+    function getGoalProducts(goalKey, selectedCountries = []) {
       const def = GOAL_DEFS.find(g => g.key === goalKey);
       if (!def) return [];
-      return packageCatalog.filter(p => def.filter(p) && p.category !== "Add on");
+      const selected = Array.isArray(selectedCountries) ? selectedCountries.filter(Boolean) : [selectedCountries].filter(Boolean);
+      return packageCatalog.filter((p) => {
+        if (!def.filter(p) || (p.category === "Add on" && goalKey !== "coaching")) return false;
+        if (def.countryMode === "none" || !selected.length) return true;
+        const supported = getProductCountries(p);
+        return !supported.length || selected.some((selectedCountry) => supported.some((supportedCountry) => countriesMatch(selectedCountry, supportedCountry)));
+      });
+    }
+
+    function getGoalCountries(goalKey) {
+      const def = GOAL_DEFS.find(g => g.key === goalKey);
+      if (!def) return [];
+      return [...def.featuredCountries.map(item => item.name), ...def.otherCountries];
     }
 
     function productSearchText(product) {
@@ -25,13 +64,57 @@ import { applicationData, state } from "../store/runtime.js";
         product.category,
         product.alias,
         product.code,
+        ...(product.destinations || []),
         ...(product.tags || [])
       ].filter(Boolean).join(" ");
+    }
+
+    const COUNTRY_SEARCH_ALIASES = {
+      "United States": ["united states", "usa", "u.s.a", "us", "b1/b2", "b1 b2"],
+      "United Kingdom": ["united kingdom", "uk", "u.k."],
+      "United Arab Emirates": ["united arab emirates", "uae", "dubai"],
+      "New Zealand": ["new zealand", "nz"],
+      "South Korea": ["south korea", "korea"],
+      "Schengen": ["schengen", "europe tourism"],
+      "Australia": ["australia"],
+      "Canada": ["canada"],
+      "Germany": ["germany", "goc", "opportunity card", "ausbildung"],
+      "China": ["china"],
+      "Spain": ["spain"],
+      "Malta": ["malta"],
+      "France": ["france"]
+    };
+
+    function normalizeCountry(value) {
+      return String(value || "").trim().toLowerCase().replace(/[.]/g, "").replace(/\s+/g, " ");
+    }
+
+    function countriesMatch(left, right) {
+      const a = normalizeCountry(left);
+      const b = normalizeCountry(right);
+      if (a === b) return true;
+      return Object.entries(COUNTRY_SEARCH_ALIASES).some(([canonical, aliases]) => {
+        const values = [canonical, ...aliases].map(normalizeCountry);
+        return values.includes(a) && values.includes(b);
+      });
+    }
+
+    function getProductCountries(product) {
+      const explicit = Array.isArray(product.destinations) ? product.destinations.filter(Boolean) : [];
+      if (explicit.length) return explicit;
+      const text = ` ${productSearchText(product).toLowerCase()} `;
+      return Object.entries(COUNTRY_SEARCH_ALIASES)
+        .filter(([, aliases]) => aliases.some(alias => {
+          const escaped = alias.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(text);
+        }))
+        .map(([canonical]) => canonical);
     }
 
     function getAddonProducts() {
       return packageCatalog.filter(p => {
         const text = productSearchText(p).toLowerCase();
+        if (/ielts|german language|pte|toefl|language training|coaching/.test(text) && !/interview/.test(text)) return false;
         return p.category === "Add on" || ADDON_DEFS.some(n => text.includes(n.slice(0,10).toLowerCase()));
       });
     }
@@ -103,7 +186,7 @@ import { applicationData, state } from "../store/runtime.js";
     }
 
 export {
-  GOAL_DEFS, ADDON_DEFS, getGoalProducts, productSearchText, getAddonProducts,
+  GOAL_DEFS, ADDON_DEFS, getGoalProducts, getGoalCountries, getProductCountries, countriesMatch, productSearchText, getAddonProducts,
   getProductDescriptionBullets, getProductDescriptionLines, getProductCardTheme,
   getProductCardIcon, getProductCardBadge, getProductCardTagline, getProductFeeNote
 };

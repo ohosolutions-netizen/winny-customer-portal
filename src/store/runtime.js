@@ -21,6 +21,7 @@ export const blankApplication = () => ({
       deal: {
         crmDealId: "", crmContactId: "", dealName: "", dealSavedToCRM: false,
         destination: "", goal: "",
+        serviceCountries: {},
         travellers: [],   // ← empty until deal saved; primary applicant seeded on save
         selectedServices: [], serviceBasket: [], selectedAddons: [],
         termsAccepted: false, signature: "",

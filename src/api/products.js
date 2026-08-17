@@ -175,7 +175,27 @@ return getResponseRows(res);
         });
       }
       const alias = String(productValue("Product_Alias", "Product Alias", "Alias_Subcategory", "Alias Subcategory") || "").trim();
-      const tags = [category, alias, code].filter(Boolean);
+      const destinationText = String(productValue(
+        "Destination_Countries",
+        "Destination Countries",
+        "Destinations",
+        "Countries",
+        "Country",
+        "Destination"
+      ) || "").trim();
+      const destinations = destinationText
+        .split(/[,;|]/)
+        .map(value => value.trim())
+        .filter(Boolean);
+      const serviceType = String(productValue(
+        "Service_Type",
+        "Service Type",
+        "Service_Category",
+        "Service Category",
+        "Service",
+        "Goal"
+      ) || "").trim();
+      const tags = [category, alias, code, serviceType, ...destinations].filter(Boolean);
 
       return {
         id: crmId || creatorId,
@@ -187,6 +207,8 @@ return getResponseRows(res);
         desc,
         code,
         alias,
+        serviceType,
+        destinations,
         tags
       };
     }
@@ -194,7 +216,7 @@ return getResponseRows(res);
     function normalizeProductCategory(value) {
       const raw = String(value || "").trim();
       if (!raw) return "Package";
-      if (/add[\s-]?on|addon|priority|interview|coaching|ielts|pte|toefl/i.test(raw)) return "Add on";
+      if (/add[\s-]?on|addon|priority|interview/i.test(raw)) return "Add on";
       return raw;
     }
 

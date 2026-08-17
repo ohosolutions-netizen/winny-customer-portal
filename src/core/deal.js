@@ -12,7 +12,7 @@ import { toast, markAutoSavePending, requestRender, openConfirmModal, fail } fro
 import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isDealSaved } from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { showDashboard } from "./navigation.js";
-import { getAddonProducts } from "./catalog.js";
+import { GOAL_DEFS, getAddonProducts, getGoalCountries } from "./catalog.js";
 
     // ── destination ↔ traveller country mapping ──
     function getDestinationCountries() {
@@ -75,6 +75,46 @@ import { getAddonProducts } from "./catalog.js";
         countries: [],
         crmId: ""
       };
+    }
+
+    function getGoalCountrySelection(goalKey) {
+      if (!applicationData.deal.serviceCountries || typeof applicationData.deal.serviceCountries !== "object") {
+        applicationData.deal.serviceCountries = {};
+      }
+      if (!Array.isArray(applicationData.deal.serviceCountries[goalKey])) {
+        const allowed = new Set(getGoalCountries(goalKey));
+        applicationData.deal.serviceCountries[goalKey] = getDestinationCountries().filter(country => allowed.has(country));
+      }
+      return applicationData.deal.serviceCountries[goalKey];
+    }
+
+    function syncDestinationFromServiceCountries() {
+      const selections = applicationData.deal.serviceCountries || {};
+      const basketCountries = (applicationData.deal.serviceBasket || []).flatMap(item => item.destinations || []);
+      const countries = [...new Set([...Object.values(selections).flat(), ...basketCountries].filter(Boolean))];
+      applicationData.deal.destination = countries.join(", ");
+      applicationData.stepStatus.cifCompleted = false;
+      state.activeCifInstance = null;
+      state.activeCifStage = null;
+      reconcileTravellerCountries();
+    }
+
+    function toggleGoalCountry(goalKey, country) {
+      const goal = GOAL_DEFS.find(item => item.key === goalKey);
+      if (!goal || goal.countryMode === "none") return;
+      const selected = getGoalCountrySelection(goalKey);
+      if (goal.countryMode === "multiple") {
+        applicationData.deal.serviceCountries[goalKey] = selected.includes(country)
+          ? selected.filter(item => item !== country)
+          : [...selected, country];
+      } else {
+        applicationData.deal.serviceCountries[goalKey] = selected.includes(country) ? [] : [country];
+      }
+      state.pendingPackageId = null;
+      state.pendingAssignedTo = [];
+      syncDestinationFromServiceCountries();
+      markAutoSavePending();
+      requestRender();
     }
 
     function addTraveller(familyId = DEFAULT_FAMILY_ID) {
@@ -161,6 +201,7 @@ function togglePackage(id) {
 
     function setGoal(goalKey) {
       state.activeGoal     = state.activeGoal === goalKey ? null : goalKey;
+      if (state.activeGoal) getGoalCountrySelection(goalKey);
       state.pendingPackageId  = null;
       state.pendingAssignedTo = [];
       requestRender();
@@ -214,7 +255,8 @@ function togglePackage(id) {
         applicants: travNames,
         assignedTo: [...assigned],
         price:      pkg.price,
-        total:      pkg.price * assigned.length
+        total:      pkg.price * assigned.length,
+        destinations: state.activeGoal ? [...getGoalCountrySelection(state.activeGoal)] : []
       });
 
       // Keep selectedServices in sync (for Deluge payload)
@@ -224,6 +266,8 @@ function togglePackage(id) {
 
       state.pendingPackageId  = null;
       state.pendingAssignedTo = [];
+
+      syncDestinationFromServiceCountries();
 
       recalculatePayment();
       requestRender();
@@ -243,6 +287,7 @@ function togglePackage(id) {
           applicationData.deal.selectedServices = applicationData.deal.selectedServices.filter(id => id !== item.pkgId);
         }
       }
+      syncDestinationFromServiceCountries();
       recalculatePayment();
       requestRender();
       markAutoSavePending();
@@ -324,7 +369,8 @@ function togglePackage(id) {
 }
 
 export {
-  getDestinationCountries, reconcileTravellerCountries, applyTravellerCrmIds,
+  getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection,
+  syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
   toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
   togglePackage, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
