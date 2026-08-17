@@ -16,13 +16,12 @@ import CountryTravellerMap from "./CountryTravellerMap.jsx";
 // Reproduces renderGoalTiles() (source 14075-14093).
 function GoalTiles() {
   const selectedGoalKey = getSelectedServiceTypeKey();
-  const serviceTypeLocked = (applicationData.deal.serviceBasket || []).length > 0;
   return (
     <div className="service-goal-grid">
       {GOAL_DEFS.map((g) => {
         const active = state.activeGoal === g.key;
         const chosen = selectedGoalKey === g.key;
-        const disabled = serviceTypeLocked && Boolean(selectedGoalKey) && !chosen;
+        const disabled = Boolean(selectedGoalKey) && !chosen;
         return (
           <button key={g.key} className={`goal-tile ${active ? "active" : ""}${chosen ? " chosen" : ""}`} type="button" onClick={() => setGoal(g.key)} disabled={disabled}
             style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 10px", border: `2px solid ${active || chosen ? "var(--blue)" : "var(--line)"}`, borderRadius: 14, background: active || chosen ? "var(--soft-blue)" : "#fff", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .48 : 1, transition: "all .2s", textAlign: "center", minHeight: 100, position: "relative" }}>
@@ -285,6 +284,9 @@ function ServiceBasket() {
 // Reproduces renderDealPane() sub-step 2 (source 2612-2622).
 export default function ServicesPane() {
   const hasDestinations = Boolean(applicationData.deal.destination);
+  const selectedGoalKey = getSelectedServiceTypeKey();
+  const selectedGoal = GOAL_DEFS.find(goal => goal.key === selectedGoalKey);
+  const hasBasketServices = (applicationData.deal.serviceBasket || []).length > 0;
   return (
     <section className="wizard-panel">
       <div className="panel-head">
@@ -292,7 +294,13 @@ export default function ServicesPane() {
       </div>
       <div className="panel-body">
         <GoalTiles />
-        {(applicationData.deal.serviceBasket || []).length ? <div className="service-type-lock-note">The selected service type is locked while product packages remain in the basket.</div> : null}
+        {selectedGoal ? (
+          <div className="service-type-lock-note">
+            {hasBasketServices
+              ? `${selectedGoal.label} is selected. Remove its product packages before deselecting it.`
+              : `${selectedGoal.label} is selected. Click it again to deselect and enable the other service types.`}
+          </div>
+        ) : null}
         <ActiveGoalPanel />
         {hasDestinations ? (
           <div className="service-traveller-country-map">

@@ -215,23 +215,34 @@ function togglePackage(id) {
       if (!goal) return;
       const selectedGoalKey = getSelectedServiceTypeKey();
       const hasBasketServices = (applicationData.deal.serviceBasket || []).length > 0;
-      if (selectedGoalKey && selectedGoalKey !== goalKey && hasBasketServices) {
-        return fail("Only one service type can be selected per application. Remove the current product packages before changing it.");
+      if (selectedGoalKey && selectedGoalKey !== goalKey) {
+        return fail("Deselect the current service type before choosing another one.");
       }
-      if (selectedGoalKey !== goalKey) {
+      if (selectedGoalKey === goalKey) {
+        if (hasBasketServices) {
+          return fail("Remove the current product packages before deselecting this service type.");
+        }
         applicationData.deal.serviceCountries = {};
-        applicationData.deal.serviceTypeKey = goalKey;
-        applicationData.deal.goal = goal.label;
+        applicationData.deal.serviceTypeKey = "";
+        applicationData.deal.goal = "";
         syncDestinationFromServiceCountries();
+        state.activeGoal = null;
+        state.pendingPackageId = null;
+        state.pendingAssignedTo = [];
         markAutoSavePending();
-      } else {
-        applicationData.deal.serviceTypeKey = goalKey;
-        applicationData.deal.goal = goal.label;
+        requestRender();
+        return;
       }
-      state.activeGoal = state.activeGoal === goalKey ? null : goalKey;
-      if (state.activeGoal) getGoalCountrySelection(goalKey);
+
+      applicationData.deal.serviceCountries = {};
+      applicationData.deal.serviceTypeKey = goalKey;
+      applicationData.deal.goal = goal.label;
+      syncDestinationFromServiceCountries();
+      state.activeGoal = goalKey;
+      getGoalCountrySelection(goalKey);
       state.pendingPackageId  = null;
       state.pendingAssignedTo = [];
+      markAutoSavePending();
       requestRender();
     }
 
