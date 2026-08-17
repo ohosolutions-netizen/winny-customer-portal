@@ -36,11 +36,12 @@
 .terms-status { border-radius: 999px; flex: 0 0 auto; font-size: 11px; font-weight: 900; padding: 6px 10px; }
 .terms-status.pending { background: #fff4d9; color: #8a5b00; }
 .terms-status.complete { background: #e4f9f2; color: #007d65; }
-.terms-document { border: 1px solid #dce5f4; border-radius: 11px; margin-top: 14px; overflow: hidden; }
-.terms-document summary { align-items: center; background: #f5f8ff; color: var(--navy); cursor: pointer; display: flex; font-size: 13px; font-weight: 850; justify-content: space-between; padding: 12px 14px; }
-.terms-document summary b { background: #e3efff; border-radius: 999px; color: #0869d7; font-size: 9px; margin-right: 6px; padding: 4px 7px; text-transform: uppercase; }
-.terms-document summary small { color: var(--muted); font-size: 10px; font-weight: 600; }
-.terms-document-content { border-top: 1px solid #dce5f4; color: var(--ink); font-size: 13px; line-height: 1.75; max-height: 420px; overflow-y: auto; padding: 22px 25px; }
+.terms-document { border: 1px solid #cfdced; border-radius: 11px; margin-top: 14px; overflow: hidden; }
+.terms-document-head { align-items: center; background: #edf5ff; border-bottom: 1px solid #cfdced; color: var(--navy); display: flex; font-size: 13px; font-weight: 850; justify-content: space-between; padding: 12px 14px; }
+.terms-document-head b { background: #d9ebff; border-radius: 999px; color: #0869d7; font-size: 9px; margin-right: 6px; padding: 4px 7px; text-transform: uppercase; }
+.terms-document-head small { color: #087f64; font-size: 10px; font-weight: 800; }
+.terms-document-guidance { background: #fffbea; border-bottom: 1px solid #eee3ba; color: #725a12; font-size: 10px; font-weight: 700; padding: 8px 14px; }
+.terms-document-content { color: var(--ink); font-size: 13px; line-height: 1.75; max-height: 340px; min-height: 210px; overflow-y: auto; padding: 20px 24px; scrollbar-color: #9eb4ce #eef3f8; scrollbar-width: thin; }
 .terms-document-loading, .terms-no-adult { color: var(--muted); padding: 22px; text-align: center; }
 .terms-document-loading { align-items: center; display: flex; flex-direction: column; gap: 7px; }
 .terms-document-loading > span { font-size: 25px; }
@@ -69,5 +70,5 @@
   .terms-overview-progress { align-items: baseline; flex-direction: row; gap: 5px; justify-content: flex-start; }
   .terms-instructions { grid-template-columns: 1fr; }
   .terms-total { text-align: left; }
-  .terms-document summary { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .terms-document-head { align-items: flex-start; flex-direction: column; gap: 5px; }
 }

@@ -171,13 +171,16 @@ export default function TermsPane() {
                         </span>
                       </div>
 
-                      <details className="terms-document" defaultOpen={!complete}>
-                        <summary>
+                      <div className="terms-document">
+                        <div className="terms-document-head">
                           <span><b>Step 1</b> Read {requirement.country} agreement</span>
-                          <small>{agreementHtml ? "Agreement ready — click to open or close" : "Preparing agreement…"}</small>
-                        </summary>
+                          <small>{agreementHtml ? "✓ Agreement loaded" : "Preparing agreement…"}</small>
+                        </div>
                         {agreementHtml ? (
-                          <div className="terms-document-content" dangerouslySetInnerHTML={{ __html: agreementHtml }} />
+                          <>
+                            <div className="terms-document-guidance">Read the agreement below. Scroll inside the document to review all terms before signing.</div>
+                            <div className="terms-document-content" dangerouslySetInnerHTML={{ __html: agreementHtml }} />
+                          </>
                         ) : (
                           <div className="terms-document-loading">
                             <span>📄</span>
@@ -186,7 +189,7 @@ export default function TermsPane() {
                             <button className="btn secondary" type="button" onClick={() => fetchAgreement()}>Retry loading agreement</button>
                           </div>
                         )}
-                      </details>
+                      </div>
 
                       {!requirement.eligibleAdults.length ? (
                         <div className="terms-no-adult">
