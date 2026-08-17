@@ -383,11 +383,22 @@ function hydrateApplicationDetails(details) {
     if (traveller.crmId) existingFamilyByCrmId.set(String(traveller.crmId), traveller.familyId);
   });
 
-  const savedPayload =
-    details.savedPayload &&
-    typeof details.savedPayload === "object"
-      ? details.savedPayload
-      : {};
+  const savedPayloadSource =
+    details.savedPayload ??
+    details.saved_payload ??
+    details.Payload ??
+    details.payload ??
+    {};
+  const parsedSavedPayload = typeof savedPayloadSource === "string"
+    ? safeJsonParse(savedPayloadSource)
+    : savedPayloadSource;
+  const savedPayload = parsedSavedPayload && typeof parsedSavedPayload === "object"
+    ? parsedSavedPayload
+    : {};
+
+  if (savedPayload.applicationId) {
+    applicationData.applicationId = String(savedPayload.applicationId);
+  }
 
   // Restore the complete snapshot stored during Payment Complete.
   if (savedPayload.customer) {
@@ -495,7 +506,9 @@ function hydrateApplicationDetails(details) {
     }
 
     if (Number.isFinite(balance)) {
-      applicationData.payment.balanceAmount = balance;
+      const normalizedBalance = Math.max(balance, 0);
+      applicationData.payment.balanceAmount = normalizedBalance;
+      applicationData.payment.crmBalanceAmount = normalizedBalance;
     }
 
     if (Number.isFinite(requested) && requested > 0) {
@@ -954,10 +967,10 @@ const hasCrmNumber = (value) =>
   String(value).trim() !== "" &&
   Number.isFinite(Number(value));
 
-if (hasCrmNumber(crmReceivableRaw)) {
+if (hasCrmNumber(crmReceivableRaw) && Number(crmReceivableRaw) > 0) {
   applicationData.payment.grandTotal =
     Number(crmReceivableRaw);
-} else if (hasCrmNumber(crmAmountRaw)) {
+} else if (hasCrmNumber(crmAmountRaw) && Number(crmAmountRaw) > 0) {
   applicationData.payment.grandTotal =
     Number(crmAmountRaw);
 }
@@ -968,7 +981,7 @@ if (hasCrmNumber(crmPaidRaw)) {
 }
 
 if (hasCrmNumber(crmBalanceRaw)) {
-  const crmBalance = Number(crmBalanceRaw);
+  const crmBalance = Math.max(Number(crmBalanceRaw), 0);
 
   applicationData.payment.balanceAmount =
     crmBalance;
@@ -989,6 +1002,33 @@ if (hasCrmNumber(crmBalanceRaw)) {
 
   applicationData.payment.crmBalanceAmount =
     calculatedBalance;
+}
+
+// Older CRM records can contain Amount/Amount Receivable = 0 while retaining
+// the successful Amount Received. Preserve the saved payment snapshot when it
+// exists; otherwise infer a non-negative total so a paid application never
+// renders as ₹0 total with a negative balance.
+if (
+  Number(applicationData.payment.grandTotal || 0) <= 0 &&
+  Number(applicationData.payment.paidAmount || 0) > 0
+) {
+  applicationData.payment.grandTotal =
+    Number(applicationData.payment.paidAmount || 0) +
+    Math.max(Number(applicationData.payment.crmBalanceAmount || 0), 0);
+}
+
+if (
+  !(applicationData.deal.serviceBasket || []).length &&
+  Number(applicationData.payment.baseCost || 0) <= 0 &&
+  Number(applicationData.payment.grandTotal || 0) > 0
+) {
+  const addons = Math.max(Number(applicationData.payment.addons || 0), 0);
+  const subtotal = Math.round(Number(applicationData.payment.grandTotal) / 1.18);
+  applicationData.payment.baseCost = Math.max(subtotal - addons, 0);
+  applicationData.payment.taxes = Math.max(
+    Number(applicationData.payment.grandTotal) - subtotal,
+    0
+  );
 }
 
 if (hasCrmNumber(crmRequestedRaw)) {

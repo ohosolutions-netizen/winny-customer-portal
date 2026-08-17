@@ -222,6 +222,20 @@ return getResponseRows(res);
 
     function pruneUnavailableProductSelections() {
       const availableIds = new Set(packageCatalog.map(p => p.id));
+      const paymentStatus = String(applicationData.payment.status || "").trim().toLowerCase();
+      const hasRecordedPayment =
+        Number(applicationData.payment.paidAmount || 0) > 0 ||
+        paymentStatus === "paid" ||
+        paymentStatus === "partially paid";
+      // A paid basket is historical transaction data. Keep it even if a
+      // product is later disabled, removed, or returned under a different ID.
+      if (hasRecordedPayment) {
+        if (state.pendingPackageId && !availableIds.has(state.pendingPackageId)) {
+          state.pendingPackageId = null;
+          state.pendingAssignedTo = [];
+        }
+        return;
+      }
       applicationData.deal.selectedServices = (applicationData.deal.selectedServices || []).filter(id => availableIds.has(id));
       applicationData.deal.selectedAddons = (applicationData.deal.selectedAddons || []).filter(id => availableIds.has(id));
       applicationData.deal.serviceBasket = (applicationData.deal.serviceBasket || []).filter(item => availableIds.has(item.pkgId));

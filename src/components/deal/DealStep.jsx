@@ -12,7 +12,9 @@ function PricingSummary() {
   const paidAmount = Number(applicationData.payment.paidAmount || 0);
   const crmBalance = applicationData.payment.crmBalanceAmount;
   const hasCrmBalance = crmBalance !== null && crmBalance !== undefined && String(crmBalance).trim() !== "" && Number.isFinite(Number(crmBalance));
-  const remainingAmount = hasCrmBalance ? Number(crmBalance) : Math.max(Number(applicationData.payment.grandTotal || 0) - paidAmount, 0);
+  const remainingAmount = hasCrmBalance
+    ? Math.max(Number(crmBalance), 0)
+    : Math.max(Number(applicationData.payment.grandTotal || 0) - paidAmount, 0);
   return (
     <div id="pricingSummary">
       <div className="summary-row"><span>Base Cost</span><strong>{formatCurrency(applicationData.payment.baseCost)}</strong></div>
