@@ -329,9 +329,18 @@ Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
 </div>`;
       }
 
-      // Split destination into individual countries (multiselect is comma-separated)
-      const destinations = (d.destination || "")
-        .split(",").map(s => s.trim()).filter(Boolean);
+      // Traveller assignments are the source of truth for country-specific terms.
+      // Older drafts may only have the comma-separated destination, so retain it
+      // as a fallback when no traveller-country assignment is available.
+      const travellerDestinations = (d.travellers || [])
+        .flatMap((traveller) => traveller.countries || [])
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+      const destinations = [...new Set(
+        travellerDestinations.length
+          ? travellerDestinations
+          : (d.destination || "").split(",").map((item) => item.trim()).filter(Boolean)
+      )];
 
       const hasUSADate = d.usaDateBooking;
       const hasPremium = d.premiumVisaInterview;

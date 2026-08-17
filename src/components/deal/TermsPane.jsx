@@ -28,6 +28,22 @@ function agreementDetails(country, hasUSADate, hasPremium) {
   return { name: "USA Visitor Visa Agreement_Non refundable.docx", label: "USA Visitor Visa Agreement (Non-Refundable)" };
 }
 
+function normalizeCountryKey(country) {
+  const key = String(country || "").trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (["us", "usa", "unitedstates", "unitedstatesofamerica"].includes(key)) return "unitedstates";
+  if (["uk", "gb", "greatbritain", "unitedkingdom"].includes(key)) return "unitedkingdom";
+  return key;
+}
+
+function agreementForCountry(agreementMap, country, requirementCount) {
+  if (agreementMap[country]) return agreementMap[country];
+  const wantedKey = normalizeCountryKey(country);
+  const matchedKey = Object.keys(agreementMap).find((key) => normalizeCountryKey(key) === wantedKey);
+  if (matchedKey) return agreementMap[matchedKey];
+  if (requirementCount === 1) return applicationData.deal.agreementHtml || "";
+  return "";
+}
+
 export default function TermsPane() {
   const requirements = getTermsRequirements();
   const agreementMap = applicationData.deal.agreementHtmlByCountry || {};
@@ -35,9 +51,15 @@ export default function TermsPane() {
   const hasPremium = !!applicationData.deal.premiumVisaInterview;
   const hasUSA = requirements.some((requirement) => isUSACountry(requirement.country));
   const countriesKey = [...new Set(requirements.map((requirement) => requirement.country))].join("|");
+  const completedCount = requirements.filter((requirement) => {
+    const record = getTermsAcceptance(requirement);
+    return record.acceptorId && record.accepted && String(record.signature || "").trim();
+  }).length;
 
   useEffect(() => {
-    const missingAgreement = requirements.some((requirement) => !agreementMap[requirement.country]);
+    const missingAgreement = requirements.some((requirement) =>
+      !agreementForCountry(agreementMap, requirement.country, requirements.length)
+    );
     if (missingAgreement || !applicationData.deal.agreementHtml) fetchAgreement();
     // Agreement generation is synchronous; dependencies refresh country and USA variants.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,6 +86,23 @@ export default function TermsPane() {
       </div>
 
       <div className="panel-body">
+        <div className="terms-overview">
+          <div className="terms-overview-copy">
+            <span className="terms-overview-kicker">How to complete this page</span>
+            <h4>Complete one agreement for each family and country</h4>
+            <p>Follow the same three steps in every country card below.</p>
+          </div>
+          <div className="terms-overview-progress">
+            <strong>{completedCount} of {requirements.length}</strong>
+            <span>agreements completed</span>
+          </div>
+          <ol className="terms-instructions">
+            <li><span>1</span><div><strong>Read</strong><small>Review the country agreement</small></div></li>
+            <li><span>2</span><div><strong>Choose</strong><small>Select one eligible adult</small></div></li>
+            <li><span>3</span><div><strong>Sign &amp; accept</strong><small>Type the name and confirm</small></div></li>
+          </ol>
+        </div>
+
         {hasUSA ? (
           <div className="terms-usa-options">
             <div className="notice blue">
@@ -111,8 +150,12 @@ export default function TermsPane() {
                 {family.requirements.map((requirement) => {
                   const record = getTermsAcceptance(requirement);
                   const document = agreementDetails(requirement.country, hasUSADate, hasPremium);
-                  const agreementHtml = agreementMap[requirement.country] || "";
+                  const agreementHtml = agreementForCountry(agreementMap, requirement.country, requirements.length);
                   const complete = !!(record.acceptorId && record.accepted && String(record.signature || "").trim());
+                  const applicantNames = requirement.travellers
+                    .map((traveller) => `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim())
+                    .filter(Boolean)
+                    .join(", ");
 
                   return (
                     <article className={`terms-country-card${complete ? " is-complete" : ""}`} key={requirement.key}>
@@ -121,21 +164,27 @@ export default function TermsPane() {
                           <span className="terms-country-kicker">Country-specific agreement</span>
                           <h5>{requirement.country}</h5>
                           <small>{document.label}</small>
+                          {applicantNames ? <small className="terms-applicants">Applicants: {applicantNames}</small> : null}
                         </div>
                         <span className={`terms-status ${complete ? "complete" : "pending"}`}>
                           {complete ? "✓ Accepted" : "Pending"}
                         </span>
                       </div>
 
-                      <details className="terms-document">
+                      <details className="terms-document" defaultOpen={!complete}>
                         <summary>
-                          <span>📜 Read {requirement.country} agreement</span>
-                          <small>Template: {document.name}</small>
+                          <span><b>Step 1</b> Read {requirement.country} agreement</span>
+                          <small>{agreementHtml ? "Agreement ready — click to open or close" : "Preparing agreement…"}</small>
                         </summary>
                         {agreementHtml ? (
                           <div className="terms-document-content" dangerouslySetInnerHTML={{ __html: agreementHtml }} />
                         ) : (
-                          <div className="terms-document-loading">Loading the {requirement.country} agreement…</div>
+                          <div className="terms-document-loading">
+                            <span>📄</span>
+                            <strong>The agreement could not be displayed yet.</strong>
+                            <small>Please retry. Your selections and traveller information will not be changed.</small>
+                            <button className="btn secondary" type="button" onClick={() => fetchAgreement()}>Retry loading agreement</button>
+                          </div>
                         )}
                       </details>
 
@@ -145,6 +194,10 @@ export default function TermsPane() {
                         </div>
                       ) : (
                         <div className="terms-acceptance-fields">
+                          <div className="terms-action-heading">
+                            <span>Step 2</span>
+                            <div><strong>Choose the adult acceptor</strong><small>One adult accepts for this family and country.</small></div>
+                          </div>
                           <label className="field">
                             <span>Adult terms acceptor <em>*</em></span>
                             <select value={record.acceptorId || ""} onChange={(event) => setTermsAcceptor(requirement, event.target.value)}>
@@ -157,7 +210,7 @@ export default function TermsPane() {
                           </label>
 
                           <label className="field">
-                            <span>Full legal name (signature) <em>*</em></span>
+                            <span><b>Step 3</b> Full legal name (signature) <em>*</em></span>
                             <input
                               type="text"
                               value={record.signature || ""}
@@ -167,11 +220,11 @@ export default function TermsPane() {
                             />
                           </label>
 
-                          <label className={`check-row terms-accept-check${!record.acceptorId ? " disabled" : ""}`}>
+                          <label className={`check-row terms-accept-check${!record.acceptorId || !String(record.signature || "").trim() ? " disabled" : ""}`}>
                             <input
                               type="checkbox"
                               checked={!!record.accepted}
-                              disabled={!record.acceptorId}
+                              disabled={!record.acceptorId || !String(record.signature || "").trim()}
                               onChange={(event) => setTermsAccepted(requirement, event.target.checked)}
                             />
                             <span>
