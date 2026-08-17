@@ -54,6 +54,12 @@ import { GOAL_DEFS, getAddonProducts, getGoalCountries, getGoalDefinition } from
       if (!Array.isArray(t.countries)) t.countries = [];
       if (checked) { if (!t.countries.includes(country)) t.countries.push(country); }
       else { t.countries = t.countries.filter((c) => c !== country); }
+      if (state.pendingPackageId && state.activeGoal) {
+        const activeGoal = GOAL_DEFS.find(goal => goal.key === state.activeGoal);
+        if (activeGoal?.countryMode !== "none") {
+          state.pendingAssignedTo = getAssignedTravellerIdsForGoal(state.activeGoal);
+        }
+      }
       markAutoSavePending();
     }
 
@@ -86,6 +92,13 @@ import { GOAL_DEFS, getAddonProducts, getGoalCountries, getGoalDefinition } from
         applicationData.deal.serviceCountries[goalKey] = getDestinationCountries().filter(country => allowed.has(country));
       }
       return applicationData.deal.serviceCountries[goalKey];
+    }
+
+    function getAssignedTravellerIdsForGoal(goalKey) {
+      const selectedCountries = getGoalCountrySelection(goalKey);
+      return applicationData.deal.travellers
+        .filter(traveller => selectedCountries.some(country => (traveller.countries || []).includes(country)))
+        .map(traveller => traveller.id);
     }
 
     function syncDestinationFromServiceCountries() {
@@ -268,8 +281,12 @@ function togglePackage(id) {
         state.pendingAssignedTo = [];
       } else {
         state.pendingPackageId  = id;
-        // Default: assign all travellers
-        state.pendingAssignedTo = applicationData.deal.travellers.map(t => t.id);
+        const activeGoal = GOAL_DEFS.find(goal => goal.key === state.activeGoal);
+        // Country-based services reuse the single traveller ↔ country assignment.
+        // Coaching has no destination, so it keeps the direct package picker.
+        state.pendingAssignedTo = activeGoal?.countryMode === "none"
+          ? applicationData.deal.travellers.map(t => t.id)
+          : getAssignedTravellerIdsForGoal(state.activeGoal);
       }
       requestRender();
     }
@@ -286,7 +303,12 @@ function togglePackage(id) {
       const pkg = packageCatalog.find(p => p.id === state.pendingPackageId);
       if (!pkg) return fail("Select a package first.");
       const assigned = state.pendingAssignedTo || [];
-      if (!assigned.length) return fail("Assign at least one traveller to this service.");
+      const activeGoal = GOAL_DEFS.find(goal => goal.key === state.activeGoal);
+      if (!assigned.length) {
+        return fail(activeGoal?.countryMode === "none"
+          ? "Select at least one traveller before adding this package."
+          : "Assign at least one traveller to a selected destination before adding this package.");
+      }
       if (!state.activeGoal || getSelectedServiceTypeKey() !== state.activeGoal) {
         return fail("Select one service type before adding product packages.");
       }
@@ -419,7 +441,7 @@ function togglePackage(id) {
 }
 
 export {
-  getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection,
+  getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getAssignedTravellerIdsForGoal,
   syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
   toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,

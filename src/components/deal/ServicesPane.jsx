@@ -125,6 +125,34 @@ function ApplicantAssignment() {
   const pkg = packageCatalog.find((p) => p.id === state.pendingPackageId);
   if (!pkg) return null;
   const assigned = state.pendingAssignedTo || [];
+  const activeGoal = GOAL_DEFS.find(goal => goal.key === state.activeGoal);
+  if (activeGoal?.countryMode !== "none") {
+    const assignedTravellers = travellers.filter(traveller => assigned.includes(traveller.id));
+    return (
+      <div className={`package-assignment-summary${assignedTravellers.length ? " ready" : " missing"}`}>
+        <div>
+          <strong>👥 Travellers included in this package</strong>
+          <small>Automatically taken from the country assignment above—no second selection is needed.</small>
+        </div>
+        {assignedTravellers.length ? (
+          <>
+            <div className="package-assignment-names">
+              {assignedTravellers.map((traveller, index) => {
+                const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || traveller.type || `Traveller ${index + 1}`;
+                return <span key={traveller.id}>✓ {name}</span>;
+              })}
+            </div>
+            <div className="package-assignment-total">
+              <span>{assignedTravellers.length} traveller{assignedTravellers.length !== 1 ? "s" : ""} × {formatCurrency(pkg.price)}</span>
+              <strong>{formatCurrency(pkg.price * assignedTravellers.length)}</strong>
+            </div>
+          </>
+        ) : (
+          <div className="package-assignment-warning">Assign at least one traveller to a destination above to add this package.</div>
+        )}
+      </div>
+    );
+  }
   return (
     <div style={{ border: "1.5px solid var(--teal)", borderRadius: 12, background: "var(--soft-teal)", padding: 14, marginTop: 14 }}>
       <div style={{ fontSize: 13, fontWeight: 900, color: "#07766a", marginBottom: 10 }}>
@@ -208,24 +236,32 @@ function ActiveGoalPanel() {
       <div style={{ padding: 18 }}>
         <CountrySelector goal={goal} />
         {countryReady ? (
-          <div className="service-package-step">
-            <div className="service-flow-heading">
-              <div><strong>Product packages</strong><small>Choose the package that best fits this application.</small></div>
-            </div>
-            {products.length ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
-                {products.map((pkg) => <ProductTileCard key={pkg.id} pkg={pkg} />)}
-              </div>
-            ) : (
-              <div className="service-empty-packages">No product package is currently mapped to this service and destination.</div>
-            )}
-            {state.pendingPackageId ? <ApplicantAssignment /> : null}
-            {state.pendingPackageId && travellers.length ? (
-              <div style={{ textAlign: "right", marginTop: 12 }}>
-                <button className="btn primary" type="button" style={{ display: "inline-flex", alignItems: "center", gap: 8 }} onClick={() => addPendingToBasket()}>➕ Add to basket →</button>
+          <>
+            {goal.countryMode !== "none" ? (
+              <div className="service-traveller-country-map integrated">
+                <div className="service-flow-heading"><div><strong>Assign travellers to destinations</strong><small>Select travellers once here. The same assignment is used automatically when calculating each package.</small></div></div>
+                <CountryTravellerMap />
               </div>
             ) : null}
-          </div>
+            <div className="service-package-step">
+              <div className="service-flow-heading">
+                <div><strong>Product packages</strong><small>Choose the package that best fits this application.</small></div>
+              </div>
+              {products.length ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
+                  {products.map((pkg) => <ProductTileCard key={pkg.id} pkg={pkg} />)}
+                </div>
+              ) : (
+                <div className="service-empty-packages">No product package is currently mapped to this service and destination.</div>
+              )}
+              {state.pendingPackageId ? <ApplicantAssignment /> : null}
+              {state.pendingPackageId && travellers.length ? (
+                <div style={{ textAlign: "right", marginTop: 12 }}>
+                  <button className="btn primary" type="button" disabled={!state.pendingAssignedTo?.length} style={{ display: "inline-flex", alignItems: "center", gap: 8, opacity: state.pendingAssignedTo?.length ? 1 : .5, cursor: state.pendingAssignedTo?.length ? "pointer" : "not-allowed" }} onClick={() => addPendingToBasket()}>➕ Add to basket →</button>
+                </div>
+              ) : null}
+            </div>
+          </>
         ) : null}
         <AddonSection />
       </div>
@@ -285,7 +321,6 @@ export function ServiceBasket({ compact = false }) {
 
 // Reproduces renderDealPane() sub-step 2 (source 2612-2622).
 export default function ServicesPane() {
-  const hasDestinations = Boolean(applicationData.deal.destination);
   const selectedGoalKey = getSelectedServiceTypeKey();
   const selectedGoal = GOAL_DEFS.find(goal => goal.key === selectedGoalKey);
   const hasBasketServices = (applicationData.deal.serviceBasket || []).length > 0;
@@ -307,12 +342,6 @@ export default function ServicesPane() {
           </div>
         ) : null}
         <ActiveGoalPanel />
-        {hasDestinations ? (
-          <div className="service-traveller-country-map">
-            <div className="service-flow-heading"><div><strong>Traveller assignment by country</strong><small>Choose which travellers are applying to each selected destination.</small></div></div>
-            <CountryTravellerMap />
-          </div>
-        ) : null}
       </div>
     </section>
   );
