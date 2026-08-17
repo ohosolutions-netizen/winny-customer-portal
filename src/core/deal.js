@@ -215,12 +215,20 @@ function togglePackage(id) {
       if (!goal) return;
       const selectedGoalKey = getSelectedServiceTypeKey();
       const hasBasketServices = (applicationData.deal.serviceBasket || []).length > 0;
+      const hasSelectedAddons = (applicationData.deal.selectedAddons || []).length > 0;
       if (selectedGoalKey && selectedGoalKey !== goalKey) {
         return fail("Deselect the current service type before choosing another one.");
       }
       if (selectedGoalKey === goalKey) {
-        if (hasBasketServices) {
-          return fail("Remove the current product packages before deselecting this service type.");
+        if ((hasBasketServices || hasSelectedAddons) && blockPaidServiceChange()) {
+          return;
+        }
+        if (hasBasketServices || hasSelectedAddons) {
+          applicationData.deal.serviceBasket = [];
+          applicationData.deal.selectedServices = [];
+          applicationData.deal.selectedAddons = [];
+          recalculatePayment();
+          toast(`${goal.label} and its unpaid basket items were removed.`);
         }
         applicationData.deal.serviceCountries = {};
         applicationData.deal.serviceTypeKey = "";

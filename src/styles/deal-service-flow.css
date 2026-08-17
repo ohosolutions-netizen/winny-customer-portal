@@ -21,6 +21,10 @@
   font-weight: 700;
 }
 
+.summary-service-basket {
+  margin: 0 0 18px !important;
+}
+
 .service-flow-heading {
   display: flex;
   align-items: center;

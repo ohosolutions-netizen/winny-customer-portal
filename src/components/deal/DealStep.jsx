@@ -3,7 +3,7 @@ import { applicationData, state } from "../../store/runtime.js";
 import { formatCurrency } from "../../lib/utils.js";
 import { goDealSubStep } from "../../api/deal.js";
 import DetailsPane from "./DetailsPane.jsx";
-import ServicesPane from "./ServicesPane.jsx";
+import ServicesPane, { ServiceBasket } from "./ServicesPane.jsx";
 import TermsPane from "./TermsPane.jsx";
 import PaymentPane from "./PaymentPane.jsx";
 
@@ -65,6 +65,7 @@ export default function DealStep() {
           </div>
           {sub !== 3 ? (
             <aside className="summary-card">
+              <ServiceBasket compact />
               <h3>Pricing Summary</h3>
               <PricingSummary />
               <div className="grand-total"><span>Total</span><strong id="summaryTotal">{formatCurrency(applicationData.payment.grandTotal)}</strong></div>

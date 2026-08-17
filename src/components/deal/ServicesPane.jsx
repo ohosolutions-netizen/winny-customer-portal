@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import { packageCatalog } from "../../config/config.js";
 import { formatCurrency } from "../../lib/utils.js";
+import { isFullyPaidStatus } from "../../core/derive.js";
 import {
   GOAL_DEFS, getGoalProducts, getAddonProducts, getProductDescriptionBullets,
   getProductCardTheme, getProductCardIcon, getProductCardBadge, getProductCardTagline, getProductFeeNote,
@@ -233,23 +234,24 @@ function ActiveGoalPanel() {
 }
 
 // Reproduces renderServiceBasket() (source 14310-14352).
-function ServiceBasket() {
+export function ServiceBasket({ compact = false }) {
   const basket = applicationData.deal.serviceBasket || [];
   const addons = applicationData.deal.selectedAddons || [];
   const addonItems = getAddonProducts().filter((a) => addons.includes(a.id));
+  const paid = isFullyPaidStatus(applicationData.payment.status);
   if (!basket.length && !addonItems.length) {
     return (
-      <div style={{ textAlign: "center", padding: 20, border: "2px dashed #d0daf0", borderRadius: 14, color: "var(--muted)" }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🌍</div>
+      <div className={compact ? "summary-service-basket" : ""} style={{ textAlign: "center", padding: compact ? 14 : 20, border: "2px dashed #d0daf0", borderRadius: 14, color: "var(--muted)" }}>
+        <div style={{ fontSize: compact ? 22 : 28, marginBottom: 8 }}>🛒</div>
         <div style={{ fontWeight: 800, fontSize: 13, color: "var(--ink)" }}>Your basket is empty</div>
-        <div style={{ fontSize: 12, marginTop: 4 }}>Select a package above and assign travellers to add to basket</div>
+        <div style={{ fontSize: 12, marginTop: 4 }}>Select a package and assign travellers to add it here</div>
       </div>
     );
   }
   const total = basket.reduce((s, i) => s + i.total, 0) + addonItems.reduce((s, a) => s + a.price, 0);
   const count = basket.length + addonItems.length;
   return (
-    <div style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginTop: 4 }}>
+    <div className={compact ? "summary-service-basket" : ""} style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginTop: 4 }}>
       <div style={{ padding: "12px 16px", background: "linear-gradient(135deg,var(--navy),#2a2060)", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 14, fontWeight: 900 }}>🗺️ Your Service Basket</div>
         <div style={{ fontSize: 11.5, color: "rgba(255,255,255,.5)" }}>{count} item{count !== 1 ? "s" : ""}</div>
@@ -263,19 +265,19 @@ function ServiceBasket() {
               {item.destinations?.length ? <div style={{ fontSize: 11, color: "var(--blue)", marginTop: 3 }}>📍 {item.destinations.join(", ")}</div> : null}
             </div>
             <div style={{ fontWeight: 900, color: "var(--blue)", fontSize: 14 }}>{formatCurrency(item.total)}</div>
-            <button type="button" onClick={() => removeBasketItem(item.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>✕</button>
+            <button type="button" onClick={() => removeBasketItem(item.id)} disabled={paid} title={paid ? "Paid services cannot be removed" : "Remove this package"} aria-label={`Remove ${item.name}`} style={{ background: "none", border: "none", cursor: paid ? "not-allowed" : "pointer", opacity: paid ? .4 : 1, color: "var(--muted)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>✕</button>
           </div>
         ))}
         {addonItems.map((a) => (
           <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid #f0f3f9" }}>
             <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 700 }}>{a.name}</div><div style={{ fontSize: 11, color: "var(--muted)" }}>Add-on</div></div>
             <div style={{ fontWeight: 900, color: "var(--blue)" }}>{formatCurrency(a.price)}</div>
-            <button type="button" onClick={() => toggleAddon(a.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>✕</button>
+            <button type="button" onClick={() => toggleAddon(a.id)} disabled={paid} title={paid ? "Paid add-ons cannot be removed" : "Remove this add-on"} aria-label={`Remove ${a.name}`} style={{ background: "none", border: "none", cursor: paid ? "not-allowed" : "pointer", opacity: paid ? .4 : 1, color: "var(--muted)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>✕</button>
           </div>
         ))}
       </div>
       <div style={{ padding: "12px 16px", background: "#f4f6fb", borderTop: "2px solid var(--line)", display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: 15, color: "var(--navy)" }}>
-        <span>Basket total (excl. GST)</span><span>{formatCurrency(total)}</span>
+        <span>{compact ? "Basket total" : "Basket total (excl. GST)"}</span><span>{formatCurrency(total)}</span>
       </div>
     </div>
   );
@@ -287,6 +289,7 @@ export default function ServicesPane() {
   const selectedGoalKey = getSelectedServiceTypeKey();
   const selectedGoal = GOAL_DEFS.find(goal => goal.key === selectedGoalKey);
   const hasBasketServices = (applicationData.deal.serviceBasket || []).length > 0;
+  const paid = isFullyPaidStatus(applicationData.payment.status);
   return (
     <section className="wizard-panel">
       <div className="panel-head">
@@ -296,8 +299,10 @@ export default function ServicesPane() {
         <GoalTiles />
         {selectedGoal ? (
           <div className="service-type-lock-note">
-            {hasBasketServices
-              ? `${selectedGoal.label} is selected. Remove its product packages before deselecting it.`
+            {hasBasketServices && paid
+              ? `${selectedGoal.label} is selected and locked because payment is complete.`
+              : hasBasketServices
+                ? `${selectedGoal.label} is selected. Click it again to remove its unpaid basket items and choose another service type.`
               : `${selectedGoal.label} is selected. Click it again to deselect and enable the other service types.`}
           </div>
         ) : null}
@@ -308,7 +313,6 @@ export default function ServicesPane() {
             <CountryTravellerMap />
           </div>
         ) : null}
-        <ServiceBasket />
       </div>
     </section>
   );
