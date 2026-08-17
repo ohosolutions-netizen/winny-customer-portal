@@ -25,9 +25,11 @@ export const blankApplication = () => ({
         travellers: [],   // ← empty until deal saved; primary applicant seeded on save
         selectedServices: [], serviceBasket: [], selectedAddons: [],
         termsAccepted: false, signature: "",
+        termsAcceptances: {},
         usaDateBooking: false,
         premiumVisaInterview: false,
         agreementHtml: "",
+        agreementHtmlByCountry: {},
         agreementTemplateName: ""
       },
       payment: {

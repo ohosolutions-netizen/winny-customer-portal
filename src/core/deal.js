@@ -400,6 +400,7 @@ function togglePackage(id) {
       applicationData.deal[field] = checked;
       // Clear cached agreement HTML so it reloads with correct template
       applicationData.deal.agreementHtml = "";
+      applicationData.deal.agreementHtmlByCountry = {};
       applicationData.deal.agreementTemplateName = "";
       markAutoSavePending();
       requestRender();

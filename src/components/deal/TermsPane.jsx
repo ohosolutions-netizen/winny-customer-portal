@@ -2,87 +2,190 @@ import React, { useEffect } from "react";
 import { applicationData } from "../../store/runtime.js";
 import { formatCurrency } from "../../lib/utils.js";
 import { setUSAAddons } from "../../core/deal.js";
+import {
+  getTermsAcceptance,
+  getTermsRequirements,
+  setTermsAccepted,
+  setTermsAcceptor,
+  setTermsSignature
+} from "../../core/terms.js";
 import { fetchAgreement } from "../../api/deal.js";
-import { bindCheckbox } from "../../hooks/useBind.js";
-import { Field } from "../fields/Field.jsx";
 
-// Reproduces renderDealPane() sub-step 3 (source 2624-2717) + renderDeal's
-// auto-load of the agreement when the Terms page opens (source 2534-2544).
+function isUSACountry(country) {
+  return /united states|^usa$|^us$/i.test(String(country || "").trim());
+}
+
+function agreementDetails(country, hasUSADate, hasPremium) {
+  if (!isUSACountry(country)) {
+    return { name: "Non USA Service Agreement..zdoc", label: `${country} Service Agreement` };
+  }
+  if (hasPremium && hasUSADate) {
+    return { name: "USA SA - Premium Interview - Date Booking.zdoc", label: "USA Premium Interview + Date Booking Agreement" };
+  }
+  if (hasUSADate) {
+    return { name: "USA Service Agreement- USA Date Booking.zdoc", label: "USA Service Agreement – Date Booking" };
+  }
+  return { name: "USA Visitor Visa Agreement_Non refundable.docx", label: "USA Visitor Visa Agreement (Non-Refundable)" };
+}
+
 export default function TermsPane() {
-  const dest = (applicationData.deal.destination || "").toLowerCase();
-  const isUSA = dest.includes("united states") || dest.includes("usa") || dest.includes("us,") || dest === "us";
-  const hasUSADate = applicationData.deal.usaDateBooking;
-  const hasPremium = applicationData.deal.premiumVisaInterview;
-  let templateName = "";
-  let templateLabel = "";
-  if (isUSA && hasPremium && hasUSADate) { templateName = "USA SA - Premium Interview - Date Booking.zdoc"; templateLabel = "USA Premium Interview + Date Booking Agreement"; }
-  else if (isUSA && hasUSADate) { templateName = "USA Service Agreement- USA Date Booking.zdoc"; templateLabel = "USA Service Agreement – Date Booking"; }
-  else if (isUSA) { templateName = "USA Visitor Visa Agreement_Non refundable.docx"; templateLabel = "USA Visitor Visa Agreement (Non-Refundable)"; }
-  else { templateName = "Non USA Service Agreement..zdoc"; templateLabel = "Service Agreement"; }
-  applicationData.deal.agreementTemplateName = templateName;
-
-  const agHtml = applicationData.deal.agreementHtml || "";
-  const agLoaded = agHtml.length > 0;
+  const requirements = getTermsRequirements();
+  const agreementMap = applicationData.deal.agreementHtmlByCountry || {};
+  const hasUSADate = !!applicationData.deal.usaDateBooking;
+  const hasPremium = !!applicationData.deal.premiumVisaInterview;
+  const hasUSA = requirements.some((requirement) => isUSACountry(requirement.country));
+  const countriesKey = [...new Set(requirements.map((requirement) => requirement.country))].join("|");
 
   useEffect(() => {
-    if (!applicationData.deal.agreementHtml) fetchAgreement();
+    const missingAgreement = requirements.some((requirement) => !agreementMap[requirement.country]);
+    if (missingAgreement || !applicationData.deal.agreementHtml) fetchAgreement();
+    // Agreement generation is synchronous; dependencies refresh country and USA variants.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [countriesKey, hasUSADate, hasPremium]);
+
+  const families = [];
+  requirements.forEach((requirement) => {
+    let family = families.find((item) => item.id === requirement.familyId);
+    if (!family) {
+      family = { id: requirement.familyId, label: requirement.familyLabel, requirements: [] };
+      families.push(family);
+    }
+    family.requirements.push(requirement);
+  });
 
   return (
-    <section className="wizard-panel">
+    <section className="wizard-panel terms-panel">
       <div className="panel-head">
-        <div><h3>Terms &amp; Conditions</h3><p>Read the agreement below, then sign and accept to continue.</p></div>
-        <div style={{ textAlign: "right", fontSize: 13, fontWeight: 900, color: "var(--navy)" }}>Total: {formatCurrency(applicationData.payment.grandTotal)}</div>
+        <div>
+          <h3>Terms &amp; Conditions</h3>
+          <p>Choose one adult to accept each country agreement for every family.</p>
+        </div>
+        <div className="terms-total">Total: {formatCurrency(applicationData.payment.grandTotal)}</div>
       </div>
+
       <div className="panel-body">
-        {isUSA ? (
-          <>
-            <div className="notice blue" style={{ marginBottom: 14 }}>
+        {hasUSA ? (
+          <div className="terms-usa-options">
+            <div className="notice blue">
               <strong>🇺🇸 USA Services</strong>
-              <span>Select any additional USA services included in your package — this determines the correct agreement document.</span>
+              <span>Select additional USA services included in the package. These determine the USA agreement version.</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
-              <label className="check-row" style={{ cursor: "pointer" }}>
-                <input type="checkbox" id="chk-usa-date-booking" checked={!!hasUSADate} onChange={(e) => setUSAAddons("usaDateBooking", e.target.checked)} />
-                <span><strong>USA Priority Date Booking</strong> — Visa appointment date booking service</span>
-              </label>
-              <label className="check-row" style={{ cursor: "pointer" }}>
-                <input type="checkbox" id="chk-premium-interview" checked={!!hasPremium} onChange={(e) => setUSAAddons("premiumVisaInterview", e.target.checked)} />
-                <span><strong>Premium Visa Interview Training</strong> — Mock interview preparation sessions</span>
-              </label>
-            </div>
-          </>
+            <label className="check-row">
+              <input type="checkbox" checked={hasUSADate} onChange={(event) => setUSAAddons("usaDateBooking", event.target.checked)} />
+              <span><strong>USA Priority Date Booking</strong> — Visa appointment date booking service</span>
+            </label>
+            <label className="check-row">
+              <input type="checkbox" checked={hasPremium} onChange={(event) => setUSAAddons("premiumVisaInterview", event.target.checked)} />
+              <span><strong>Premium Visa Interview Training</strong> — Mock interview preparation sessions</span>
+            </label>
+          </div>
         ) : null}
 
-        <div style={{ border: "1.5px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#fafbff", borderBottom: "1px solid var(--line)" }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 900, color: "var(--navy)" }}>📜 {templateLabel}</div>
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>Template: {templateName}</div>
-            </div>
-          </div>
-          {agLoaded ? (
-            <div id="agreement-content" style={{ maxHeight: 480, overflowY: "auto", padding: "24px 28px", background: "#fff", fontSize: 13.5, lineHeight: 1.75, color: "var(--ink)" }} dangerouslySetInnerHTML={{ __html: agHtml }} />
-          ) : (
-            <div id="agreement-content" style={{ minHeight: 180, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: 32, background: "#fafbff", color: "var(--muted)", textAlign: "center" }}>
-              <div style={{ fontSize: 32 }}>📄</div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>Loading your agreement...</div>
-              <div style={{ fontSize: 12 }}>The agreement is being personalised with your application details</div>
-            </div>
-          )}
+        <div className="notice amber terms-intro">
+          <strong>⚠️ Separate acceptance is required</strong>
+          <span>Each family must nominate one adult for every country they are applying to. The selected adult's signature is saved against that family and country.</span>
         </div>
 
-        <div className="notice amber" style={{ marginBottom: 14 }}>
-          <strong>⚠️ Important</strong>
-          <span>By accepting below, you confirm you have read and understood the full agreement above. This covers selected services, listed travellers, pricing, refund terms, and document responsibilities.</span>
-        </div>
-        <label className="check-row" style={{ marginBottom: 14 }}>
-          <input type="checkbox" {...bindCheckbox("deal.termsAccepted")} />
-          <span>I have read and accept the <strong>{templateLabel}</strong> and all Winny Global service terms for this application.</span>
-        </label>
-        <div className="form-grid" style={{ marginTop: 4 }}>
-          <Field label="Type Full Legal Name (Signature)" path="deal.signature" type="text" placeholder="e.g. Rohit Sharma" required />
+        {!requirements.length ? (
+          <div className="terms-empty">
+            <span aria-hidden="true">📄</span>
+            <strong>No country agreements are ready yet</strong>
+            <p>Return to Services and assign travellers to the selected countries first.</p>
+          </div>
+        ) : null}
+
+        <div className="terms-families">
+          {families.map((family) => (
+            <section className="terms-family" key={family.id}>
+              <div className="terms-family-head">
+                <div>
+                  <span>Family agreement group</span>
+                  <h4>{family.label}</h4>
+                </div>
+                <span className="terms-family-count">
+                  {family.requirements.length} {family.requirements.length === 1 ? "country" : "countries"}
+                </span>
+              </div>
+
+              <div className="terms-country-list">
+                {family.requirements.map((requirement) => {
+                  const record = getTermsAcceptance(requirement);
+                  const document = agreementDetails(requirement.country, hasUSADate, hasPremium);
+                  const agreementHtml = agreementMap[requirement.country] || "";
+                  const complete = !!(record.acceptorId && record.accepted && String(record.signature || "").trim());
+
+                  return (
+                    <article className={`terms-country-card${complete ? " is-complete" : ""}`} key={requirement.key}>
+                      <div className="terms-country-head">
+                        <div>
+                          <span className="terms-country-kicker">Country-specific agreement</span>
+                          <h5>{requirement.country}</h5>
+                          <small>{document.label}</small>
+                        </div>
+                        <span className={`terms-status ${complete ? "complete" : "pending"}`}>
+                          {complete ? "✓ Accepted" : "Pending"}
+                        </span>
+                      </div>
+
+                      <details className="terms-document">
+                        <summary>
+                          <span>📜 Read {requirement.country} agreement</span>
+                          <small>Template: {document.name}</small>
+                        </summary>
+                        {agreementHtml ? (
+                          <div className="terms-document-content" dangerouslySetInnerHTML={{ __html: agreementHtml }} />
+                        ) : (
+                          <div className="terms-document-loading">Loading the {requirement.country} agreement…</div>
+                        )}
+                      </details>
+
+                      {!requirement.eligibleAdults.length ? (
+                        <div className="terms-no-adult">
+                          No adult traveller is assigned to {requirement.country}. Assign an adult traveller before continuing.
+                        </div>
+                      ) : (
+                        <div className="terms-acceptance-fields">
+                          <label className="field">
+                            <span>Adult terms acceptor <em>*</em></span>
+                            <select value={record.acceptorId || ""} onChange={(event) => setTermsAcceptor(requirement, event.target.value)}>
+                              <option value="">— Select one adult —</option>
+                              {requirement.eligibleAdults.map((adult) => (
+                                <option value={adult.id} key={adult.id}>{adult.name} — {adult.type}</option>
+                              ))}
+                            </select>
+                            <small>Only adults in {family.label} travelling to {requirement.country} can accept.</small>
+                          </label>
+
+                          <label className="field">
+                            <span>Full legal name (signature) <em>*</em></span>
+                            <input
+                              type="text"
+                              value={record.signature || ""}
+                              onChange={(event) => setTermsSignature(requirement, event.target.value)}
+                              placeholder="Type the selected adult's full legal name"
+                              disabled={!record.acceptorId}
+                            />
+                          </label>
+
+                          <label className={`check-row terms-accept-check${!record.acceptorId ? " disabled" : ""}`}>
+                            <input
+                              type="checkbox"
+                              checked={!!record.accepted}
+                              disabled={!record.acceptorId}
+                              onChange={(event) => setTermsAccepted(requirement, event.target.checked)}
+                            />
+                            <span>
+                              I, <strong>{record.acceptorName || "the selected adult"}</strong>, have read and accept the <strong>{requirement.country} agreement</strong> for <strong>{family.label}</strong>.
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
     </section>

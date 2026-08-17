@@ -4,6 +4,7 @@ import "./styles/portal.css";
 import "./styles/application-progress.css";
 import "./styles/family-travellers.css";
 import "./styles/deal-service-flow.css";
+import "./styles/terms-acceptance.css";
 import App from "./App.jsx";
 
 // No React.StrictMode: the original ran init() exactly once; StrictMode would

@@ -17,6 +17,7 @@ import {
   getCustomerName, getSelectedServiceNames, syncPaymentBreakdown, getPaymentMode
 } from "../core/derive.js";
 import { ensurePrimaryTravellerFromCustomer, applyTravellerCrmIds } from "../core/deal.js";
+import { validateTermsAcceptances } from "../core/terms.js";
 import { saveDraft } from "../core/drafts.js";
 import { showWizard, showStep } from "../core/navigation.js";
 import { submitPortalCrmRequest, pollCreatorRecord, findTravellersForDeal, reconcileTravellerCrmRows } from "./portal.js";
@@ -115,7 +116,10 @@ let zPayInstance = null;
         const hasBasket = (applicationData.deal.serviceBasket || []).length > 0 || (applicationData.deal.selectedAddons || []).length > 0;
         if (!hasBasket) return fail("Add at least one service to your basket before continuing.");
       }
-      if (step === 3 && (!applicationData.deal.termsAccepted || !applicationData.deal.signature))             return fail("Accept terms and enter the applicant signature.");
+      if (step === 3) {
+        const termsError = validateTermsAcceptances();
+        if (termsError) return fail(termsError);
+      }
       return true;
     }
 
@@ -339,12 +343,12 @@ Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
       // If no destinations set, fall back to full destination string for display
       const displayDest = destination || "—";
 
-      const parts = [];  // will hold one HTML string per agreement
+      const parts = [];  // one country-specific agreement per entry
 
       if (nonUsaCountries.length > 0) {
         // ── NON-USA SERVICE AGREEMENT ──────────────────────────────────────────
-        const nonUsaDest = nonUsaCountries.join(", ");
-        parts.push(agrHeader("the Winny") + `
+        nonUsaCountries.forEach((nonUsaDest) => {
+        parts.push({ country: nonUsaDest, html: agrHeader("the Winny") + `
 <p>WHEREAS the Winny and the Client wish to enter into a written agreement which contains the agreed upon terms and conditions upon which the Winny will provide professional services to the Client.</p>
 <p>In consideration of the mutual covenants contained in this Agreement, the Winny and the Client agree as follows:</p>
 
@@ -398,8 +402,9 @@ ${sigBlock()}
 <div style="display:flex;gap:40px;margin:14px 0 6px;font-size:12px">
   <div>DATE: ${today}<br><br>Client's Signature: _______________________</div>
   <div>Spouse's Signature: _______________________<br><br>Signature of Winny: ___________________</div>
-</div>` + annexureA("Winny"));
+</div>` + annexureA("Winny") });
 
+        });
       }
 
       if (usaCountries.length > 0) {
@@ -425,7 +430,8 @@ ${sigBlock()}
         usaServices += `
 </ul>`;
 
-        parts.push(agrHeader("the Company") + `
+        usaCountries.forEach((usaCountry) => {
+        parts.push({ country: usaCountry, html: agrHeader("the Company") + `
 <p>WHEREAS the Company provides services to individuals intending to travel to the United States for temporary visit purposes, including but not limited to tourism, attending convocations, visiting family or friends or for business.</p>
 <p>WHEREAS the Client is seeking assistance for their visa application process.</p>
 
@@ -471,14 +477,15 @@ ${sigBlock()}
 <div style="display:flex;gap:40px;margin:14px 0 6px;font-size:12px">
   <div>DATE: ${today}<br><br>Client's Signature: _______________________</div>
   <div>Spouse's Signature: _______________________<br><br>Signature of Company: ___________________</div>
-</div>` + annexureA("Company"));
+</div>` + annexureA("Company") });
+        });
       }
 
       // If no destinations matched at all, fallback to non-USA
       if (parts.length === 0) {
-        parts.push(agrHeader("the Winny") + `
+        parts.push({ country: displayDest, html: agrHeader("the Winny") + `
 <p>Matter and Scope of Services: <strong>${escapeHtml(serviceName)}</strong> for <strong>${escapeHtml(displayDest)}</strong></p>
-<p>Professional fees of <strong>${amount}</strong> are non-refundable as per Annexure A.</p>` + annexureA("Winny"));
+<p>Professional fees of <strong>${amount}</strong> are non-refundable as per Annexure A.</p>` + annexureA("Winny") });
       }
 
       // Join multiple agreements with a clear page-break divider
@@ -487,7 +494,10 @@ ${sigBlock()}
   ── ADDITIONAL SERVICE AGREEMENT ──
 </div>`;
 
-      applicationData.deal.agreementHtml = parts.join(pageDivider);
+      applicationData.deal.agreementHtmlByCountry = Object.fromEntries(
+        parts.map((part) => [part.country, part.html])
+      );
+      applicationData.deal.agreementHtml = parts.map((part) => part.html).join(pageDivider);
       saveDraft(false);
       requestRender();
       setTimeout(() => {
