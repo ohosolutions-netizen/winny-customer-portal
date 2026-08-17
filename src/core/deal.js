@@ -12,7 +12,7 @@ import { toast, markAutoSavePending, requestRender, openConfirmModal, fail } fro
 import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isDealSaved } from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { showDashboard } from "./navigation.js";
-import { GOAL_DEFS, getAddonProducts, getGoalCountries, getGoalDefinition } from "./catalog.js";
+import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalDefinition, getProductCountries } from "./catalog.js";
 
     // ── destination ↔ traveller country mapping ──
     function getDestinationCountries() {
@@ -57,7 +57,7 @@ import { GOAL_DEFS, getAddonProducts, getGoalCountries, getGoalDefinition } from
       if (state.pendingPackageId && state.activeGoal) {
         const activeGoal = GOAL_DEFS.find(goal => goal.key === state.activeGoal);
         if (activeGoal?.countryMode !== "none") {
-          state.pendingAssignedTo = getAssignedTravellerIdsForGoal(state.activeGoal);
+          state.pendingAssignedTo = getAssignedTravellerIdsForGoal(state.activeGoal, state.pendingPackageId);
         }
       }
       markAutoSavePending();
@@ -94,8 +94,21 @@ import { GOAL_DEFS, getAddonProducts, getGoalCountries, getGoalDefinition } from
       return applicationData.deal.serviceCountries[goalKey];
     }
 
-    function getAssignedTravellerIdsForGoal(goalKey) {
+    function getPackageDestinationCountries(goalKey, packageId) {
       const selectedCountries = getGoalCountrySelection(goalKey);
+      const pkg = packageCatalog.find(product => product.id === packageId);
+      if (!pkg) return selectedCountries;
+      const supportedCountries = getProductCountries(pkg);
+      if (!supportedCountries.length) return selectedCountries;
+      return selectedCountries.filter(selectedCountry =>
+        supportedCountries.some(supportedCountry => countriesMatch(selectedCountry, supportedCountry))
+      );
+    }
+
+    function getAssignedTravellerIdsForGoal(goalKey, packageId = null) {
+      const selectedCountries = packageId
+        ? getPackageDestinationCountries(goalKey, packageId)
+        : getGoalCountrySelection(goalKey);
       return applicationData.deal.travellers
         .filter(traveller => selectedCountries.some(country => (traveller.countries || []).includes(country)))
         .map(traveller => traveller.id);
@@ -286,7 +299,7 @@ function togglePackage(id) {
         // Coaching has no destination, so it keeps the direct package picker.
         state.pendingAssignedTo = activeGoal?.countryMode === "none"
           ? applicationData.deal.travellers.map(t => t.id)
-          : getAssignedTravellerIdsForGoal(state.activeGoal);
+          : getAssignedTravellerIdsForGoal(state.activeGoal, id);
       }
       requestRender();
     }
@@ -328,7 +341,7 @@ function togglePackage(id) {
         assignedTo: [...assigned],
         price:      pkg.price,
         total:      pkg.price * assigned.length,
-        destinations: state.activeGoal ? [...getGoalCountrySelection(state.activeGoal)] : []
+        destinations: state.activeGoal ? getPackageDestinationCountries(state.activeGoal, pkg.id) : []
       });
 
       // Keep selectedServices in sync (for Deluge payload)
@@ -441,7 +454,7 @@ function togglePackage(id) {
 }
 
 export {
-  getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getAssignedTravellerIdsForGoal,
+  getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getPackageDestinationCountries, getAssignedTravellerIdsForGoal,
   syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
   toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,

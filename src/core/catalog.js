@@ -8,31 +8,31 @@ import { applicationData, state } from "../store/runtime.js";
 
     const GOAL_DEFS = [
       {
-        key: "study", icon: "🎓", label: "Study Abroad", sub: "Canada, UK, AUS...", countryMode: "multiple",
+        key: "study", icon: "🎓", label: "Study Abroad", crmLabel: "Study Abroad", sub: "Canada, UK, AUS...", countryMode: "multiple",
         featuredCountries: [country("Canada", "CA"), country("United States", "US"), country("United Kingdom", "GB"), country("New Zealand", "NZ"), country("Spain", "ES"), country("Germany", "DE"), country("Malta", "MT"), country("France", "FR")],
         otherCountries: ["Australia", "Ireland", "Italy", "Netherlands", "Finland", "Sweden", "Denmark", "Switzerland", "United Arab Emirates", "Singapore", "Malaysia", "Japan", "South Korea", "Cyprus", "Poland", "Hungary", "Czech Republic", "Portugal"],
         filter: (p) => /study|student|admission|university|college|scholar|education/i.test(productSearchText(p))
       },
       {
-        key: "work", icon: "💼", label: "Work & Career", sub: "Germany, GOC...", countryMode: "multiple",
+        key: "work", icon: "💼", label: "Work & Career", crmLabel: "GOC Program", sub: "Germany, GOC...", countryMode: "multiple",
         featuredCountries: [country("Germany", "DE")],
         otherCountries: ["Canada", "Australia", "United Kingdom", "New Zealand", "United Arab Emirates", "United States"],
         filter: (p) => /goc|opportunity card|work permit|owp|nurse|career|job seeker|ausbildung/i.test(productSearchText(p))
       },
       {
-        key: "pr", icon: "🏠", label: "Permanent Residency", sub: "Australia, Canada", countryMode: "multiple",
+        key: "pr", icon: "🏠", label: "Permanent Residency", crmLabel: "Skilled Visa PR", sub: "Australia, Canada", countryMode: "multiple",
         featuredCountries: [country("Australia", "AU"), country("Canada", "CA")],
         otherCountries: ["New Zealand", "Germany", "United Kingdom", "United States", "Portugal"],
         filter: (p) => /\bpr\b|permanent residen|express entry|nomination|migration/i.test(productSearchText(p))
       },
       {
-        key: "visit", icon: "✈️", label: "Visit & Travel", sub: "UK, US, Schengen...", countryMode: "multiple",
+        key: "visit", icon: "✈️", label: "Visit & Travel", crmLabel: "Visitor Visa", sub: "UK, US, Schengen...", countryMode: "multiple",
         featuredCountries: [country("United States", "US"), country("Canada", "CA"), country("United Kingdom", "GB"), country("Australia", "AU"), country("New Zealand", "NZ"), country("Schengen", "EU"), country("China", "CN"), country("United Arab Emirates", "AE")],
         otherCountries: ["Japan", "South Korea", "Singapore", "Malaysia", "Thailand", "Vietnam", "Indonesia", "Turkey", "South Africa", "Egypt", "Saudi Arabia"],
         filter: (p) => /schengen|europe tourism|documented|usa.*b1.*b2|visitor|visit visa|tourist/i.test(productSearchText(p))
       },
       {
-        key: "coaching", icon: "📚", label: "Coaching", sub: "IELTS, PTE, TOEFL...", countryMode: "none",
+        key: "coaching", icon: "📚", label: "Coaching", crmLabel: "Coaching", sub: "IELTS, PTE, TOEFL...", countryMode: "none",
         featuredCountries: [], otherCountries: [],
         filter: (p) => /ielts|german language|pte|toefl|language training|coaching/i.test(productSearchText(p))
       }
@@ -43,7 +43,7 @@ import { applicationData, state } from "../store/runtime.js";
     function getGoalDefinition(value) {
       const normalized = String(value || "").trim().toLowerCase();
       if (!normalized) return null;
-      const direct = GOAL_DEFS.find(goal => goal.key === normalized || goal.label.toLowerCase() === normalized);
+      const direct = GOAL_DEFS.find(goal => goal.key === normalized || goal.label.toLowerCase() === normalized || goal.crmLabel.toLowerCase() === normalized);
       if (direct) return direct;
       if (/study|student|education/.test(normalized)) return GOAL_DEFS.find(goal => goal.key === "study");
       if (/work|career|permit|goc/.test(normalized)) return GOAL_DEFS.find(goal => goal.key === "work");
@@ -89,7 +89,7 @@ import { applicationData, state } from "../store/runtime.js";
       "New Zealand": ["new zealand", "nz"],
       "South Korea": ["south korea", "korea"],
       "Schengen": ["schengen", "europe tourism"],
-      "Australia": ["australia"],
+      "Australia": ["australia", "aus"],
       "Canada": ["canada"],
       "Germany": ["germany", "goc", "opportunity card", "ausbildung"],
       "China": ["china"],

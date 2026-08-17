@@ -34,7 +34,7 @@ const requestEmail = isPortalReadRequest
   ? (applicationData.crmSync.loggedInEmail || applicationData.customer.email || "")
   : (applicationData.customer.email || applicationData.crmSync.loggedInEmail || "");
       const selectedServiceType =
-        getGoalDefinition(applicationData.deal.serviceTypeKey || applicationData.deal.goal)?.label ||
+        getGoalDefinition(applicationData.deal.serviceTypeKey || applicationData.deal.goal)?.crmLabel ||
         applicationData.deal.goal ||
         "";
       const payload = {

@@ -9,7 +9,7 @@ import {
 } from "../../core/catalog.js";
 import {
   setGoal, closeGoal, getSelectedServiceTypeKey, selectPendingPackage, toggleAssignTraveller,
-  getGoalCountrySelection, toggleGoalCountry,
+  getGoalCountrySelection, getPackageDestinationCountries, toggleGoalCountry,
   addPendingToBasket, removeBasketItem, toggleAddon,
 } from "../../core/deal.js";
 import CountryTravellerMap from "./CountryTravellerMap.jsx";
@@ -128,11 +128,13 @@ function ApplicantAssignment() {
   const activeGoal = GOAL_DEFS.find(goal => goal.key === state.activeGoal);
   if (activeGoal?.countryMode !== "none") {
     const assignedTravellers = travellers.filter(traveller => assigned.includes(traveller.id));
+    const packageDestinations = getPackageDestinationCountries(activeGoal.key, pkg.id);
     return (
       <div className={`package-assignment-summary${assignedTravellers.length ? " ready" : " missing"}`}>
         <div>
           <strong>👥 Travellers included in this package</strong>
           <small>Automatically taken from the country assignment above—no second selection is needed.</small>
+          {packageDestinations.length ? <small className="package-assignment-destinations">📍 Package destination: {packageDestinations.join(", ")}</small> : null}
         </div>
         {assignedTravellers.length ? (
           <>

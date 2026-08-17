@@ -35,6 +35,11 @@
   display: block;
 }
 
+.package-assignment-summary .package-assignment-destinations {
+  color: var(--blue);
+  font-weight: 800;
+}
+
 .package-assignment-summary > div:first-child strong {
   color: var(--navy);
   font-size: 13px;
