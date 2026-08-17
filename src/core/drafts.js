@@ -376,7 +376,7 @@ applicationData.customer = mergeDeep(
       const stayOnDashboard = options.stayOnDashboard === true;
       const applicationPreview = options.applicationPreview || null;
       state.applicationSelectionLoading = stayOnDashboard;
-      saveDraft(false);
+      if (!stayOnDashboard) saveDraft(false);
       const previousCustomer = mergeDeep({}, applicationData.customer || {});
       const previousSync = mergeDeep({}, applicationData.crmSync || {});
       const localDraft = loadStoredApplicationDraft(dealId, applicationId);
@@ -385,7 +385,7 @@ applicationData.customer = mergeDeep(
       applicationData.crmSync = mergeDeep(applicationData.crmSync, previousSync);
       if (!applicationData.deal.crmContactId && previousSync.crmContactId) applicationData.deal.crmContactId = previousSync.crmContactId;
       if (applicationId && !applicationData.applicationId) applicationData.applicationId = applicationId;
-      if (!applicationData.applicationId) applicationData.applicationId = makeApplicationId();
+      if (!stayOnDashboard && !applicationData.applicationId) applicationData.applicationId = makeApplicationId();
       if (dealId) {
         applicationData.deal.crmDealId = dealId;
         applicationData.deal.dealSavedToCRM = true;
@@ -451,9 +451,9 @@ applicationData.customer = mergeDeep(
       state.activeCifCategory = null;
       state.activeCifTraveller = null;
       state.activeCifInstance = null;
-      state.activeCifStage = null;  
+      state.activeCifStage = null;
       if (applicationData.deal.selectedServices.length) recalculatePayment();
-      saveDraft(false);
+      if (!stayOnDashboard) saveDraft(false);
       requestRender();
       if (stayOnDashboard) return;
       showWizard();

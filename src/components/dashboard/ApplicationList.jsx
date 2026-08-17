@@ -47,7 +47,7 @@ function ApplicationCard({ app }) {
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
         <div>
           <h3>{app.title || "Application"}</h3>
-          <p>{app.applicationId || app.dealId || "Draft application"}</p>
+          <p>{app.applicationId || "Application number pending"}</p>
         </div>
         <span className={`badge ${statusClass}`}>{app.status || "In Progress"}</span>
       </div>
