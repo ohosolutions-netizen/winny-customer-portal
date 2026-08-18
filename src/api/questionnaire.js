@@ -13,7 +13,8 @@ import { saveDraft } from "../core/drafts.js";
 import { showStep } from "../core/navigation.js";
 import { scheduleDocumentChecklistRefresh } from "./documents.js";
 import {
-  validateQuestionnaireForCreator, isQuestionnaireChild, rerenderQuestionnaire
+  validateQuestionnaireForCreator, isQuestionnaireChild, rerenderQuestionnaire,
+  showQuestionnaireValidationSection
 } from "../core/questionnaire.js";
 
     // ── submitQuestionnaire (source 9038-9098) ──
@@ -37,6 +38,7 @@ import {
 
   if (validationError) {
     state.submittingQuestionnaire = false;
+    showQuestionnaireValidationSection();
     return fail(validationError);
   }
       if (!applicationData.deal.crmDealId) {

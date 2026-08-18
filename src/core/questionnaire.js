@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { applicationData, state } from "../store/runtime.js";
 import { escapeHtml, setByPath } from "../lib/utils.js";
-import { markAutoSavePending } from "../lib/ui.js";
+import { markAutoSavePending, toast } from "../lib/ui.js";
 import { saveDraft } from "./drafts.js";
 import { submitQuestionnaire } from "../api/questionnaire.js";
 
@@ -480,16 +480,16 @@ const sections = [
   </div>
 </div>` : ""}
 
-            <div class="q-blk">
-              <div class="q-lbl">Is the inviter related to you directly, or through your spouse?</div>
+            ${needsFamilyInviterPerson && applicationData.questionnaire.maritalStatus === "married" ? `<div class="q-blk">
+              <div class="q-lbl">Is the inviter related to you directly, or through your spouse? <span class="q-req">Required</span></div>
               <div class="q-opts c2">
                 ${qOptR("inviterRelation","direct","Directly related to me","")}
                 ${qOptR("inviterRelation","spouse","Related to my spouse","")}
               </div>
-            </div>
+            </div>` : ""}
 
             <div class="q-blk">
-              <div class="q-lbl">What is your inviter's immigration status in the destination country?</div>
+              <div class="q-lbl">What is your inviter's immigration status in the destination country? <span class="q-req">Required</span></div>
               <div class="q-sub">This determines what proof-of-status documents they need to provide.</div>
               <div class="q-opts c2">
                 ${qOptR("inviterStatus","citizen","Citizen","They hold citizenship of the destination country")}
@@ -500,7 +500,7 @@ const sections = [
             </div>
 
             <div class="q-blk">
-              <div class="q-lbl">Do you have — or will you have — an invitation letter from your inviter?</div>
+              <div class="q-lbl">Do you have — or will you have — an invitation letter from your inviter? <span class="q-req">Required</span></div>
               <div class="q-opts c2">
                 ${qOptR("invitationLetter","yes","Yes — I have one","")}
                 ${qOptR("invitationLetter","will-get","I will arrange one before submission","")}
@@ -563,7 +563,7 @@ const hasOtherInvestment =
     ${qFinFundingOpt(t.id,"sponsor","Sponsor / Third party will pay","")}
   </div>
   <div class="q-dep ${(Array.isArray(fin.funding) ? fin.funding : [fin.funding]).includes("sponsor")?"show":""}" id="dep-${t.id}-sponsor">
-              <div class="q-sub">Who is the financial sponsor?</div>
+              <div class="q-sub">Who is the financial sponsor? <span class="q-req">Required</span></div>
               <div class="q-opts">
                 ${qFinOptR(t.id,"sponsorType","parent","Parent (Father / Mother)","")}
                 ${qFinOptR(t.id,"sponsorType","spouse","Spouse (Husband / Wife)","")}
@@ -598,7 +598,7 @@ const hasOtherInvestment =
               ${qFinOptM(t.id,"occ-other","Other")}
             </div>
             <div class="q-dep ${isBusiness?"show":""}" id="dep-${t.id}-biz">
-              <div class="q-sub">What type of business?</div>
+              <div class="q-sub">What type of business? <span class="q-req">Required</span></div>
               <div class="q-opts">
                 ${qFinOptR(t.id,"bizType","sole","Sole Proprietorship","Shop, agency, or single-owner")}
                 ${qFinOptR(t.id,"bizType","partnership","Partnership Firm","")}
@@ -611,7 +611,7 @@ const hasOtherInvestment =
   id="dep-${t.id}-occ-other"
   style="${isOtherOccupation ? "" : "display:none"}"
 >
-  <div class="q-lbl">Please provide more information about ${escapeHtml(t.firstName||"their")} occupation</div>
+  <div class="q-lbl">Please provide more information about ${escapeHtml(t.firstName||"their")} occupation <span class="q-req">Required</span></div>
             <div class="q-field-row single"><div class="q-field">
               <textarea rows="2" placeholder="e.g. job title, business type, day-to-day work"
                 oninput="qFinSetField('${t.id}','moreInfo',this.value)">${escapeHtml(fin.moreInfo||"")}</textarea>
@@ -631,7 +631,7 @@ const hasOtherInvestment =
             </div>
           </div>
           <div class="q-blk">
-            <div class="q-lbl">What types of property does ${escapeHtml(t.firstName||"this applicant")} own in India? <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+            <div class="q-lbl">What types of property does ${escapeHtml(t.firstName||"this applicant")} own in India? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
             <div class="q-opts c2">
               ${qFinOptM(t.id,"asset-house","House")}
               ${qFinOptM(t.id,"asset-shop","Shop")}
@@ -651,14 +651,14 @@ const hasOtherInvestment =
   id="dep-${t.id}-asset-other"
   style="margin-top:10px;${hasOtherAsset ? "" : "display:none"}"
 >
-  <div class="q-field"><label>Please describe the other property type</label>
+  <div class="q-field"><label>Please describe the other property type <span class="q-req">Required</span></label>
                 <input type="text" placeholder="Describe any property type not listed above"
                   value="${escapeHtml(fin.otherAssetDesc||"")}"
                   oninput="qFinSetField('${t.id}','otherAssetDesc',this.value)"></div>
             </div>
           </div>
           <div class="q-blk" style="margin-bottom:0;padding-bottom:0;border:none">
-            <div class="q-lbl">What liquid investments does ${escapeHtml(t.firstName||"this applicant")} hold? <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+            <div class="q-lbl">What liquid investments does ${escapeHtml(t.firstName||"this applicant")} hold? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
             <div class="q-opts c2">
               ${qFinOptM(t.id,"inv-stocks","Stock Market")}
               ${qFinOptM(t.id,"inv-bank","Bank Savings")}
@@ -677,7 +677,7 @@ const hasOtherInvestment =
   id="dep-${t.id}-inv-other"
   style="margin-top:10px;${hasOtherInvestment ? "" : "display:none"}"
 >
-  <div class="q-field"><label>Please describe the other investment type</label>
+  <div class="q-field"><label>Please describe the other investment type <span class="q-req">Required</span></label>
                 <input type="text" placeholder="Describe any investment type not listed above"
                   value="${escapeHtml(fin.otherInvestment||"")}"
                   oninput="qFinSetField('${t.id}','otherInvestment',this.value)"></div>
@@ -759,7 +759,7 @@ const spouseExtra = spouseTravForFin
             style="${spouseIsBusiness ? "" : "display:none"}"
           >
             <div class="q-lbl">
-              Please select your spouse's business ownership type
+              Please select your spouse's business ownership type <span class="q-req">Required</span>
             </div>
 
             <div class="q-opts">
@@ -793,7 +793,7 @@ const spouseExtra = spouseTravForFin
             style="${shouldShowSpouseItr ? "" : "display:none"}"
           >
             <div class="q-lbl">
-              Do your spouse's ITRs from the last two years reflect their occupation?
+              Do your spouse's ITRs from the last two years reflect their occupation? <span class="q-req">Required</span>
             </div>
 
             <div class="q-opts c2">
@@ -818,7 +818,7 @@ const spouseExtra = spouseTravForFin
             }"
           >
             <div class="q-lbl">
-              Please describe your spouse's other source of income or employment
+              Please describe your spouse's other source of income or employment <span class="q-req">Required</span>
             </div>
 
             <div class="q-field-row single">
@@ -935,7 +935,7 @@ const unmappedWarning = unmappedTravellers.length
             <div class="pb-role">Principal Applicant</div></div>
           </div>
           <div class="q-blk" style="margin-bottom:0;padding-bottom:0;border:none">
-            <div class="q-lbl">Does ${escapeHtml(pa.firstName||"this applicant")} hold any position or membership? <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+            <div class="q-lbl">Does ${escapeHtml(pa.firstName||"this applicant")} hold any position or membership? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
             <div class="q-sub">Every community role is evidence of strong ties to India — a key factor in demonstrating intent to return.</div>
             <div class="q-opts">
               ${tieOptM("housing","Position in Housing Society","Chairman, Secretary, Treasurer or committee member")}
@@ -991,7 +991,7 @@ const unmappedWarning = unmappedTravellers.length
             <div class="pb-role">Child · Age ${age}</div></div>
           </div>
           <div class="q-blk" style="margin-bottom:0;padding-bottom:0;border:none">
-            <div class="q-lbl">What is ${escapeHtml(ch.firstName||"this child")} currently doing?</div>
+            <div class="q-lbl">What is ${escapeHtml(ch.firstName||"this child")} currently doing? <span class="q-req">Required</span></div>
             <div class="q-opts c2">
               ${chOptR("doing","preschool","Pre-School / Nursery")}
               ${chOptR("doing","school","School Student")}
@@ -1036,7 +1036,7 @@ const unmappedWarning = unmappedTravellers.length
             <div class="pb-role">${escapeHtml(travellerLabel(t))}</div></div>
           </div>
           <div class="q-blk">
-            <div class="q-lbl">Has ${escapeHtml(t.firstName||"this person")} ever visited any country internationally?</div>
+            <div class="q-lbl">Has ${escapeHtml(t.firstName||"this person")} ever visited any country internationally? <span class="q-req">Required</span></div>
             <div class="q-opts c2">
               ${qHistOptR(t.id,"prevTravel","yes","Yes — has travelled internationally","")}
               ${qHistOptR(t.id,"prevTravel","no","No — this is the first international trip","")}
@@ -1060,7 +1060,7 @@ const unmappedWarning = unmappedTravellers.length
             </div>
             <div class="q-dep ${hist.refusal==="yes"?"show":""}" id="dep-${t.id}-refusal">
               <div class="qn qn-amber">&#x1F4A1; Please be honest — consulates can verify this. Your case officer will help you address it.</div>
-              <div class="q-field-row single" style="margin-top:8px"><div class="q-field"><label>Which country, when, and reason given?</label>
+              <div class="q-field-row single" style="margin-top:8px"><div class="q-field"><label>Which country, when, and reason given? <span class="q-req">Required</span></label>
                 <input type="text" placeholder="e.g. UK visa refused in 2022 — insufficient funds"
                   value="${escapeHtml(hist.refusalDetail||"")}"
                   oninput="qHistSetField('${t.id}','refusalDetail',this.value)">
@@ -1075,7 +1075,7 @@ const unmappedWarning = unmappedTravellers.length
               ${qHistOptR(t.id,"criminalRecord","no","No","")}
             </div>
             <div class="q-dep ${hist.criminalRecord==="yes"?"show":""}" id="dep-${t.id}-criminal">
-              <div class="q-field-row single" style="margin-top:8px"><div class="q-field"><label>Please provide details</label>
+              <div class="q-field-row single" style="margin-top:8px"><div class="q-field"><label>Please provide details <span class="q-req">Required</span></label>
                 <textarea rows="2" placeholder="What happened, when, and outcome"
                   oninput="qHistSetField('${t.id}','criminalDetail',this.value)">${escapeHtml(hist.criminalDetail||"")}</textarea>
               </div></div>
@@ -1093,7 +1093,7 @@ const unmappedWarning = unmappedTravellers.length
             <div class="q-dep ${hist.border==="yes"?"show":""}" id="dep-${t.id}-border">
               <div class="q-field-row single" style="margin-top:8px">
                 <div class="q-field">
-                  <label>Country, approximate year, and details</label>
+                  <label>Country, approximate year, and details <span class="q-req">Required</span></label>
                   <textarea rows="2"
                     placeholder="Explain what happened, where, when, and the reason"
                     oninput="qHistSetField('${t.id}','borderDetail',this.value)">${escapeHtml(hist.borderDetail||"")}</textarea>
@@ -1289,6 +1289,31 @@ markAutoSavePending();
 
   answers[key] = selected;
 
+  const exclusiveGroups = {
+    "occ-unemployed": ["occ-employed", "occ-freelancer", "occ-business", "occ-homemaker", "occ-pensioner", "occ-retired-nopension", "occ-student", "occ-other"],
+    "asset-none": ["asset-house", "asset-shop", "asset-office", "asset-building", "asset-flat", "asset-factory", "asset-shed", "asset-warehouse", "asset-plot", "asset-land", "asset-other"],
+    "inv-none": ["inv-stocks", "inv-bank", "inv-fd", "inv-mf", "inv-ppf", "inv-epf", "inv-bonds", "inv-gold", "inv-postal", "inv-other"]
+  };
+
+  let clearedSelection = false;
+  Object.entries(exclusiveGroups).forEach(([exclusiveKey, otherKeys]) => {
+    if (!selected) return;
+    const keysToClear = key === exclusiveKey
+      ? otherKeys
+      : (otherKeys.includes(key) ? [exclusiveKey] : []);
+    keysToClear.forEach((keyToClear) => {
+      clearedSelection = clearedSelection || Boolean(answers[keyToClear]);
+      answers[keyToClear] = false;
+      document.querySelector(`[data-mkey="${travId}-${keyToClear}"]`)?.classList.remove("msel");
+    });
+  });
+
+  if (clearedSelection) {
+    markAutoSavePending();
+    rerenderQuestionnaire();
+    return;
+  }
+
   if (key === "occ-business") {
     const businessBlock =
       document.getElementById(`dep-${travId}-biz`);
@@ -1371,7 +1396,18 @@ markAutoSavePending();
       if (!applicationData.questionnaire.ties[travId]) applicationData.questionnaire.ties[travId] = {};
       if (!applicationData.questionnaire.ties[travId].multiAnswers) applicationData.questionnaire.ties[travId].multiAnswers = {};
       el.classList.toggle("msel");
-      applicationData.questionnaire.ties[travId].multiAnswers[key] = el.classList.contains("msel");
+      const answers = applicationData.questionnaire.ties[travId].multiAnswers;
+      const selected = el.classList.contains("msel");
+      answers[key] = selected;
+      if (selected && key === "none") {
+        Object.keys(answers).filter(answerKey => answerKey !== "none").forEach((answerKey) => {
+          answers[answerKey] = false;
+          document.querySelector(`[data-mkey="${travId}-${answerKey}"]`)?.classList.remove("msel");
+        });
+      } else if (selected) {
+        answers.none = false;
+        document.querySelector(`[data-mkey="${travId}-none"]`)?.classList.remove("msel");
+      }
       markAutoSavePending();
     }
 
@@ -1434,6 +1470,12 @@ markAutoSavePending();
     }
 
     function qGoNext(fromId, toId) {
+      const validationError = validateQuestionnaireSection(fromId);
+      if (validationError) {
+        qState.validationSection = fromId;
+        toast(validationError);
+        return false;
+      }
       if (!qState.completedSections.includes(fromId)) qState.completedSections.push(fromId);
       // update pill
       const pill = document.getElementById(`qpill-${fromId}`);
@@ -1460,6 +1502,7 @@ markAutoSavePending();
       if (progLbl) progLbl.textContent = `Section ${qState.currentSection + 1} of ${sections.length}`;
       window.scrollTo(0, 0);
       saveDraft(false);
+      return true;
     }
 
     function qGoPrev(fromId, toId) {
@@ -1505,90 +1548,173 @@ markAutoSavePending();
     .slice(0, 3);
 }
 
+    function qQuestionnaireSectionOrder() {
+      const q = applicationData.questionnaire || {};
+      const purposes = Array.isArray(q.purpose) ? q.purpose : [];
+      const hasInviter = purposes.some(purpose => ["family", "friend", "family-func", "convocation", "business"].includes(purpose));
+      const hasChildren = qChildTravellers().length > 0;
+      return [
+        "sec-trip",
+        ...(hasInviter ? ["sec-inviter"] : []),
+        "sec-finance",
+        "sec-ties",
+        ...(hasChildren ? ["sec-children"] : []),
+        "sec-history"
+      ];
+    }
 
-    // ── validateQuestionnaireForCreator (source 8953-9036) ──
-    function validateQuestionnaireForCreator() {
+    function qSelectedKeys(multiAnswers, keys) {
+      return keys.filter(key => Boolean((multiAnswers || {})[key]));
+    }
+
+    function qHasExclusiveConflict(multiAnswers, exclusiveKey, otherKeys) {
+      return Boolean((multiAnswers || {})[exclusiveKey]) && qSelectedKeys(multiAnswers, otherKeys).length > 0;
+    }
+
+    function qValidateTravelDates() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (const country of qQuestionnaireCountries()) {
+        const dates = (applicationData.questionnaire.travelDates || {})[country] || {};
+        if (qIsBlank(dates.entry)) return `Please enter the intended entry date for ${country}.`;
+        const entry = new Date(`${dates.entry}T00:00:00`);
+        if (Number.isNaN(entry.getTime())) return `Please enter a valid entry date for ${country}.`;
+        if (entry <= today) return `The intended entry date for ${country} must be after today.`;
+        if (dates.exit) {
+          const exit = new Date(`${dates.exit}T00:00:00`);
+          if (Number.isNaN(exit.getTime())) return `Please enter a valid exit date for ${country}.`;
+          if (exit <= entry) return `The exit date for ${country} must be after the entry date.`;
+        }
+      }
+      return "";
+    }
+
+    function validateQuestionnaireSection(sectionId) {
       const q = applicationData.questionnaire || {};
       const travellers = applicationData.deal.travellers || [];
       const primary = travellers.find(t => t.type === "Primary Applicant") || travellers[0];
       if (!primary) return "Add at least one traveller before submitting the questionnaire.";
 
       const primaryFin = ((q.finance || {})[primary.id]) || {};
+      const primaryAnswers = primaryFin.multiAnswers || {};
       const primaryHist = ((q.history || {})[primary.id]) || {};
       const primaryTies = (((q.ties || {})[primary.id] || {}).multiAnswers) || {};
       const spouse = travellers.find(t => t.type === "Spouse");
       const spouseFin = spouse ? (((q.finance || {})[spouse.id]) || {}) : {};
-      const spouseHist = spouse ? (((q.history || {})[spouse.id]) || {}) : {};
+      const spouseAnswers = spouseFin.multiAnswers || {};
       const children = qChildTravellers();
       const hasCanada = qIsCanadaSelected();
+      const purposeArr = Array.isArray(q.purpose) ? q.purpose : [];
 
       const occupationKeys = ["occ-employed","occ-freelancer","occ-business","occ-homemaker","occ-pensioner","occ-retired-nopension","occ-student","occ-unemployed","occ-other"];
+      const activeOccupationKeys = occupationKeys.filter(key => key !== "occ-unemployed");
       const assetKeys = ["asset-house","asset-shop","asset-office","asset-building","asset-flat","asset-factory","asset-shed","asset-warehouse","asset-plot","asset-land","asset-none","asset-other"];
+      const ownedAssetKeys = assetKeys.filter(key => key !== "asset-none");
       const investmentKeys = ["inv-stocks","inv-bank","inv-fd","inv-mf","inv-ppf","inv-epf","inv-bonds","inv-gold","inv-postal","inv-none","inv-other"];
+      const heldInvestmentKeys = investmentKeys.filter(key => key !== "inv-none");
       const tiesKeys = ["housing","social","bizassoc","coop","vol","religious","service","member","none"];
+      const activeTiesKeys = tiesKeys.filter(key => key !== "none");
 
-      if (!qQuestionnaireCountries().length) return "Please select the country you are applying for.";
-      if (qIsBlank(q.maritalStatus)) return "Marital Status is mandatory.";
-      if (qIsBlank(q.purpose)) return "Please select the purpose of your visit in Section 1.";
-
-      const purposeArr = Array.isArray(q.purpose) ? q.purpose : [];
-      const inviterPurpose = purposeArr.some((purpose) =>
-  ["family", "friend", "family-func", "convocation", "business"].includes(purpose)
-);
-const inviterPersonRequired =
-  purposeArr.includes("family");
-      if (inviterPurpose && qIsBlank(q.invitationLetter)) return "Invitation letter answer is mandatory for the selected purpose.";
-      if (inviterPurpose && qIsBlank(q.inviterStatus)) return "Inviter immigration status is mandatory for the selected purpose.";
-      if (inviterPersonRequired && qIsBlank(q.inviter)) return "Who is inviting you is mandatory for the selected purpose.";
-      if (purposeArr.includes("family-func") && qIsBlank(q.functionType)) return "Please provide the function type details for your visit.";
-      if (purposeArr.includes("other") && qIsBlank(q.purposeOther)) return "Please describe your exact purpose of visit.";
-
-      if (qIsBlank(q.arrangements)) return "Do you have specific travel plans or a pre-planned itinerary is mandatory.";
-      if (q.arrangements === "yes" && qIsBlank(qFirstTravelDate())) return "Please enter your intended travel date.";
-      if (q.arrangements === "no" && qIsBlank(qFirstTravelDate())) return "Please enter when you intend to travel.";
-
-      const selectedFunding = Array.isArray(primaryFin.funding)
-  ? primaryFin.funding
-  : (primaryFin.funding ? [primaryFin.funding] : []);
-
-if (!selectedFunding.length) return "Trip funding is mandatory.";
-if (selectedFunding.includes("sponsor") && qIsBlank(primaryFin.sponsorType)) {
-  return "Financial sponsor is mandatory.";
-}
-      if (qIsBlank(primaryFin.fundsRange)) return "Available liquid funds is mandatory.";
-      if (!qHasAnySelected(primaryFin.multiAnswers, occupationKeys)) return "Current occupation is mandatory.";
-      if (!qHasAnySelected(primaryFin.multiAnswers, assetKeys)) return "Immovable property selection is mandatory.";
-      if (!qHasAnySelected(primaryFin.multiAnswers, investmentKeys)) return "Liquid investment selection is mandatory.";
-      if (!qHasAnySelected(primaryTies, tiesKeys)) return "Social, business or community ties selection is mandatory.";
-
-      if (qIsBlank(primaryHist.prevTravel)) return "International travel history is mandatory.";
-      if (qIsBlank(primaryHist.refusal)) return "Previous visa refusal answer is mandatory.";
-      if (qIsBlank(primaryHist.border)) return "Entry refusal or immigration breach answer is mandatory.";
-      if (qIsBlank(primaryHist.criminalRecord)) return "Criminal history answer is mandatory.";
-      if (hasCanada && qIsBlank(primaryHist.usaVisa)) return "Current valid USA visa answer is mandatory for Canada.";
-
-      if (spouse) {
-        if (!qHasAnySelected(spouseFin.multiAnswers, occupationKeys)) return "Spouse employment/source of income is mandatory.";
-        if (qIsBlank(spouseHist.prevTravel)) return "Spouse international travel history is mandatory.";
-        if (qIsBlank(spouseHist.refusal)) return "Spouse previous visa refusal answer is mandatory.";
-        if (qIsBlank(spouseHist.border)) return "Spouse entry refusal or immigration breach answer is mandatory.";
-        if (qIsBlank(spouseHist.criminalRecord)) return "Spouse criminal history answer is mandatory.";
-        if (hasCanada && qIsBlank(spouseHist.usaVisa)) return "Spouse USA visa answer is mandatory for Canada.";
+      if (sectionId === "sec-trip") {
+        if (!qQuestionnaireCountries().length) return "Please select the country you are applying for.";
+        if (qIsBlank(q.maritalStatus)) return "Marital Status is mandatory.";
+        if (qIsBlank(q.purpose)) return "Please select the purpose of your visit.";
+        if (purposeArr.includes("family-func") && qIsBlank(q.functionType)) return "Please provide the function type details for your visit.";
+        if (purposeArr.includes("other") && qIsBlank(q.purposeOther)) return "Please describe your exact purpose of visit.";
+        if (qIsBlank(q.arrangements)) return "Please confirm whether you have specific travel plans.";
+        return qValidateTravelDates();
       }
 
-      for (let i = 0; i < children.length; i++) {
-        const child = children[i];
-        const childLabel = `Child ${i + 1}`;
-        const childInfo = ((q.childrenInfo || {})[child.id]) || {};
-        const childHist = ((q.history || {})[child.id]) || {};
-        if (qIsBlank(childInfo.doing)) return `${childLabel} current activity is mandatory.`;
-        if (qIsBlank(childHist.prevTravel)) return `${childLabel} international travel history is mandatory.`;
-        if (qIsBlank(childHist.refusal)) return `${childLabel} previous visa refusal answer is mandatory.`;
-        if (qIsBlank(childHist.border)) return `${childLabel} entry refusal or immigration breach answer is mandatory.`;
-        if (qIsBlank(childHist.criminalRecord)) return `${childLabel} criminal history answer is mandatory.`;
-        if (hasCanada && qIsBlank(childHist.usaVisa)) return `${childLabel} USA visa answer is mandatory for Canada.`;
+      if (sectionId === "sec-inviter") {
+        const inviterPurpose = purposeArr.some(purpose => ["family", "friend", "family-func", "convocation", "business"].includes(purpose));
+        if (!inviterPurpose) return "";
+        if (purposeArr.includes("family") && qIsBlank(q.inviter)) return "Who is inviting you is mandatory for a family visit.";
+        if (qIsBlank(q.inviterStatus)) return "Inviter immigration status is mandatory for the selected purpose.";
+        if (qIsBlank(q.invitationLetter)) return "Invitation letter answer is mandatory for the selected purpose.";
+        if (purposeArr.includes("family") && q.maritalStatus === "married" && qIsBlank(q.inviterRelation)) return "Please indicate whether the family inviter is related directly or through your spouse.";
+        return "";
       }
 
+      if (sectionId === "sec-finance") {
+        const selectedFunding = Array.isArray(primaryFin.funding) ? primaryFin.funding : (primaryFin.funding ? [primaryFin.funding] : []);
+        if (!selectedFunding.length) return "Trip funding is mandatory.";
+        if (selectedFunding.includes("sponsor") && qIsBlank(primaryFin.sponsorType)) return "Financial sponsor is mandatory.";
+        if (qIsBlank(primaryFin.fundsRange)) return "Available liquid funds is mandatory.";
+        if (!qHasAnySelected(primaryAnswers, occupationKeys)) return "Current occupation is mandatory.";
+        if (qHasExclusiveConflict(primaryAnswers, "occ-unemployed", activeOccupationKeys)) return "Unemployed cannot be selected together with another occupation.";
+        if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizType)) return "Business ownership type is mandatory.";
+        if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please describe the other occupation.";
+        if (["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(key => primaryAnswers[key]) && qIsBlank(primaryFin.itr)) return "Please answer the ITR question.";
+        if (!qHasAnySelected(primaryAnswers, assetKeys)) return "Immovable property selection is mandatory.";
+        if (qHasExclusiveConflict(primaryAnswers, "asset-none", ownedAssetKeys)) return "None cannot be selected together with a property type.";
+        if (primaryAnswers["asset-other"] && qIsBlank(primaryFin.otherAssetDesc)) return "Please describe the other property type.";
+        if (!qHasAnySelected(primaryAnswers, investmentKeys)) return "Liquid investment selection is mandatory.";
+        if (qHasExclusiveConflict(primaryAnswers, "inv-none", heldInvestmentKeys)) return "No investments cannot be selected together with an investment type.";
+        if (primaryAnswers["inv-other"] && qIsBlank(primaryFin.otherInvestment)) return "Please describe the other investment type.";
+
+        if (spouse) {
+          if (!qHasAnySelected(spouseAnswers, occupationKeys)) return "Spouse employment/source of income is mandatory.";
+          if (qHasExclusiveConflict(spouseAnswers, "occ-unemployed", activeOccupationKeys)) return "Spouse unemployment cannot be selected together with another occupation.";
+          if (spouseAnswers["occ-business"] && qIsBlank(spouseFin.spouseBizType)) return "Spouse business ownership type is mandatory.";
+          if (spouseAnswers["occ-other"] && qIsBlank(spouseFin.otherIncomeDesc)) return "Please describe the spouse's other source of income or employment.";
+          if (["occ-employed","occ-freelancer","occ-pensioner","occ-business","occ-other"].some(key => spouseAnswers[key]) && qIsBlank(spouseFin.itr)) return "Please answer the spouse ITR question.";
+        }
+        return "";
+      }
+
+      if (sectionId === "sec-ties") {
+        if (!qHasAnySelected(primaryTies, tiesKeys)) return "Social, business or community ties selection is mandatory.";
+        if (qHasExclusiveConflict(primaryTies, "none", activeTiesKeys)) return "No position or membership cannot be selected together with another community role.";
+        return "";
+      }
+
+      if (sectionId === "sec-children") {
+        for (let i = 0; i < children.length; i++) {
+          const childInfo = ((q.childrenInfo || {})[children[i].id]) || {};
+          if (qIsBlank(childInfo.doing)) return `Child ${i + 1} current activity is mandatory.`;
+        }
+        return "";
+      }
+
+      if (sectionId === "sec-history") {
+        const supportedTravellers = [primary, spouse, ...children].filter(Boolean);
+        for (const traveller of supportedTravellers) {
+          const history = ((q.history || {})[traveller.id]) || {};
+          const label = traveller.id === primary.id ? "Primary applicant" : (traveller.type === "Spouse" ? "Spouse" : `${traveller.firstName || "Child"}`);
+          if (qIsBlank(history.prevTravel)) return `${label} international travel history is mandatory.`;
+          if (hasCanada && qIsBlank(history.usaVisa)) return `${label} USA visa answer is mandatory for Canada.`;
+          if (qIsBlank(history.refusal)) return `${label} previous visa refusal answer is mandatory.`;
+          if (history.refusal === "yes" && qIsBlank(history.refusalDetail)) return `${label} visa refusal details are mandatory.`;
+          if (qIsBlank(history.criminalRecord)) return `${label} criminal history answer is mandatory.`;
+          if (history.criminalRecord === "yes" && qIsBlank(history.criminalDetail)) return `${label} criminal history details are mandatory.`;
+          if (qIsBlank(history.border)) return `${label} entry refusal or immigration breach answer is mandatory.`;
+          if (history.border === "yes" && qIsBlank(history.borderDetail)) return `${label} immigration breach details are mandatory.`;
+        }
+      }
+      return "";
+    }
+
+    function showQuestionnaireValidationSection() {
+      const sectionId = qState.validationSection;
+      const sections = qQuestionnaireSectionOrder();
+      const index = sections.indexOf(sectionId);
+      if (index < 0) return;
+      qState.currentSection = index;
+      rerenderQuestionnaire();
+      window.setTimeout(() => window.scrollTo(0, 0), 0);
+    }
+
+
+    // ── validateQuestionnaireForCreator (source 8953-9036) ──
+    function validateQuestionnaireForCreator() {
+      for (const sectionId of qQuestionnaireSectionOrder()) {
+        const validationError = validateQuestionnaireSection(sectionId);
+        if (validationError) {
+          qState.validationSection = sectionId;
+          return validationError;
+        }
+      }
+      qState.validationSection = null;
       return "";
     }
 
@@ -1597,5 +1723,6 @@ export {
   qSelOpt, qTogOpt, qTogMulti, qHandleMultiDep, qSetField, qSetTravelDate,
   qFinSel, qFinTogFunding, qFinTogM, qFinSetField, qTieTogM, qChiSel, qHistSel,
   qHistSetField, qHandleDep, qGoNext, qGoPrev, qSubmitFinal, qIsBlank,
-  qHasAnySelected, qQuestionnaireCountries, qIsCanadaSelected, qFirstTravelDate, qChildTravellers
+  qHasAnySelected, qQuestionnaireCountries, qIsCanadaSelected, qFirstTravelDate, qChildTravellers,
+  qQuestionnaireSectionOrder, validateQuestionnaireSection, showQuestionnaireValidationSection
 };
