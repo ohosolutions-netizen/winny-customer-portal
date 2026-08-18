@@ -26,13 +26,19 @@ import {
 } from "../core/drafts.js";
 
     // ── submit + poll (Portal_CRM_Request bridge) ──
-    async function submitPortalCrmRequest(requestType) {
+    async function submitPortalCrmRequest(requestType, requestContext = {}) {
       const isPortalReadRequest =
   requestType === "Get Applications" ||
   requestType === "Get Application Details";
 const requestEmail = isPortalReadRequest
   ? (applicationData.crmSync.loggedInEmail || applicationData.customer.email || "")
   : (applicationData.customer.email || applicationData.crmSync.loggedInEmail || "");
+      const requestDealId = requestContext.crmDealId !== undefined
+        ? String(requestContext.crmDealId || "").trim()
+        : String(applicationData.deal.crmDealId || "").trim();
+      const requestApplicationNumber = requestContext.applicationNumber !== undefined
+        ? String(requestContext.applicationNumber || "").trim()
+        : String(applicationData.applicationId || "").trim();
       const selectedServiceType =
         getGoalDefinition(applicationData.deal.serviceTypeKey || applicationData.deal.goal)?.crmLabel ||
         applicationData.deal.goal ||
@@ -45,6 +51,7 @@ const requestEmail = isPortalReadRequest
         },
         deal: {
           ...applicationData.deal,
+          crmDealId: requestDealId,
           serviceNames:   getSelectedServiceNames(),
           serviceType:    selectedServiceType,
           Service_Type:   selectedServiceType,
@@ -92,10 +99,10 @@ const requestEmail = isPortalReadRequest
       const recordData = {
         Request_Type:       requestType,
         Status:             "Pending",
-        Application_Number: applicationData.applicationId,
+        Application_Number: requestApplicationNumber,
         Customer_Email:     requestEmail,
         CRM_Contact_ID:     applicationData.deal.crmContactId || "",
-        CRM_Deal_ID:        applicationData.deal.crmDealId    || "",   // ← key: lets Deluge update vs create
+        CRM_Deal_ID:        requestDealId,   // ← key: lets Deluge update vs create
         Payload:            JSON.stringify(payload)
       };
 
@@ -248,6 +255,7 @@ const { success: requestSucceeded, deals: requestDeals } = await fetchApplicatio
           console.warn("[Winny] Skipping stale-draft pruning — could not confirm current CRM state.");
         }
         state.portalApplications = requestDeals.map(applicationCardFromDeal);
+        await enrichMissingApplicationNumbers(state.portalApplications);
 
 // The user may have started a new application while CRM data was loading.
 // Keep the application cards, but do not hydrate the old deal into the new application.
@@ -303,7 +311,18 @@ const contact = await findContactByEmail(loggedInEmail);
     }
 
     async function loadApplicationCardsFromDeals(deals) {
-      state.portalApplications = deals.map(applicationCardFromDeal);
+      const existingNumbers = new Map(
+        (state.portalApplications || [])
+          .filter((app) => app?.dealId && app?.applicationId)
+          .map((app) => [String(app.dealId), String(app.applicationId)])
+      );
+      state.portalApplications = deals.map((deal) => {
+        const card = applicationCardFromDeal(deal);
+        if (!card.applicationId && existingNumbers.has(card.dealId)) {
+          card.applicationId = existingNumbers.get(card.dealId);
+        }
+        return card;
+      });
       const latestDeal = deals[0] || null;
       if (!latestDeal || hasApplicationInfo()) return;
       hydrateDealFromCrm(latestDeal);
@@ -332,18 +351,34 @@ const contact = await findContactByEmail(loggedInEmail);
         return { success: false, deals: [] };
       }
     }
-    async function fetchApplicationDetailsViaPortalRequest(dealId) {
+    async function fetchApplicationDetailsViaPortalRequest(dealId, options = {}) {
   const normalizedDealId = String(dealId || "").trim();
   if (!normalizedDealId) return null;
 
-  applicationData.deal.crmDealId = normalizedDealId;
+  const mutateActiveApplication = options.mutateActiveApplication !== false;
+  if (mutateActiveApplication) {
+    applicationData.deal.crmDealId = normalizedDealId;
+  }
 
-  const requestId = await submitPortalCrmRequest("Get Application Details");
+  const requestContext = { crmDealId: normalizedDealId };
+  if (options.applicationNumber !== undefined) {
+    requestContext.applicationNumber = options.applicationNumber;
+  } else if (!mutateActiveApplication) {
+    requestContext.applicationNumber = "";
+  }
+  const requestId = await submitPortalCrmRequest(
+    "Get Application Details",
+    requestContext
+  );
   if (!requestId) {
     throw new Error("Could not create the application-details request.");
   }
 
-  const result = await pollCreatorRecord(requestId, 15, 1200);
+  const result = await pollCreatorRecord(
+    requestId,
+    options.maxAttempts || 15,
+    options.intervalMs || 1200
+  );
 
   if (result._timedOut) {
     throw new Error("Application-details request timed out.");
@@ -370,6 +405,78 @@ const contact = await findContactByEmail(loggedInEmail);
   }
 
   return parsed;
+}
+
+function readApplicationNumber(record) {
+  if (!record || typeof record !== "object") return "";
+  return String(
+    readZohoValue(record.Application_Number) ||
+    readZohoValue(record.applicationNumber) ||
+    readZohoValue(record.application_number) ||
+    readZohoValue(record.Application_ID) ||
+    readZohoValue(record.applicationId) ||
+    ""
+  ).trim();
+}
+
+function extractApplicationNumberFromDetails(details) {
+  if (!details || typeof details !== "object") return "";
+
+  const savedPayloadSource =
+    details.savedPayload ??
+    details.saved_payload ??
+    details.Payload ??
+    details.payload ??
+    {};
+  const parsedSavedPayload = typeof savedPayloadSource === "string"
+    ? safeJsonParse(savedPayloadSource)
+    : savedPayloadSource;
+  const savedPayload = parsedSavedPayload && typeof parsedSavedPayload === "object"
+    ? parsedSavedPayload
+    : {};
+
+  // Match hydrateApplicationDetails(): the current CRM Deal value is the
+  // authoritative value, with the saved application snapshot as a fallback.
+  return (
+    readApplicationNumber(details.deal) ||
+    readApplicationNumber(savedPayload) ||
+    readApplicationNumber(savedPayload.deal) ||
+    readApplicationNumber(details)
+  );
+}
+
+async function enrichMissingApplicationNumbers(cards) {
+  const pendingCards = (cards || []).filter(
+    (card) => card?.dealId && !card?.applicationId
+  );
+  if (!pendingCards.length || !hasZohoTransport()) return;
+
+  // The Creator bridge is rate-limited in the live iframe. Two workers keep
+  // initial loading bounded without flooding it for customers with many deals.
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < pendingCards.length) {
+      const card = pendingCards[nextIndex++];
+      try {
+        const details = await fetchApplicationDetailsViaPortalRequest(card.dealId, {
+          mutateActiveApplication: false,
+          maxAttempts: 6,
+          intervalMs: 1000
+        });
+        const applicationNumber = extractApplicationNumberFromDetails(details);
+        if (applicationNumber) card.applicationId = applicationNumber;
+      } catch (error) {
+        console.warn(
+          `[Winny] Could not preload the application number for Deal ${card.dealId}:`,
+          error
+        );
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(2, pendingCards.length) }, () => worker())
+  );
 }
 
 function hydrateApplicationDetails(details) {
@@ -846,7 +953,7 @@ const stale =
       return {
         source: "crm",
         dealId,
-        applicationId: readZohoValue(deal.Application_Number) || "",
+        applicationId: readApplicationNumber(deal),
         title: readZohoValue(deal.Deal_Name) || "Application",
         destination: readZohoValue(deal.Destination) || "",
         serviceType: readZohoValue(deal.Service_Type) || "",
@@ -1092,6 +1199,7 @@ export {
   loadPortalCustomerData, loadApplicationCardsFromDeals,
   fetchApplicationsViaPortalRequest, fetchApplicationDetailsViaPortalRequest,
   hydrateApplicationDetails, parseApplicationsResponse,
+  readApplicationNumber, extractApplicationNumberFromDetails, enrichMissingApplicationNumbers,
   findContactByEmail, findDealById, refreshCurrentDealFromCrm,
   fetchPaymentStatusViaPortalRequest, findLatestDealForContact, findDealsForContact,
   pruneStaleLocalDrafts, applicationCardFromDeal, findTravellersForDeal, reconcileTravellerCrmRows,
