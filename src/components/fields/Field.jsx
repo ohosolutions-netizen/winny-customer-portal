@@ -27,12 +27,12 @@ export function TextareaField({ label, path, placeholder = "", extraClass = "" }
 }
 
 // Reproduces selectField() (source 13845-13854).
-export function SelectField({ label, path, options, required = false, disabled = false }) {
+export function SelectField({ label, path, options, required = false }) {
   const { value, onChange, onBlur, ...rest } = bindInput(path);
   return (
     <div className="field" data-field={path}>
       <label>{label}{required ? " *" : ""}</label>
-      <select value={value} onChange={onChange} onBlur={onBlur} disabled={disabled} data-required={required ? "true" : undefined} {...rest}>
+      <select value={value} onChange={onChange} onBlur={onBlur} data-required={required ? "true" : undefined} {...rest}>
         {options.map((opt, i) => (
           <option key={`${opt}-${i}`} value={opt}>{opt ? opt : "-- Select --"}</option>
         ))}

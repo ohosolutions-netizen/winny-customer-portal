@@ -1,7 +1,6 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
-import { addFamilyGroup, addTraveller, removeTraveller, setFamilyPrimaryApplicant } from "../../core/deal.js";
-import { requestRender, markAutoSavePending } from "../../lib/ui.js";
+import { addFamilyGroup, addTraveller, removeTraveller } from "../../core/deal.js";
 import { Field, SelectField } from "../fields/Field.jsx";
 
 const DEFAULT_FAMILY_ID = "family-1";
@@ -27,12 +26,6 @@ export default function TravellerList() {
     family.members.push({ traveller, index });
   });
 
-  const selectPrimaryApplicant = (travellerId) => {
-    if (!setFamilyPrimaryApplicant(travellerId)) return;
-    markAutoSavePending();
-    requestRender();
-  };
-
   return (
     <div className="traveller-list" id="travellerList">
       <div className="family-entry-notice">
@@ -53,53 +46,29 @@ export default function TravellerList() {
           </div>
 
           <div className="traveller-family-members">
-            {family.members.map(({ traveller, index }, memberIndex) => {
-              const isPrimaryApplicant = traveller.type === "Primary Applicant";
-              return (
+            {family.members.map(({ traveller, index }, memberIndex) => (
               <article className="traveller-card" key={traveller.id}>
                 <div className="traveller-head">
                   <div className="traveller-title">
-                    <span className="avatar">{isPrimaryApplicant ? "PA" : memberIndex + 1}</span>
+                    <span className="avatar">{index === 0 ? "PA" : memberIndex + 1}</span>
                     <span>
                       {traveller.type || "Traveller"}
-                      {isPrimaryApplicant ? ` — Family ${familyIndex + 1}` : ""}
+                      {memberIndex === 0 ? ` — Family ${familyIndex + 1}` : ""}
                     </span>
                   </div>
                   <button className="btn danger" type="button" disabled={travellers.length === 1} onClick={() => removeTraveller(traveller.id)}>Remove</button>
                 </div>
-                {family.members.length > 1 ? (
-                  <label className="check-row" style={{ marginBottom: 14, cursor: "pointer" }}>
-                    <input
-                      type="radio"
-                      name={`family-primary-${family.id}`}
-                      checked={isPrimaryApplicant}
-                      onChange={() => selectPrimaryApplicant(traveller.id)}
-                    />
-                    <span>
-                      <strong>Primary applicant for Family {familyIndex + 1}</strong>
-                      <small style={{ display: "block", color: "var(--muted)", marginTop: 2 }}>
-                        Select one primary applicant for this family.
-                      </small>
-                    </span>
-                  </label>
-                ) : null}
                 <div className="form-grid three">
                   <Field label="First Name" path={`deal.travellers.${index}.firstName`} type="text" placeholder="First name" required />
                   <Field label="Last Name" path={`deal.travellers.${index}.lastName`} type="text" placeholder="Last name" required />
-                  <SelectField
-                    label="Traveller Type"
-                    path={`deal.travellers.${index}.type`}
-                    options={isPrimaryApplicant ? ["Primary Applicant"] : ["Spouse", "Child", "Parent", "Additional Traveller", "Other"]}
-                    disabled={isPrimaryApplicant}
-                  />
+                  <SelectField label="Traveller Type" path={`deal.travellers.${index}.type`} options={["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"]} />
                   <Field label="Date of Birth" path={`deal.travellers.${index}.dob`} type="date" placeholder="" max={latestBirthDateValue} required />
                   <Field label="Nationality" path={`deal.travellers.${index}.nationality`} type="text" placeholder="Indian" />
-                  <Field label={isPrimaryApplicant ? "Primary Applicant Email" : "Email"} path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" required={isPrimaryApplicant} />
+                  <Field label={memberIndex === 0 ? "Primary Applicant Email" : "Email"} path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" required={memberIndex === 0} />
                   <Field label="Mobile" path={`deal.travellers.${index}.mobile`} type="tel" placeholder="+91" required />
                 </div>
               </article>
-              );
-            })}
+            ))}
           </div>
 
           <button className="family-member-add" type="button" onClick={() => addTraveller(family.id)}>

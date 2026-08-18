@@ -14,8 +14,7 @@ import { validators } from "../lib/validators.js";
 import { toast, showLoader, hideLoader, openModal, requestRender, fail, markAutoSavePending } from "../lib/ui.js";
 import {
   isDealSaved, getPayableAmount, getPaymentStatusAfterSuccess, isFullyPaidStatus,
-  getCustomerName, getSelectedServiceNames, syncPaymentBreakdown, getPaymentMode,
-  getTravellerFamilyId
+  getCustomerName, getSelectedServiceNames, syncPaymentBreakdown, getPaymentMode
 } from "../core/derive.js";
 import { ensurePrimaryTravellerFromCustomer, applyTravellerCrmIds } from "../core/deal.js";
 import { validateTermsAcceptances } from "../core/terms.js";
@@ -103,19 +102,13 @@ let zPayInstance = null;
         if (!applicationData.deal.travellers.every((t) => String(t.mobile || "").trim())) return fail("Enter the mobile number for every traveller.");
         const invalidTravellerMobile = applicationData.deal.travellers.find((t) => validators.phone(t.mobile));
         if (invalidTravellerMobile) return fail("Enter a valid mobile number for every traveller.");
-        const familyMembers = new Map();
-        applicationData.deal.travellers.forEach((traveller) => {
-          const familyId = getTravellerFamilyId(traveller);
-          if (!familyMembers.has(familyId)) familyMembers.set(familyId, []);
-          familyMembers.get(familyId).push(traveller);
+        const seenFamilies = new Set();
+        const familyPrimaryTravellers = applicationData.deal.travellers.filter((traveller) => {
+          const familyId = traveller.familyId || "family-1";
+          if (seenFamilies.has(familyId)) return false;
+          seenFamilies.add(familyId);
+          return true;
         });
-        const invalidPrimaryFamily = [...familyMembers.values()].find(
-          (members) => members.filter((traveller) => traveller.type === "Primary Applicant").length !== 1
-        );
-        if (invalidPrimaryFamily) return fail("Select exactly one primary applicant for every family.");
-        const familyPrimaryTravellers = [...familyMembers.values()].map(
-          (members) => members.find((traveller) => traveller.type === "Primary Applicant")
-        );
         if (!familyPrimaryTravellers.every((traveller) => String(traveller.email || "").trim())) return fail("Enter the primary applicant email for every family.");
         if (familyPrimaryTravellers.some((traveller) => validators.email(traveller.email))) return fail("Enter a valid primary applicant email for every family.");
       }

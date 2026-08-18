@@ -18,7 +18,6 @@ import {
 } from "./zoho.js";
 import {
   hasApplicationInfo, isFullyPaidStatus, syncCustomerToTraveller,
-  normalizeFamilyPrimaryApplicants,
   getSelectedServiceNames, deriveTravellerRelationship
 } from "../core/derive.js";
 import { getGoalDefinition } from "../core/catalog.js";
@@ -680,7 +679,6 @@ if (questionnaireSubmitted) {
     );
 }
 
-normalizeFamilyPrimaryApplicants();
 syncCustomerToTraveller();
 }
 function parseApplicationsResponse(response) {
@@ -1194,7 +1192,6 @@ applicationData.stepStatus.dealCompleted =
           serviceType:  readZohoValue(row.Service_Type) || applicationData.deal.goal || ""
         };
       });
-      normalizeFamilyPrimaryApplicants();
     }
 
 export {
