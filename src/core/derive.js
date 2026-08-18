@@ -343,9 +343,35 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
       return map[status] || map["Not Collected"];
     }
 
+    const DOCUMENT_READY_STATUSES = new Set(["Collected", "Not Required", "Reviewed", "Accepted"]);
+    const MANDATORY_DOCUMENT_VALUES = new Set(["mandatory", "required", "yes", "true", "y", "1"]);
+    const OPTIONAL_DOCUMENT_VALUES = new Set(["optional", "not mandatory", "not required", "no", "false", "n", "0"]);
+
+    function getDocumentRequirementValue(document) {
+      return document?.documentRequirement ?? document?.document_requirement ?? document?.Document_Requirement ?? "";
+    }
+
+    function isMandatoryDocument(document) {
+      if (typeof document?.isMandatory === "boolean") return document.isMandatory;
+      if (typeof document?.mandatory === "boolean") return document.mandatory;
+
+      const normalized = String(getDocumentRequirementValue(document)).trim().toLowerCase();
+      if (MANDATORY_DOCUMENT_VALUES.has(normalized)) return true;
+      if (OPTIONAL_DOCUMENT_VALUES.has(normalized)) return false;
+
+      // Preserve the legacy safe behaviour when an older Deluge response does
+      // not yet include Document_Requirement: the document still blocks the
+      // checklist rather than accidentally letting the customer continue.
+      return true;
+    }
+
+    function isDocumentReady(document) {
+      return DOCUMENT_READY_STATUSES.has(document?.status);
+    }
+
     function isDocumentChecklistClear() {
       if (!state.documents.loaded || !state.documents.items.length) return false;
-      return state.documents.items.every(d => ["Collected", "Not Required", "Reviewed", "Accepted"].includes(d.status));
+      return state.documents.items.filter(isMandatoryDocument).every(isDocumentReady);
     }
 
 export {
@@ -358,5 +384,6 @@ export {
   hasApplicationInfo, hasMeaningfulApplicationContent, isDealSaved,
   getApplicationCompletionPercent, getApplicationJourneyStageIndex, getApplicationStage,
   getCompletionPercent, getJourneyStageIndex, getCurrentStage, getStageNote,
-  isStepLocked, isStepDone, documentStatusMeta, isDocumentChecklistClear
+  isStepLocked, isStepDone, documentStatusMeta, isMandatoryDocument,
+  isDocumentReady, isDocumentChecklistClear
 };

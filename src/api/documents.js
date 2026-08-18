@@ -12,7 +12,7 @@ import { applicationData, state } from "../store/runtime.js";
 import { qs } from "../lib/dom.js";
 import { escapeHtml } from "../lib/utils.js";
 import { toast } from "../lib/ui.js";
-import { documentStatusMeta } from "../core/derive.js";
+import { documentStatusMeta, isMandatoryDocument, isDocumentReady } from "../core/derive.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 
     async function loadDocumentChecklist(force = false) {
@@ -66,7 +66,7 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
     // yet added — see chat) and a new Deluge case for
     // Request_Type == "Get Document Checklist" that:
     //   1. searches Document where Deal = input.CRM_Deal_ID
-    //   2. builds JSON: [{"id","traveller_id","traveller_name","requirement","status","review_comments"}, ...]
+    //   2. builds JSON: [{"id","traveller_id","traveller_name","requirement","document_requirement","status","review_comments"}, ...]
     //   3. writes that JSON string to Document_Checklist_JSON, sets Status = "Success"
     async function findDocumentsForDeal(dealId) {
       try {
@@ -109,6 +109,7 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
         return parsed.map((d) => ({
           id:              d.id || d.ID || "",
           requirement:     d.requirement || d.Name || "Document",
+          documentRequirement: d.document_requirement ?? d.documentRequirement ?? d.Document_Requirement ?? d.mandatory ?? d.is_mandatory ?? "",
           status:          d.status || d.Document_Status || "Not Collected",
           reviewComments:  d.review_comments || d.Review_Comments || "",
           travellerId:     d.traveller_id || d.travellerId || "",
@@ -154,8 +155,10 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
         return;
       }
 
-      const collectedCount = items.filter(d => ["Collected","Not Required","Reviewed","Accepted"].includes(d.status)).length;
-      const pct = items.length ? Math.round((collectedCount / items.length) * 100) : 0;
+      const mandatoryItems = items.filter(isMandatoryDocument);
+      const optionalItems = items.filter(d => !isMandatoryDocument(d));
+      const mandatoryReadyCount = mandatoryItems.filter(isDocumentReady).length;
+      const pct = mandatoryItems.length ? Math.round((mandatoryReadyCount / mandatoryItems.length) * 100) : 100;
 
       const byTraveller = {};
       items.forEach((d) => {
@@ -169,11 +172,12 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
           <div class="person-block-hd">
             <div class="pb-av pb-av-pa">${escapeHtml((group.name||"T")[0]||"T")}</div>
             <div class="pb-info"><div class="pb-name">${escapeHtml(group.name)}</div>
-            <div class="pb-role">${group.docs.length} document${group.docs.length !== 1 ? "s" : ""} required</div></div>
+            <div class="pb-role">${group.docs.filter(isMandatoryDocument).length} mandatory · ${group.docs.filter(d => !isMandatoryDocument(d)).length} optional</div></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:10px">
             ${group.docs.map((d) => {
               const meta = documentStatusMeta(d.status);
+              const mandatory = isMandatoryDocument(d);
               const uploading = state.documents.uploadingId === d.id;
               const viewing = state.documents.viewingId === d.id;
               const isLocked = ["Not Required", "Reviewed", "Accepted"].includes(d.status);
@@ -183,7 +187,10 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
               return `
               <div style="border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-                  <div style="flex:1;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.4">${escapeHtml(d.requirement)}</div>
+                  <div style="flex:1;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.4">
+                    ${escapeHtml(d.requirement)}
+                    <span style="display:inline-flex;margin-left:7px;padding:3px 8px;border-radius:99px;background:${mandatory ? "#fff0f3" : "#f0f2f6"};color:${mandatory ? "#a1233b" : "#5b6072"};font-size:10px;font-weight:800;vertical-align:middle">${mandatory ? "Mandatory" : "Optional"}</span>
+                  </div>
                   <span style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:${meta.bg};color:${meta.fg};font-size:11px;font-weight:800;white-space:nowrap">
                     <span style="width:7px;height:7px;border-radius:50%;background:${meta.dot};display:inline-block"></span>${escapeHtml(d.status)}
                   </span>
@@ -215,8 +222,10 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
             <button class="btn ghost" type="button" onclick="loadDocumentChecklist(true)" title="Refresh">&#x21BA; Refresh</button>
           </div>
           <div class="panel-body">
+            <div class="notice blue" style="margin-bottom:16px"><strong>&#x1F4CC; Mandatory documents must be uploaded</strong>
+              <span>This checklist is complete only after every mandatory document is ready. Optional documents do not block completion.</span></div>
             <div class="q-prog-card" style="margin-bottom:18px">
-              <div class="q-prog-top"><div class="q-prog-label">${collectedCount} of ${items.length} documents ready</div><div class="q-prog-pct">${pct}%</div></div>
+              <div class="q-prog-top"><div class="q-prog-label">${mandatoryReadyCount} of ${mandatoryItems.length} mandatory documents ready${optionalItems.length ? ` · ${optionalItems.length} optional` : ""}</div><div class="q-prog-pct">${pct}%</div></div>
               <div class="q-prog-bg"><div class="q-prog-fill" style="width:${pct}%"></div></div>
             </div>
             ${travellerBlocks}
