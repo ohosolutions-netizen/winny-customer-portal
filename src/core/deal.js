@@ -9,7 +9,10 @@ import { CONFIG, packageCatalog } from "../config/config.js";
 import { applicationData, state, blankApplication, replaceApplicationData } from "../store/runtime.js";
 import { getByPath, setByPath, uid } from "../lib/utils.js";
 import { toast, markAutoSavePending, requestRender, openConfirmModal, fail } from "../lib/ui.js";
-import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isDealSaved } from "./derive.js";
+import {
+  recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isDealSaved,
+  normalizeFamilyPrimaryApplicants, setFamilyPrimaryApplicant
+} from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { showDashboard } from "./navigation.js";
 import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalDefinition, getProductCountries } from "./catalog.js";
@@ -67,14 +70,17 @@ import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalD
     const DEFAULT_FAMILY_ID = "family-1";
 
     function createTraveller(familyId = DEFAULT_FAMILY_ID) {
+      const isFirstFamilyMember = !applicationData.deal.travellers.some(
+        (traveller) => (traveller.familyId || DEFAULT_FAMILY_ID) === familyId
+      );
       return {
         id: uid("traveller"),
         familyId,
-        type: "Additional Traveller",
+        type: isFirstFamilyMember ? "Primary Applicant" : "Additional Traveller",
         firstName: "",
         lastName: "",
         dob: "",
-        relationship: "",
+        relationship: isFirstFamilyMember ? "Self" : "",
         nationality: applicationData.customer.nationality || "",
         email: "",
         mobile: "",
@@ -146,6 +152,7 @@ import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalD
     function addTraveller(familyId = DEFAULT_FAMILY_ID) {
       if (!isDealSaved()) { toast("Save the Deal first, then add travellers."); return; }
       applicationData.deal.travellers.push(createTraveller(familyId));
+      normalizeFamilyPrimaryApplicants();
       requestRender();
       markAutoSavePending();
     }
@@ -153,12 +160,14 @@ import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalD
     function addFamilyGroup() {
       if (!isDealSaved()) { toast("Save the Deal first, then add a family group."); return; }
       applicationData.deal.travellers.push(createTraveller(uid("family")));
+      normalizeFamilyPrimaryApplicants();
       requestRender();
       markAutoSavePending();
     }
 
     function removeTraveller(id) {
       applicationData.deal.travellers = applicationData.deal.travellers.filter((t) => t.id !== id);
+      normalizeFamilyPrimaryApplicants();
       requestRender();
       markAutoSavePending();
     }
@@ -458,6 +467,7 @@ export {
   getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getPackageDestinationCountries, getAssignedTravellerIdsForGoal,
   syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
   toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
+  setFamilyPrimaryApplicant,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
   togglePackage, getSelectedServiceTypeKey, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
   addPendingToBasket, removeBasketItem, toggleAddon, setUSAAddons,

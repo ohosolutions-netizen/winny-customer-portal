@@ -101,9 +101,69 @@ import { isApplicationHidden } from "./drafts.js";
       markAutoSavePending();
     }
 
+    const DEFAULT_FAMILY_ID = "family-1";
+
+    function getTravellerFamilyId(traveller) {
+      return String(traveller?.familyId || DEFAULT_FAMILY_ID);
+    }
+
+    function normalizeFamilyPrimaryApplicants(travellers = applicationData.deal.travellers) {
+      const families = new Map();
+      (travellers || []).forEach((traveller) => {
+        const familyId = getTravellerFamilyId(traveller);
+        traveller.familyId = familyId;
+        if (!families.has(familyId)) families.set(familyId, []);
+        families.get(familyId).push(traveller);
+      });
+
+      families.forEach((members) => {
+        const primaryApplicants = members.filter(
+          (traveller) => traveller.type === "Primary Applicant"
+        );
+        const primaryApplicant = primaryApplicants[0] || members[0];
+        members.forEach((traveller) => {
+          if (traveller === primaryApplicant) {
+            traveller.type = "Primary Applicant";
+            traveller.relationship = "Self";
+          } else if (traveller.type === "Primary Applicant") {
+            traveller.type = "Additional Traveller";
+            if (traveller.relationship === "Self") traveller.relationship = "";
+          }
+        });
+      });
+
+      return travellers;
+    }
+
+    function setFamilyPrimaryApplicant(travellerId) {
+      const travellers = applicationData.deal.travellers || [];
+      const selectedTraveller = travellers.find(
+        (traveller) => traveller.id === travellerId
+      );
+      if (!selectedTraveller) return false;
+
+      const familyId = getTravellerFamilyId(selectedTraveller);
+      travellers.forEach((traveller) => {
+        if (getTravellerFamilyId(traveller) !== familyId) return;
+        if (traveller.id === travellerId) {
+          traveller.type = "Primary Applicant";
+          traveller.relationship = "Self";
+        } else if (traveller.type === "Primary Applicant") {
+          traveller.type = "Additional Traveller";
+          if (traveller.relationship === "Self") traveller.relationship = "";
+        }
+      });
+      return true;
+    }
+
     function syncCustomerToTraveller() {
       // Only sync if deal is saved and primary traveller exists
-      const primary = applicationData.deal.travellers[0];
+      normalizeFamilyPrimaryApplicants();
+      const primary = applicationData.deal.travellers.find(
+        (traveller) =>
+          getTravellerFamilyId(traveller) === DEFAULT_FAMILY_ID &&
+          traveller.type === "Primary Applicant"
+      ) || applicationData.deal.travellers[0];
       if (!primary || !applicationData.deal.dealSavedToCRM) return;
       if (!primary.firstName)   primary.firstName   = applicationData.customer.firstName;
       if (!primary.lastName)    primary.lastName    = applicationData.customer.lastName;
@@ -352,7 +412,8 @@ export {
   getSelectedServices, getSelectedServiceNames, getCustomerName,
   recalculatePayment, getPaymentMode, syncPaymentBreakdown, getPayableAmount,
   getPaymentStatusAfterSuccess, isFullyPaidStatus, setPaymentMode,
-  updatePartialPayable, syncCustomerToTraveller, deriveTravellerRelationship,
+  updatePartialPayable, getTravellerFamilyId, normalizeFamilyPrimaryApplicants,
+  setFamilyPrimaryApplicant, syncCustomerToTraveller, deriveTravellerRelationship,
   unhideCurrentApplication, getApplicationCards, getApplicationCardKey,
   mergeApplicationCard, normalizeApplicationTitle, applicationCardFromCurrent,
   hasApplicationInfo, hasMeaningfulApplicationContent, isDealSaved,
