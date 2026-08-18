@@ -346,6 +346,7 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
     const DOCUMENT_READY_STATUSES = new Set(["Collected", "Not Required", "Reviewed", "Accepted"]);
     const MANDATORY_DOCUMENT_VALUES = new Set(["mandatory", "required", "yes", "true", "y", "1"]);
     const OPTIONAL_DOCUMENT_VALUES = new Set(["optional", "not mandatory", "not required", "no", "false", "n", "0"]);
+    const STRENGTH_DOCUMENT_VALUES = new Set(["strength"]);
 
     function getDocumentRequirementValue(document) {
       return document?.documentRequirement ?? document?.document_requirement ?? document?.Document_Requirement ?? "";
@@ -357,12 +358,17 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
 
       const normalized = String(getDocumentRequirementValue(document)).trim().toLowerCase();
       if (MANDATORY_DOCUMENT_VALUES.has(normalized)) return true;
-      if (OPTIONAL_DOCUMENT_VALUES.has(normalized)) return false;
+      if (OPTIONAL_DOCUMENT_VALUES.has(normalized) || STRENGTH_DOCUMENT_VALUES.has(normalized)) return false;
 
       // Preserve the legacy safe behaviour when an older Deluge response does
       // not yet include Document_Requirement: the document still blocks the
       // checklist rather than accidentally letting the customer continue.
       return true;
+    }
+
+    function isStrengthDocument(document) {
+      const normalized = String(getDocumentRequirementValue(document)).trim().toLowerCase();
+      return !isMandatoryDocument(document) && STRENGTH_DOCUMENT_VALUES.has(normalized);
     }
 
     function isDocumentReady(document) {
@@ -384,6 +390,6 @@ export {
   hasApplicationInfo, hasMeaningfulApplicationContent, isDealSaved,
   getApplicationCompletionPercent, getApplicationJourneyStageIndex, getApplicationStage,
   getCompletionPercent, getJourneyStageIndex, getCurrentStage, getStageNote,
-  isStepLocked, isStepDone, documentStatusMeta, isMandatoryDocument,
+  isStepLocked, isStepDone, documentStatusMeta, isMandatoryDocument, isStrengthDocument,
   isDocumentReady, isDocumentChecklistClear
 };

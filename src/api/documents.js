@@ -12,7 +12,7 @@ import { applicationData, state } from "../store/runtime.js";
 import { qs } from "../lib/dom.js";
 import { escapeHtml } from "../lib/utils.js";
 import { toast } from "../lib/ui.js";
-import { documentStatusMeta, isMandatoryDocument, isDocumentReady } from "../core/derive.js";
+import { documentStatusMeta, isMandatoryDocument, isStrengthDocument, isDocumentReady } from "../core/derive.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 
     async function loadDocumentChecklist(force = false) {
@@ -156,7 +156,8 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
       }
 
       const mandatoryItems = items.filter(isMandatoryDocument);
-      const optionalItems = items.filter(d => !isMandatoryDocument(d));
+      const strengthItems = items.filter(isStrengthDocument);
+      const optionalItems = items.filter(d => !isMandatoryDocument(d) && !isStrengthDocument(d));
       const mandatoryReadyCount = mandatoryItems.filter(isDocumentReady).length;
       const pct = mandatoryItems.length ? Math.round((mandatoryReadyCount / mandatoryItems.length) * 100) : 100;
 
@@ -172,12 +173,20 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
           <div class="person-block-hd">
             <div class="pb-av pb-av-pa">${escapeHtml((group.name||"T")[0]||"T")}</div>
             <div class="pb-info"><div class="pb-name">${escapeHtml(group.name)}</div>
-            <div class="pb-role">${group.docs.filter(isMandatoryDocument).length} mandatory · ${group.docs.filter(d => !isMandatoryDocument(d)).length} optional</div></div>
+            <div class="pb-role">${[
+              `${group.docs.filter(isMandatoryDocument).length} mandatory`,
+              group.docs.filter(isStrengthDocument).length ? `${group.docs.filter(isStrengthDocument).length} strength` : "",
+              group.docs.filter(d => !isMandatoryDocument(d) && !isStrengthDocument(d)).length ? `${group.docs.filter(d => !isMandatoryDocument(d) && !isStrengthDocument(d)).length} optional` : ""
+            ].filter(Boolean).join(" · ")}</div></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:10px">
             ${group.docs.map((d) => {
               const meta = documentStatusMeta(d.status);
               const mandatory = isMandatoryDocument(d);
+              const strength = isStrengthDocument(d);
+              const requirementLabel = mandatory ? "Mandatory" : (strength ? "Strength" : "Optional");
+              const requirementBackground = mandatory ? "#fff0f3" : (strength ? "#e8f8f2" : "#f0f2f6");
+              const requirementColor = mandatory ? "#a1233b" : (strength ? "#077753" : "#5b6072");
               const uploading = state.documents.uploadingId === d.id;
               const viewing = state.documents.viewingId === d.id;
               const isLocked = ["Not Required", "Reviewed", "Accepted"].includes(d.status);
@@ -189,12 +198,13 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
                   <div style="flex:1;font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.4">
                     ${escapeHtml(d.requirement)}
-                    <span style="display:inline-flex;margin-left:7px;padding:3px 8px;border-radius:99px;background:${mandatory ? "#fff0f3" : "#f0f2f6"};color:${mandatory ? "#a1233b" : "#5b6072"};font-size:10px;font-weight:800;vertical-align:middle">${mandatory ? "Mandatory" : "Optional"}</span>
+                    <span style="display:inline-flex;margin-left:7px;padding:3px 8px;border-radius:99px;background:${requirementBackground};color:${requirementColor};font-size:10px;font-weight:800;vertical-align:middle">${requirementLabel}</span>
                   </div>
                   <span style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;background:${meta.bg};color:${meta.fg};font-size:11px;font-weight:800;white-space:nowrap">
                     <span style="width:7px;height:7px;border-radius:50%;background:${meta.dot};display:inline-block"></span>${escapeHtml(d.status)}
                   </span>
                 </div>
+                ${strength ? `<div style="margin-top:8px;font-size:11.5px;color:#077753">Recommended — providing this document can strengthen your application.</div>` : ""}
                 ${d.reviewComments ? `<div style="margin-top:8px;padding:8px 10px;background:#fafbff;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)"><strong style="color:var(--ink)">Note from case officer:</strong> ${escapeHtml(d.reviewComments)}</div>` : ""}
                 ${isLocked && hasFile ? `<div style="margin-top:8px;font-size:11.5px;color:var(--muted)">&#x1F512; ${d.status === "Reviewed" ? "Approved — this document can no longer be changed." : "Not required for this case."}</div>` : ""}
                 <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -223,9 +233,9 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
           </div>
           <div class="panel-body">
             <div class="notice blue" style="margin-bottom:16px"><strong>&#x1F4CC; Mandatory documents must be uploaded</strong>
-              <span>This checklist is complete only after every mandatory document is ready. Optional documents do not block completion.</span></div>
+              <span>This checklist is complete only after every mandatory document is ready. Strength documents are recommended but do not block completion.</span></div>
             <div class="q-prog-card" style="margin-bottom:18px">
-              <div class="q-prog-top"><div class="q-prog-label">${mandatoryReadyCount} of ${mandatoryItems.length} mandatory documents ready${optionalItems.length ? ` · ${optionalItems.length} optional` : ""}</div><div class="q-prog-pct">${pct}%</div></div>
+              <div class="q-prog-top"><div class="q-prog-label">${mandatoryReadyCount} of ${mandatoryItems.length} mandatory documents ready${strengthItems.length ? ` · ${strengthItems.length} strength` : ""}${optionalItems.length ? ` · ${optionalItems.length} optional` : ""}</div><div class="q-prog-pct">${pct}%</div></div>
               <div class="q-prog-bg"><div class="q-prog-fill" style="width:${pct}%"></div></div>
             </div>
             ${travellerBlocks}
