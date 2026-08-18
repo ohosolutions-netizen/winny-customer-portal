@@ -1647,11 +1647,13 @@ if (finance) {
     function cifGenericProgress(travId, instance) {
       if (!instance || instance.type === "uk") return cifOverallProgress(travId);
       const scores = instance.definition.stages.map(stage => {
-        const fields = cifCustomerFields(state.cifMetadata[stage.form]);
+        const data = cifInstanceData(travId, instance.id)[stage.tag] || {};
+        const fields = cifCustomerFields(state.cifMetadata[stage.form]).filter(field =>
+          cifGenericFieldVisible(instance, stage, data, field.link_name)
+        );
         if (!fields.length) return 0;
         const required = fields.filter(field => field.mandatory);
         const measured = required.length ? required : fields;
-        const data = cifInstanceData(travId, instance.id)[stage.tag] || {};
         const filled = measured.filter(field => {
           const value = data[field.link_name];
           if (Array.isArray(value)) return value.length > 0;
@@ -1724,6 +1726,182 @@ if (finance) {
         }).join("")}</div>
       </div>`;
     }
+    function cifAustraliaConditionMet(data, condition) {
+      if (!condition) return true;
+      if (condition.anyOf) return condition.anyOf.some(item => cifAustraliaConditionMet(data, item));
+      if (condition.allOf) return condition.allOf.every(item => cifAustraliaConditionMet(data, item));
+      const value = String(data?.[condition.field] ?? "");
+      if (condition.equals !== undefined) return value === condition.equals;
+      if (condition.in !== undefined) return condition.in.includes(value);
+      return true;
+    }
+
+    const AUSTRALIA_FORM1_SHOWIF_MAP = {
+      Select_your_current_location_Country:{field:"Is_the_applicant_currently_outside_Australia",equals:"Yes"},
+      Select_your_status_at_this_location:{field:"Is_the_applicant_currently_outside_Australia",equals:"Yes"},
+      Give_details_of_why_the_applicant_is_at_their_current_location_including_the_end_date_of_their_cur:{field:"Is_the_applicant_currently_outside_Australia",equals:"Yes"},
+      Select_the_stream_the_applicant_is_applying_for:{field:"Is_the_applicant_currently_outside_Australia",equals:"Yes"},
+      Select_all_reasons_for_visiting_Australia:{field:"Is_the_applicant_currently_outside_Australia",equals:"Yes"},
+      Give_details_of_any_significant_dates_on_which_the_applicant_needs_to_be_in_Australia:{field:"Is_the_applicant_currently_outside_Australia",equals:"Yes"},
+      Length_of_further_stay:{field:"Is_the_applicant_currently_outside_Australia",equals:"No"},
+      Requested_end_date:{field:"Is_the_applicant_currently_outside_Australia",equals:"No"},
+      Reason_for_further_stay:{field:"Is_the_applicant_currently_outside_Australia",equals:"No"},
+      Is_the_applicant_travelling_as_a_representative_of_a_foreign_government_or_travelling_on_a_United:{field:"Is_the_applicant_currently_outside_Australia",equals:"No"},
+      Select_the_special_category_of_entry:{field:"Is_the_applicant_travelling_as_a_representative_of_a_foreign_government_or_travelling_on_a_United",equals:"Yes"},
+
+      Will_the_applicant_undertake_a_course_of_study_in_Australia:{field:"Select_the_stream_the_applicant_is_applying_for",in:["Business Visitor stream (business visit for meetings, conferences or negotiations but not for work)","Sponsored Family stream (requires Sponsorship form 1149)","Tourist stream (tourism/visit family or friends)"]},
+      Will_the_applicant_visit_any_relatives_friends_or_contacts_while_in_Australia:{field:"Select_the_stream_the_applicant_is_applying_for",in:["Sponsored Family stream (requires Sponsorship form 1149)","Tourist stream (tourism/visit family or friends)"]},
+      Course_name:{field:"Will_the_applicant_undertake_a_course_of_study_in_Australia",equals:"Yes"},
+      Institution_name:{field:"Will_the_applicant_undertake_a_course_of_study_in_Australia",equals:"Yes"},
+      Course_start_date:{field:"Will_the_applicant_undertake_a_course_of_study_in_Australia",equals:"Yes"},
+      Course_end_date:{field:"Will_the_applicant_undertake_a_course_of_study_in_Australia",equals:"Yes"},
+      Contact_in_Australia:{field:"Will_the_applicant_visit_any_relatives_friends_or_contacts_while_in_Australia",equals:"Yes"},
+
+      Name:{field:"Do_you_have_have_a_national_identity_card",equals:"Yes"},
+      Identification_number:{field:"Do_you_have_have_a_national_identity_card",equals:"Yes"},
+      Country_of_issue:{field:"Do_you_have_have_a_national_identity_card",equals:"Yes"},
+      Date_of_issue:{field:"Do_you_have_have_a_national_identity_card",equals:"Yes"},
+      Date_of_expiry:{field:"Do_you_have_have_a_national_identity_card",equals:"Yes"},
+      Give_the_reason_the_applicant_cannot_provide_details_of_a_national_identity_card_issued_by_their_c:{field:"Do_you_have_have_a_national_identity_card",equals:"No"},
+      Pacific_Australia_Card_serial_number:{field:"Is_the_applicant_a_Pacific_Australia_Card_holder",equals:"Yes"},
+      Previous_name:{field:"Is_this_applicant_currently_or_have_they_ever_been_known_by_any_other_names",equals:"Yes"},
+      Reason_for_name_change:{field:"Is_this_applicant_currently_or_have_they_ever_been_known_by_any_other_names",equals:"Yes"},
+      Give_detailed_reason_for_name_change:{allOf:[{field:"Is_this_applicant_currently_or_have_they_ever_been_known_by_any_other_names",equals:"Yes"},{field:"Reason_for_name_change",equals:"Other"}]},
+      List_countries_where_you_hold_citizen_status:{field:"Is_this_applicant_a_citizen_of_any_other_country",equals:"Yes"},
+      Is_this_applicant_currently_stateless:{allOf:[{field:"Is_this_applicant_a_citizen_of_the_selected_country_of_passport",equals:"No"},{field:"Is_this_applicant_a_citizen_of_any_other_country",equals:"No"}]},
+      Give_details_as_to_why_the_applicant_is_not_a_citizen_of_any_country_and_is_not_stateless:{allOf:[{field:"Is_this_applicant_a_citizen_of_the_selected_country_of_passport",equals:"No"},{field:"Is_this_applicant_a_citizen_of_any_other_country",equals:"No"},{field:"Is_this_applicant_currently_stateless",equals:"No"}]},
+      Australian_visa_grant_number_if_known:{field:"Do_you_have_an_Australian_visa_grant_number",equals:"Yes"},
+      Give_details_of_your_heath_examination:{field:"Have_you_undertaken_a_health_examination_for_an_Australian_visa_in_the_last_12_months",equals:"Yes"},
+      HAP_ID_If_available:{field:"Have_you_undertaken_a_health_examination_for_an_Australian_visa_in_the_last_12_months",equals:"Yes"},
+      Does_you_intend_to_on_a_United_Nations_Laissez_Passer:{field:"Do_you_have_any_other_passports_or_documents_for_travel",equals:"Yes"},
+      Add_document_other_passport_Travel:{field:"Do_you_have_any_other_passports_or_documents_for_travel",equals:"Yes"},
+      Name_as_on_UN_passport:{field:"Does_you_intend_to_on_a_United_Nations_Laissez_Passer",equals:"Yes"},
+      Sex1:{field:"Does_you_intend_to_on_a_United_Nations_Laissez_Passer",equals:"Yes"},
+      Date_of_birth1:{field:"Does_you_intend_to_on_a_United_Nations_Laissez_Passer",equals:"Yes"},
+      Date_of_issue1:{field:"Does_you_intend_to_on_a_United_Nations_Laissez_Passer",equals:"Yes"},
+      Passport_number1:{field:"Does_you_intend_to_on_a_United_Nations_Laissez_Passer",equals:"Yes"},
+      Date_of_expiry1:{field:"Does_you_intend_to_on_a_United_Nations_Laissez_Passer",equals:"Yes"},
+      Add_identity_document:{field:"Do_you_have_other_identity_documents",equals:"Yes"},
+      Add_Companions:{field:"Are_there_any_other_persons_travelling_with_the_applicant_to_Australia",equals:"Yes"},
+      Postal_address:{field:"Is_the_postal_address_the_same_as_the_residential_address",equals:"No"},
+      Non_accompanying_member_of_the_family_unit:{field:"Do_you_have_any_members_of_your_family_unit_not_travelling_to_Australia_who_are_not_Australian_cit",equals:"Yes"},
+
+      How_long_does_the_applicant_plan_to_stay_in_Australia:{field:"Does_the_applicant_intend_to_enter_Australia_on_more_than_one_occasion",in:["Yes","No"]},
+      Planned_arrival_date:{field:"Does_the_applicant_intend_to_enter_Australia_on_more_than_one_occasion",in:["Yes","No"]},
+      Planned_final_departure_date:{field:"Does_the_applicant_intend_to_enter_Australia_on_more_than_one_occasion",in:["Yes","No"]},
+      Does_the_applicant_know_the_dates_of_entry_for_each_occasion_after_first_entry_to_Australia:{field:"Does_the_applicant_intend_to_enter_Australia_on_more_than_one_occasion",equals:"Yes"},
+      Details_of_the_additional_entry:{field:"Does_the_applicant_know_the_dates_of_entry_for_each_occasion_after_first_entry_to_Australia",equals:"Yes"},
+      Give_reason_Why_applicant_do_not_know_the_dates:{field:"Does_the_applicant_know_the_dates_of_entry_for_each_occasion_after_first_entry_to_Australia",equals:"No"},
+      Does_the_applicant_want_to_apply_for_a_longer_visa_validity_period:{field:"Is_the_applicant_a_parent_or_step_parent_of_an_Australian_citizen_or_Australian_permanent_resident",equals:"Yes"},
+      Has_the_applicant_applied_for_an_Australian_parent_visa:{field:"Is_the_applicant_a_parent_or_step_parent_of_an_Australian_citizen_or_Australian_permanent_resident",equals:"Yes"},
+      Does_the_application_have_a_queue_date:{field:"Has_the_applicant_applied_for_an_Australian_parent_visa",equals:"Yes"},
+      Is_the_applicant_applying_for_a_multiple_stay_visa_which_may_allow_the_applicant_to_stay_up_to_12:{field:"Has_the_applicant_applied_for_an_Australian_parent_visa",equals:"Yes"},
+      Provide_queue_date:{field:"Does_the_application_have_a_queue_date",equals:"Yes"},
+
+      Sponsor_s_relationship_to_the_applicant:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Name_of_the_sponsor:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Sex_of_sponsor:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Sponsor_s_date_of_birth:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Residential_address_of_sponsor:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Phone_number_of_sponsor:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Does_this_sponsor_have_a_passport:{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},
+      Passport_number_Sponsor:{allOf:[{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},{field:"Does_this_sponsor_have_a_passport",equals:"Yes"}]},
+      Country_of_passport_Sponsor:{allOf:[{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},{field:"Does_this_sponsor_have_a_passport",equals:"Yes"}]},
+      Nationality_of_passport_holder_Sponsor:{allOf:[{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},{field:"Does_this_sponsor_have_a_passport",equals:"Yes"}]},
+      Date_of_issue_Sponsor_s_passport:{allOf:[{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},{field:"Does_this_sponsor_have_a_passport",equals:"Yes"}]},
+      Date_of_expiry_Sponsor_s_passport:{allOf:[{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},{field:"Does_this_sponsor_have_a_passport",equals:"Yes"}]},
+      Place_of_issue_issuing_authority_Sponsor_s_passport:{allOf:[{field:"Select_the_stream_the_applicant_is_applying_for",equals:"Sponsored Family stream (requires Sponsorship form 1149)"},{field:"Does_this_sponsor_have_a_passport",equals:"Yes"}]},
+
+      Occupation_grouping:{field:"Employment_status",in:["Employed","Self employed"]},
+      Organisation:{field:"Employment_status",in:["Employed","Self employed"]},
+      Start_date_with_current_employer:{field:"Employment_status",in:["Employed","Self employed"]},
+      Organisation_address:{field:"Employment_status",in:["Employed","Self employed"]},
+      Business_phone:{field:"Employment_status",in:["Employed","Self employed"]},
+      Organisation_email_address:{field:"Employment_status",in:["Employed","Self employed"]},
+      Date_since_you_are_unemployed:{field:"Employment_status",equals:"Unemployed"},
+      Last_employment_position:{field:"Employment_status",equals:"Unemployed"},
+      Retirement_date:{field:"Employment_status",equals:"Retired"},
+      Current_course_name:{field:"Employment_status",equals:"Student"},
+      Current_institution_name:{field:"Employment_status",equals:"Student"},
+      Current_study_start_date:{field:"Employment_status",equals:"Student"},
+      Current_study_end_date:{field:"Employment_status",equals:"Student"},
+      Provide_detail_about_your_other_employment:{field:"Employment_status",equals:"Other"},
+      What_funds_will_the_applicant_have_available_to_support_their_stay_in_Australia:{field:"Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded",in:["Self funded","Supported by current employer","Supported by other organisation","Supported by other person"]},
+      Type_of_support:{field:"Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded",in:["Supported by current employer","Supported by other organisation","Supported by other person"]},
+      Supporting_organisation_address:{field:"Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded",equals:"Supported by other organisation"},
+      Supporter_s_relationship_to_the_applicant:{field:"Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded",equals:"Supported by other person"},
+      Name_of_supporting_person:{field:"Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded",equals:"Supported by other person"},
+      Address_of_the_supporting_person:{field:"Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded",equals:"Supported by other person"}
+    };
+
+    const AUSTRALIA_FORM3_VISIBLE_WHEN_YES = {
+      Add_visit_details:"In_the_last_five_years_has_the_applicant_visited_or_lived_outside_their_country_of_passport_for_mo",
+      Select_reason:"Does_the_applicant_intend_to_enter_a_hospital_or_a_health_care_facility_including_nursing_homes_wh",
+      Give_details_for_intention_to_enter_hospitals_or_health_care_facilities:"Does_the_applicant_intend_to_enter_a_hospital_or_a_health_care_facility_including_nursing_homes_wh",
+      On_which_role_the_applicant_will_work_in_age_care_or_disability_care:"Does_the_applicant_intend_to_work_study_or_train_within_aged_care_or_disability_care_while_in_Aust",
+      Give_detail_about_applicant_s_intention_to_work_in_age_care_or_disability_care:"Does_the_applicant_intend_to_work_study_or_train_within_aged_care_or_disability_care_while_in_Aust",
+      Give_detail_about_contact_with_tuberculosis:"Has_the_applicant_tuberculosis",
+      Select_Condition:"During_their_proposed_visit_to_Australia_does_applicant_expect_to_incur_medical_costs",
+      Give_details_of_the_medical_condition_for_which_the_applicant_expects_to_incur_costs_require_treat:"During_their_proposed_visit_to_Australia_does_applicant_expect_to_incur_medical_costs",
+      Give_detail_about_requirement_of_Health_or_Community_Care:"Does_the_applicant_require_ongoing_medical_care_or_need_special_equipment_assistive_technology_or",
+      Add_offense_detail:"Has_the_applicant_ever_been_charged_with_any_offence_that_is_currently_awaiting_legal_action",
+      Add_details_in_conviction_offense:"Has_the_applicant_ever_been_convicted_of_an_offence_in_any_country_including_any_conviction_which",
+      Add_details_in_Domestic_violence:"A_applicant_ever_been_the_subject_of_a_domestic_violence_or_family_violence_order_or_any_other_ord",
+      Give_details_of_an_arrest_warrant_or_Interpol_notice:"Has_the_applicant_ever_been_the_subject_of_an_arrest_warrant_or_Interpol_notice",
+      Give_details_of_a_sexually_based_offence_involving_a_child:"Has_the_applicant_ever_been_found_guilty_of_a_sexually_based_offence_involving_a_child_including_w",
+      Give_details_for_applicant_s_name_on_a_sex_offender_register:"Has_the_applicant_ever_been_named_on_a_sex_offender_register",
+      Give_details_about_acquittal:"Has_the_applicant_ever_been_acquitted_of_any_offence_on_the_grounds_of_unsoundness_of_mind_or_insa",
+      Give_detail_of_incident_found_by_a_court_not_fit_to_plead:"Has_the_applicant_ever_been_found_by_a_court_not_fit_to_plead",
+      Give_details_of_such_involvement_association_and_activity:"Has_the_applicant_ever_been_directly_or_indirectly_involved_in_or_associated_with_activities_which",
+      Give_details_of_such_genocide_war_crimes_crimes_against_humanity_torture_slavery_or_any_other_crim:"Has_the_applicant_ever_been_charged_with_or_indicted_for_genocide_war_crimes_crimes_against_humani",
+      Give_detail_of_such_association_or_involvement_in_criminal_conduct:"Has_the_applicant_ever_been_associated_with_a_person_group_or_organisation_that_has_been_or_is_inv",
+      Give_details_of_association_with_an_organisation_engaged_in_above_stated_activities:"A_applicant_ever_been_associated_with_an_organisation_engaged_in_violence_or_engaged_in_acts_of_vi",
+      Add_Service_details:"Has_the_applicant_ever_served_in_a_military_force_police_force_state_sponsored_private_militia_or",
+      Add_training_details:"Has_the_applicant_ever_undergone_any_military_paramilitary_training_been_trained_in_weapons_explos",
+      Give_details_about_involvement_in_people_smuggling_or_people_trafficking_offences:"Has_the_applicant_ever_been_involved_in_people_smuggling_or_people_trafficking_offences",
+      Give_details_about_removal_deportation_or_exclusion_from_any_country_including_Australia:"Has_the_applicant_ever_been_removed_deported_or_excluded_from_any_country_including_Australia",
+      Give_details_about_overstay_a_visa_in_any_country_including_Australia:"Has_the_applicant_ever_overstayed_a_visa_in_any_country_including_Australia",
+      Give_details_about_such_debts:"Has_the_applicant_ever_had_any_outstanding_debts_to_the_Australian_Government_or_any_public_author",
+      Give_details_of_Visa_your_are_currently_holding:"Has_the_applicant_held_or_does_the_applicant_currently_hold_a_visa_to_Australia_or_any_other_country",
+      Give_details_of_such_incidents:"Has_the_applicant_ever_been_in_Australia_or_any_other_country_and_not_complied_with_visa_condition",
+      Give_details_of_visa_refusal_and_or_cancellation:"Has_the_applicant_ever_had_a_visa_for_Australia_or_any_other_country_refused_or_cancelled"
+    };
+
+    function cifAustraliaFieldVisible(instance, stage, data, fieldName) {
+      if (instance?.type !== "australia") return true;
+      if (stage?.form === "Australia_Customer_Information") {
+        return cifAustraliaConditionMet(data, AUSTRALIA_FORM1_SHOWIF_MAP[fieldName]);
+      }
+      if (stage?.form === "Australia_Customer_Information_3") {
+        const trigger = AUSTRALIA_FORM3_VISIBLE_WHEN_YES[fieldName];
+        return !trigger || String(data?.[trigger] ?? "") === "Yes";
+      }
+      return true;
+    }
+
+    function cifAustraliaSubformFieldVisible(instance, stage, parentFieldName, rowData, childFieldName) {
+      if (instance?.type !== "australia" || stage?.form !== "Australia_Customer_Information") return true;
+      if (parentFieldName !== "Add_document_other_passport_Travel" || childFieldName === "Type_of_document") return true;
+      const type = String(rowData?.Type_of_document ?? "");
+      const common = ["Name","Date_of_Birth","Country_of_issue","Nationality_of_document_holder"];
+      if (common.includes(childFieldName)) return ["DFTTA","PLO56(M56)","Immicard","Passport","Titre de Voyage","Other Travel document"].includes(type);
+      if (childFieldName === "Sex") return ["Immicard","Passport","Titre de Voyage","Other Travel document"].includes(type);
+      if (childFieldName === "Document_number") return ["DFTTA","PLO56(M56)","Titre de Voyage","Other Travel document"].includes(type);
+      if (childFieldName === "Passport_number") return type === "Passport";
+      if (childFieldName === "Date_of_issue") return ["Passport","Titre de Voyage","Other Travel document"].includes(type);
+      if (["Date_of_expiry","Place_of_issue_issuing_authority"].includes(childFieldName)) return ["Immicard","Passport","Titre de Voyage","Other Travel document"].includes(type);
+      return true;
+    }
+
+    function cifGenericFieldVisible(instance, stage, data, fieldName) {
+      return cifAustraliaFieldVisible(instance, stage, data, fieldName) &&
+        cifUsFieldVisible(instance, stage, data, fieldName) &&
+        cifUsForm2FieldVisible(instance, stage, data, fieldName) &&
+        cifUsForm3FieldVisible(instance, stage, data, fieldName) &&
+        cifUsForm4FieldVisible(instance, stage, data, fieldName) &&
+        cifSchengenFieldVisible(instance, stage, data, fieldName);
+    }
+
     function cifUsFieldVisible(instance, stage, data, fieldName) {
   // Do not affect UK, Australia or Schengen CIF forms.
   if (instance?.type !== "usa") return true;
@@ -2557,7 +2735,7 @@ function cifSchengenFundingOptions(data) {
     ["", ...effectiveChoices],
     field.mandatory,
     false,
-    instance?.type === "usa"
+    instance?.type === "usa" || instance?.type === "australia"
   );
 }
       return cifTextField(label, path, field.type === 3 ? "email" : "text", field.mandatory);
@@ -2600,6 +2778,13 @@ function cifSchengenFundingOptions(data) {
           <div class="cifx-fg">${
   cifCustomerFields(field.fields)
     .filter(child =>
+      cifAustraliaSubformFieldVisible(
+        instance,
+        stage,
+        field.link_name,
+        row,
+        child.link_name
+      ) &&
       cifUsSubformFieldVisible(
         instance,
         stage,
@@ -2693,38 +2878,7 @@ const stageData =
 
 const fields = cifCustomerFields(
   state.cifMetadata[stage.form]
-).filter(field =>
-  cifUsFieldVisible(
-    instance,
-    stage,
-    stageData,
-    field.link_name
-  ) &&
-  cifUsForm2FieldVisible(
-    instance,
-    stage,
-    stageData,
-    field.link_name
-  ) &&
-  cifUsForm3FieldVisible(
-  instance,
-  stage,
-  stageData,
-  field.link_name
-) &&
-cifUsForm4FieldVisible(
-  instance,
-  stage,
-  stageData,
-  field.link_name
-) &&
-cifSchengenFieldVisible(
-  instance,
-  stage,
-  stageData,
-  field.link_name
-)
-);
+).filter(field => cifGenericFieldVisible(instance, stage, stageData, field.link_name));
 
 const traveller = travellers.find(t => t.id === travId);
       cifAutofillGenericTraveller(travId, instance);
@@ -4845,22 +4999,175 @@ function cifValidateSchengen(data) {
 
   return "";
 }
+    function cifAustraliaHasValue(value) {
+      if (Array.isArray(value)) return value.length > 0;
+      if (value && typeof value === "object") return Object.values(value).some(cifAustraliaHasValue);
+      return value !== undefined && value !== null && String(value).trim() !== "";
+    }
+
+    function cifValidateAustraliaForm1(data) {
+      const need = (field, message) => cifAustraliaHasValue(data?.[field]) ? "" : message;
+      const needAll = (fields, message) => fields.every(field => cifAustraliaHasValue(data?.[field])) ? "" : message;
+      const rows = field => Array.isArray(data?.[field]) ? data[field] : [];
+      let error = "";
+
+      if (data.Is_the_applicant_currently_outside_Australia === "Yes") {
+        error = needAll([
+          "Select_your_current_location_Country","Select_your_status_at_this_location",
+          "Give_details_of_why_the_applicant_is_at_their_current_location_including_the_end_date_of_their_cur",
+          "Select_the_stream_the_applicant_is_applying_for","Select_all_reasons_for_visiting_Australia",
+          "Give_details_of_any_significant_dates_on_which_the_applicant_needs_to_be_in_Australia"
+        ], "Complete all current-location and Australian visit details.");
+      } else if (data.Is_the_applicant_currently_outside_Australia === "No") {
+        error = needAll(["Length_of_further_stay","Requested_end_date","Reason_for_further_stay","Is_the_applicant_travelling_as_a_representative_of_a_foreign_government_or_travelling_on_a_United"], "Complete all further-stay details.");
+      }
+      if (error) return error;
+
+      if (data.Do_you_have_have_a_national_identity_card === "Yes") {
+        error = needAll(["Name","Identification_number","Country_of_issue","Date_of_issue","Date_of_expiry"], "Complete all national identity card details.");
+      } else if (data.Do_you_have_have_a_national_identity_card === "No") {
+        error = need("Give_the_reason_the_applicant_cannot_provide_details_of_a_national_identity_card_issued_by_their_c", "Explain why a national identity card cannot be provided.");
+      }
+      if (error) return error;
+
+      if (data.Is_the_applicant_a_Pacific_Australia_Card_holder === "Yes" && (error = need("Pacific_Australia_Card_serial_number", "Enter the Pacific-Australia Card serial number."))) return error;
+      if (data.Is_this_applicant_currently_or_have_they_ever_been_known_by_any_other_names === "Yes") {
+        if ((error = needAll(["Previous_name","Reason_for_name_change"], "Enter the applicant's previous name and reason for the change."))) return error;
+        if (data.Reason_for_name_change === "Other" && (error = need("Give_detailed_reason_for_name_change", "Provide the detailed reason for the name change."))) return error;
+      }
+      if (data.Is_this_applicant_a_citizen_of_the_selected_country_of_passport === "No" && data.Is_this_applicant_a_citizen_of_any_other_country === "No") {
+        if ((error = need("Is_this_applicant_currently_stateless", "Select whether the applicant is currently stateless."))) return error;
+        if (data.Is_this_applicant_currently_stateless === "No" && (error = need("Give_details_as_to_why_the_applicant_is_not_a_citizen_of_any_country_and_is_not_stateless", "Explain why the applicant is neither a citizen nor stateless."))) return error;
+      }
+      if (data.Have_you_undertaken_a_health_examination_for_an_Australian_visa_in_the_last_12_months === "Yes" && (error = need("Give_details_of_your_heath_examination", "Enter the Australian visa health-examination details."))) return error;
+
+      if (data.Do_you_have_any_other_passports_or_documents_for_travel === "Yes") {
+        if ((error = need("Does_you_intend_to_on_a_United_Nations_Laissez_Passer", "Select the UN Laissez-Passer option."))) return error;
+        const documents = rows("Add_document_other_passport_Travel");
+        if (!documents.length) return "Add at least one other passport or travel document.";
+        const common = ["Name","Date_of_Birth","Country_of_issue","Nationality_of_document_holder"];
+        for (const document of documents) {
+          if (!cifAustraliaHasValue(document.Type_of_document)) return "Select a document type for every travel document.";
+          let required = common;
+          if (["DFTTA","PLO56(M56)"].includes(document.Type_of_document)) required = [...common,"Document_number"];
+          else if (document.Type_of_document === "Immicard") required = [...common,"Sex","Date_of_expiry","Place_of_issue_issuing_authority"];
+          else if (document.Type_of_document === "Passport") required = [...common,"Sex","Passport_number","Date_of_issue","Date_of_expiry","Place_of_issue_issuing_authority"];
+          else if (["Titre de Voyage","Other Travel document"].includes(document.Type_of_document)) required = [...common,"Sex","Document_number","Date_of_issue","Date_of_expiry","Place_of_issue_issuing_authority"];
+          if (!required.every(field => cifAustraliaHasValue(document[field]))) return `Complete all required fields for the ${document.Type_of_document} document.`;
+        }
+      }
+
+      if (data.Do_you_have_other_identity_documents === "Yes") {
+        const identityDocuments = rows("Add_identity_document");
+        if (!identityDocuments.length) return "Add at least one other identity document.";
+        if (identityDocuments.some(row => !["Name","Type_of_document","Identification_number","Country_of_issue"].every(field => cifAustraliaHasValue(row[field])))) return "Complete all required fields for every identity document.";
+      }
+      if (data.Are_there_any_other_persons_travelling_with_the_applicant_to_Australia === "Yes") {
+        const companions = rows("Add_Companions");
+        if (!companions.length) return "Add at least one travelling companion.";
+        if (companions.some(row => !["Relationship_to_the_applicant","Name_of_accompanying_member","Sex","Date_of_birth"].every(field => cifAustraliaHasValue(row[field])))) return "Complete all required details for every travelling companion.";
+      }
+      if (data.Is_the_postal_address_the_same_as_the_residential_address === "No" && (error = need("Postal_address", "Enter the applicant's postal address."))) return error;
+
+      if (data.Will_the_applicant_undertake_a_course_of_study_in_Australia === "Yes" &&
+          (error = needAll(["Course_name","Institution_name","Course_start_date","Course_end_date"], "Complete all Australian course details."))) return error;
+
+      const employment = data.Employment_status;
+      if (["Employed","Self employed"].includes(employment)) {
+        error = needAll(["Occupation_grouping","Organisation","Start_date_with_current_employer","Organisation_address"], "Complete the applicant's current employment details.");
+      } else if (employment === "Unemployed") {
+        error = needAll(["Date_since_you_are_unemployed","Last_employment_position"], "Complete the applicant's unemployment details.");
+      } else if (employment === "Retired") {
+        error = need("Retirement_date", "Enter the applicant's retirement date.");
+      } else if (employment === "Student") {
+        error = needAll(["Current_course_name","Current_institution_name","Current_study_start_date","Current_study_end_date"], "Complete the applicant's current study details.");
+        if (!error && data.Current_study_start_date > data.Current_study_end_date) error = "Current study end date must be after the start date.";
+      } else if (employment === "Other") {
+        error = need("Provide_detail_about_your_other_employment", "Provide the applicant's other employment details.");
+      }
+      if (error) return error;
+
+      const funding = data.Give_details_of_how_the_applicant_s_stay_in_Australia_will_be_funded;
+      if (funding === "Self funded") error = need("What_funds_will_the_applicant_have_available_to_support_their_stay_in_Australia", "Enter the funds available for the applicant's stay.");
+      else if (funding === "Supported by current employer") error = needAll(["Type_of_support","What_funds_will_the_applicant_have_available_to_support_their_stay_in_Australia"], "Complete the employer support details.");
+      else if (funding === "Supported by other organisation") error = needAll(["Type_of_support","What_funds_will_the_applicant_have_available_to_support_their_stay_in_Australia","Supporting_organisation_address"], "Complete the supporting organisation details.");
+      else if (funding === "Supported by other person") error = needAll(["Type_of_support","What_funds_will_the_applicant_have_available_to_support_their_stay_in_Australia","Supporter_s_relationship_to_the_applicant","Name_of_supporting_person","Address_of_the_supporting_person"], "Complete the supporting person's details.");
+      return error;
+    }
+
+    function cifValidateAustraliaForm3(data) {
+      const rows = field => Array.isArray(data?.[field]) ? data[field] : [];
+      const validateRows = (trigger, field, required, emptyMessage, incompleteMessage, datePair) => {
+        if (data?.[trigger] !== "Yes") return "";
+        const values = rows(field);
+        if (!values.length) return emptyMessage;
+        for (const row of values) {
+          if (!required.every(key => cifAustraliaHasValue(row[key]))) return incompleteMessage;
+          if (datePair && row[datePair[0]] > row[datePair[1]]) return `${datePair[2]} end date must be after the start date.`;
+        }
+        return "";
+      };
+      let error = "";
+      error = validateRows("In_the_last_five_years_has_the_applicant_visited_or_lived_outside_their_country_of_passport_for_mo","Add_visit_details",["Dropdown","Visit_start_date","Visit_end_date"],"Add at least one visit detail.","Complete every visit-history entry.",["Visit_start_date","Visit_end_date","Visit"]); if (error) return error;
+
+      const requiredDetails = [
+        ["Does_the_applicant_intend_to_enter_a_hospital_or_a_health_care_facility_including_nursing_homes_wh",["Select_reason","Give_details_for_intention_to_enter_hospitals_or_health_care_facilities"],"Complete the hospital or healthcare-facility details."],
+        ["Does_the_applicant_intend_to_work_study_or_train_within_aged_care_or_disability_care_while_in_Aust",["On_which_role_the_applicant_will_work_in_age_care_or_disability_care","Give_detail_about_applicant_s_intention_to_work_in_age_care_or_disability_care"],"Complete the aged or disability-care details."],
+        ["Has_the_applicant_tuberculosis",["Give_detail_about_contact_with_tuberculosis"],"Provide the tuberculosis details."],
+        ["During_their_proposed_visit_to_Australia_does_applicant_expect_to_incur_medical_costs",["Select_Condition","Give_details_of_the_medical_condition_for_which_the_applicant_expects_to_incur_costs_require_treat"],"Complete the expected medical-cost details."],
+        ["Does_the_applicant_require_ongoing_medical_care_or_need_special_equipment_assistive_technology_or",["Give_detail_about_requirement_of_Health_or_Community_Care"],"Provide the ongoing medical-care details."],
+        ["Has_the_applicant_ever_been_the_subject_of_an_arrest_warrant_or_Interpol_notice",["Give_details_of_an_arrest_warrant_or_Interpol_notice"],"Provide the arrest warrant or Interpol notice details."],
+        ["Has_the_applicant_ever_been_found_guilty_of_a_sexually_based_offence_involving_a_child_including_w",["Give_details_of_a_sexually_based_offence_involving_a_child"],"Provide the child-related offence details."],
+        ["Has_the_applicant_ever_been_named_on_a_sex_offender_register",["Give_details_for_applicant_s_name_on_a_sex_offender_register"],"Provide the sex-offender-register details."],
+        ["Has_the_applicant_ever_been_acquitted_of_any_offence_on_the_grounds_of_unsoundness_of_mind_or_insa",["Give_details_about_acquittal"],"Provide the acquittal details."],
+        ["Has_the_applicant_ever_been_found_by_a_court_not_fit_to_plead",["Give_detail_of_incident_found_by_a_court_not_fit_to_plead"],"Provide the court finding details."],
+        ["Has_the_applicant_ever_been_directly_or_indirectly_involved_in_or_associated_with_activities_which",["Give_details_of_such_involvement_association_and_activity"],"Provide the national-security activity details."],
+        ["Has_the_applicant_ever_been_charged_with_or_indicted_for_genocide_war_crimes_crimes_against_humani",["Give_details_of_such_genocide_war_crimes_crimes_against_humanity_torture_slavery_or_any_other_crim"],"Provide the international-crime details."],
+        ["Has_the_applicant_ever_been_associated_with_a_person_group_or_organisation_that_has_been_or_is_inv",["Give_detail_of_such_association_or_involvement_in_criminal_conduct"],"Provide the criminal-association details."],
+        ["A_applicant_ever_been_associated_with_an_organisation_engaged_in_violence_or_engaged_in_acts_of_vi",["Give_details_of_association_with_an_organisation_engaged_in_above_stated_activities"],"Provide the violent-organisation association details."],
+        ["Has_the_applicant_ever_been_involved_in_people_smuggling_or_people_trafficking_offences",["Give_details_about_involvement_in_people_smuggling_or_people_trafficking_offences"],"Provide the people-smuggling or trafficking details."],
+        ["Has_the_applicant_ever_been_removed_deported_or_excluded_from_any_country_including_Australia",["Give_details_about_removal_deportation_or_exclusion_from_any_country_including_Australia"],"Provide the removal, deportation or exclusion details."],
+        ["Has_the_applicant_ever_overstayed_a_visa_in_any_country_including_Australia",["Give_details_about_overstay_a_visa_in_any_country_including_Australia"],"Provide the visa-overstay details."],
+        ["Has_the_applicant_ever_had_any_outstanding_debts_to_the_Australian_Government_or_any_public_author",["Give_details_about_such_debts"],"Provide the outstanding-debt details."],
+        ["Has_the_applicant_held_or_does_the_applicant_currently_hold_a_visa_to_Australia_or_any_other_country",["Give_details_of_Visa_your_are_currently_holding"],"Provide the current or previous visa details."],
+        ["Has_the_applicant_ever_been_in_Australia_or_any_other_country_and_not_complied_with_visa_condition",["Give_details_of_such_incidents"],"Provide the visa non-compliance details."],
+        ["Has_the_applicant_ever_had_a_visa_for_Australia_or_any_other_country_refused_or_cancelled",["Give_details_of_visa_refusal_and_or_cancellation"],"Provide the visa refusal or cancellation details."]
+      ];
+      for (const [trigger, fields, message] of requiredDetails) {
+        if (data?.[trigger] === "Yes" && !fields.every(field => cifAustraliaHasValue(data?.[field]))) return message;
+      }
+
+      const subforms = [
+        ["Has_the_applicant_ever_been_charged_with_any_offence_that_is_currently_awaiting_legal_action","Add_offense_detail",["Offence_type","Date_of_offence","Description_of_the_offence"],"Add at least one pending-offence detail.","Complete every pending-offence entry."],
+        ["Has_the_applicant_ever_been_convicted_of_an_offence_in_any_country_including_any_conviction_which","Add_details_in_conviction_offense",["Offence_type","Date_of_conviction","Description_of_the_conviction_including_any_penalties_imposed"],"Add at least one conviction detail.","Complete every conviction entry."],
+        ["A_applicant_ever_been_the_subject_of_a_domestic_violence_or_family_violence_order_or_any_other_ord","Add_details_in_Domestic_violence",["Date_order_raised","Give_details_of_domestic_violence_order"],"Add at least one domestic-violence-order detail.","Complete every domestic-violence-order entry."],
+        ["Has_the_applicant_ever_served_in_a_military_force_police_force_state_sponsored_private_militia_or","Add_Service_details",["Country_of_service","Service_start_date","Service_end_date","Give_detail_of_your_service"],"Add at least one military or police service detail.","Complete every military or police service entry.",["Service_start_date","Service_end_date","Military or police service"]],
+        ["Has_the_applicant_ever_undergone_any_military_paramilitary_training_been_trained_in_weapons_explos","Add_training_details",["Country_of_training","Start_date_of_training","End_date_of_training","Give_details_of_training"],"Add at least one military or weapons-training detail.","Complete every military or weapons-training entry.",["Start_date_of_training","End_date_of_training","Military or weapons training"]]
+      ];
+      for (const args of subforms) {
+        error = validateRows(...args);
+        if (error) return error;
+      }
+      return "";
+    }
+
     function cifValidateGeneric(travId, instance) {
       for (const stage of instance.definition.stages) {
         const data = cifInstanceData(travId, instance.id)[stage.tag] || {};
         const missing = cifCustomerFields(state.cifMetadata[stage.form]).filter(field => {
+          if (!cifGenericFieldVisible(instance, stage, data, field.link_name)) return false;
           if (!field.mandatory) return false;
           const value = data[field.link_name];
           if (Array.isArray(value)) return !value.length;
           if (value && typeof value === "object") return !Object.values(value).some(v => String(v || "").trim());
           return value === undefined || value === null || String(value).trim() === "";
         });
-        if (missing.length) {
+if (missing.length) {
   const firstMissing = missing[0];
   const missingConfig = GENERIC_CATEGORY_CONFIG[instance.type];
+  state.activeCifStage = stage.tag;
   if (missingConfig) {
     state.activeGenericCifCategory = missingConfig.fieldMap[firstMissing.link_name] || "__other__";
-    state.activeCifStage = stage.tag;
   }
   return `${stage.title}: complete “${firstMissing.display_name}”.`;
 }
@@ -4902,6 +5209,21 @@ if (
   const conditionalError = cifValidateUsForm4(data);
 
   if (conditionalError) {
+    return `${stage.title}: ${conditionalError}`;
+  }
+}
+
+if (instance?.type === "australia" && stage.form === "Australia_Customer_Information") {
+  const conditionalError = cifValidateAustraliaForm1(data);
+  if (conditionalError) {
+    state.activeCifStage = stage.tag;
+    return `${stage.title}: ${conditionalError}`;
+  }
+}
+if (instance?.type === "australia" && stage.form === "Australia_Customer_Information_3") {
+  const conditionalError = cifValidateAustraliaForm3(data);
+  if (conditionalError) {
+    state.activeCifStage = stage.tag;
     return `${stage.title}: ${conditionalError}`;
   }
 }
