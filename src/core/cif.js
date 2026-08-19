@@ -1509,7 +1509,13 @@ if (finance) {
       const travellers = applicationData.deal.travellers;
       const destinations = (applicationData.questionnaire.applyingCountries || applicationData.deal.destination || "")
         .split(",").map(s => s.trim()).filter(Boolean);
-      const purposeLabel = CIF_PURPOSE_LABELS[applicationData.questionnaire.purpose] || "Not yet set";
+      const rawPurpose = applicationData.questionnaire.purpose;
+      const selectedPurposes = Array.isArray(rawPurpose)
+        ? rawPurpose.filter(Boolean)
+        : String(rawPurpose || "").split(",").map(value => value.trim()).filter(Boolean);
+      const purposeLabel = selectedPurposes
+        .map(value => CIF_PURPOSE_LABELS[value] || value)
+        .join(", ") || "Not yet set";
       const primary = travellers.find(t => t.type === "Primary Applicant") || travellers[0];
       const familyName = primary?.lastName ? `${primary.lastName} Family` : "Your Application";
 
