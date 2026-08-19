@@ -10,7 +10,7 @@
 import { CONFIG } from "../config/config.js";
 import { applicationData, state } from "../store/runtime.js";
 import { qs } from "../lib/dom.js";
-import { escapeHtml } from "../lib/utils.js";
+import { escapeHtml, safeJsonParse } from "../lib/utils.js";
 import { toast } from "../lib/ui.js";
 import { documentStatusMeta, isMandatoryDocument, isStrengthDocument, isDocumentReady } from "../core/derive.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
@@ -106,17 +106,25 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 
         if (!Array.isArray(parsed)) { console.warn("[Winny] Document checklist JSON was not an array:", parsed); return []; }
 
-        return parsed.map((d) => ({
-          id:              d.id || d.ID || "",
-          requirement:     d.requirement || d.Name || "Document",
-          documentRequirement: d.document_requirement ?? d.documentRequirement ?? d.Document_Requirement ?? d.mandatory ?? d.is_mandatory ?? "",
-          status:          d.status || d.Document_Status || "Not Collected",
-          reviewComments:  d.review_comments || d.Review_Comments || "",
-          travellerId:     d.traveller_id || d.travellerId || "",
-          travellerName:   d.traveller_name || d.travellerName || "Unassigned",
-          sourceRequestId: d.source_request_id || d.Source_Request_ID || "",
-          hasFile:         Boolean(d.has_file || d.hasFile || d.Has_File || d.source_request_id || d.Source_Request_ID || ["Collected", "Reviewed", "Accepted"].includes(d.status || d.Document_Status))
-        }));
+        return parsed.map((d) => {
+          const sourceRequestId = d.source_request_id || d.Source_Request_ID || "";
+          const rawStatus = d.status || d.Document_Status || "Not Collected";
+          const hasFile = Boolean(
+            d.has_file || d.hasFile || d.Has_File || sourceRequestId ||
+            ["Collected", "Reviewed", "Accepted"].includes(rawStatus)
+          );
+          return {
+            id:              d.id || d.ID || "",
+            requirement:     d.requirement || d.Name || "Document",
+            documentRequirement: d.document_requirement ?? d.documentRequirement ?? d.Document_Requirement ?? d.mandatory ?? d.is_mandatory ?? "",
+            status: rawStatus,
+            reviewComments:  d.review_comments || d.Review_Comments || "",
+            travellerId:     d.traveller_id || d.travellerId || "",
+            travellerName:   d.traveller_name || d.travellerName || "Unassigned",
+            sourceRequestId,
+            hasFile
+          };
+        });
       } catch (e) {
         console.error("[Winny] Document checklist bridge request failed:", e.message || e);
         return [];
@@ -250,6 +258,33 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
       inputEl.value = "";
     }
 
+    function crmUploadResponseError(result) {
+      if (result?._timedOut) {
+        return "CRM did not confirm the upload before the request timed out.";
+      }
+      const rawResponse = result?.CRM_Response;
+      const response = typeof rawResponse === "string" ? safeJsonParse(rawResponse) : rawResponse;
+      if (!response) return "CRM did not return an upload confirmation.";
+
+      const responseItems = Array.isArray(response?.data) ? response.data : [response];
+      const failedItem = responseItems.find((item) => {
+        const status = String(item?.status || "").toLowerCase();
+        const code = String(item?.code || "").toUpperCase();
+        return status === "error" || (code && code !== "SUCCESS" && !item?.id && !item?.details?.id);
+      });
+      if (failedItem) {
+        const code = failedItem.code ? `${failedItem.code}: ` : "";
+        return `${code}${failedItem.message || "CRM rejected the document update."}`;
+      }
+
+      const confirmed = responseItems.some((item) =>
+        Boolean(item?.id || item?.details?.id) ||
+        String(item?.status || "").toLowerCase() === "success" ||
+        String(item?.code || "").toUpperCase() === "SUCCESS"
+      );
+      return confirmed ? "" : "CRM did not confirm that the document record was updated.";
+    }
+
     // Uploads via the same Portal_CRM_Request → Deluge bridge used elsewhere in
     // this widget. This is a 2-step sequence, NOT a single addRecords call —
     // Zoho's Add Records API cannot set File Upload field values at all (only
@@ -324,13 +359,10 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
         const result = await pollCreatorRecord(creatorRecordId, 15, 2000);
         if (result.Status === "Failed") throw new Error(result.Error_Message || "Upload processing failed.");
         if (result.Status !== "Success") throw new Error("Upload is still processing — please refresh the checklist in a moment.");
+        const crmError = crmUploadResponseError(result);
+        if (crmError) throw new Error(crmError);
 
-        const item = state.documents.items.find((d) => d.id === documentId);
-        if (item) {
-          item.status = "Collected";
-          item.sourceRequestId = creatorRecordId;
-          item.hasFile = true;
-        }
+        await loadDocumentChecklist(true);
         toast(`${file.name} uploaded ✓`);
       } catch (error) {
         console.error("[Winny] Document upload failed:", error);
@@ -594,5 +626,6 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 
 export {
   loadDocumentChecklist, scheduleDocumentChecklistRefresh, findDocumentsForDeal,
-  renderDocuments, handleDocumentFileSelected, uploadDocumentFile, viewDocumentFile
+  renderDocuments, handleDocumentFileSelected, uploadDocumentFile, viewDocumentFile,
+  crmUploadResponseError
 };

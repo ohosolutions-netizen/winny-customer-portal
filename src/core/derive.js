@@ -372,7 +372,12 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
     }
 
     function isDocumentReady(document) {
-      return DOCUMENT_READY_STATUSES.has(document?.status);
+      // Uploading a file must not directly change Document_Status because that
+      // field is controlled by the CRM Blueprint. A confirmed CRM file/source
+      // reference is enough for portal checklist completion; CRM keeps its
+      // existing blueprint status until an authorised transition changes it.
+      return Boolean(document?.hasFile || document?.sourceRequestId || document?.source_request_id) ||
+        DOCUMENT_READY_STATUSES.has(document?.status);
     }
 
     function isDocumentChecklistClear() {

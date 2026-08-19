@@ -1,0 +1,86 @@
+// Replace the existing `else if(input.Request_Type == "Upload Document")`
+// branch in the Portal_CRM_Request create/edit workflow with this branch.
+//
+// Root cause fixed here:
+// Document_Status is controlled by the CRM Document blueprint. Including it in
+// zoho.crm.updateRecord causes RECORD_IN_BLUEPRINT and rejects the entire update,
+// including Upload_Documents. The portal uses the confirmed
+// Source_Request_ID/file reference for checklist completion instead of forcing
+// that blueprint field outside a transition. The CRM status remains unchanged.
+else if(input.Request_Type == "Upload Document")
+{
+	if(input.Document_File == null || input.Document_File.size() == 0)
+	{
+		input.Status = "Pending";
+		return;
+	}
+	targetId = ifnull(input.Target_Record_ID,"").trim();
+	if(targetId == "")
+	{
+		input.Status = "Failed";
+		input.Error_Message = "Target_Record_ID is missing.";
+		return;
+	}
+	docFileEntry = input.Document_File.get(0).toString();
+	docFilePath = docFileEntry;
+	if(docFileEntry.contains("filepath="))
+	{
+		docFilePath = docFileEntry.getSuffix("filepath=");
+		if(docFilePath.contains("&"))
+		{
+			docFilePath = docFilePath.getPrefix("&");
+		}
+	}
+	fileResp = invokeurl
+	[
+		url :"https://www.zohoapis.in/creator/v2.1/data/hpatel_winnyedu/hiren-patel/report/Portal_CRM_Request_Report/" + input.ID + "/Document_File/download"
+		type :GET
+		parameters:{"filepath":docFilePath}
+		connection:"zoho_creator_connection1"
+	];
+	fileResp.setParamName("file");
+	uploadResp = invokeurl
+	[
+		url :"https://www.zohoapis.in/crm/v8/files"
+		type :POST
+		parameters:{"type":"inline"}
+		files:fileResp
+		connection:"zoho_oauth_connection"
+	];
+	if(uploadResp == null || uploadResp.get("data") == null || uploadResp.get("data").size() == 0)
+	{
+		input.Status = "Failed";
+		input.Error_Message = "CRM file upload failed: " + uploadResp.toString();
+		input.CRM_Response = uploadResp.toString();
+		return;
+	}
+	firstUpload = uploadResp.get("data").get(0);
+	if(firstUpload.get("details") == null || firstUpload.get("details").get("id") == null)
+	{
+		input.Status = "Failed";
+		input.Error_Message = "CRM file upload returned no file id: " + uploadResp.toString();
+		input.CRM_Response = uploadResp.toString();
+		return;
+	}
+	fileId = firstUpload.get("details").get("id");
+	fileMap = Map();
+	fileMap.put("file_id",fileId);
+	fileList = List();
+	fileList.add(fileMap);
+	updateMap = Map();
+	updateMap.put("Upload_Documents",fileList);
+	updateMap.put("Source_Request_ID",input.ID.toString());
+	updateMap.put("Document_Received_Date",zoho.currentdate);
+	// Do not update Document_Status here. It is controlled by the CRM blueprint.
+	updateResp = zoho.crm.updateRecord("Document",targetId.toLong(),updateMap,Map(),"zoho_oauth_connection");
+	info "Document update response: " + updateResp.toString();
+	input.CRM_Response = updateResp.toString();
+	if(updateResp == null || updateResp.get("id") == null)
+	{
+		input.Status = "Failed";
+		input.Error_Message = "CRM Document update failed: " + updateResp.toString();
+		return;
+	}
+	input.Status = "Success";
+	input.Error_Message = "";
+}
