@@ -1158,7 +1158,11 @@ const unmappedWarning = unmappedTravellers.length
       setByPath(applicationData, `questionnaire.${group}`, val);
 qHandleDep(group, val);
 
-if (group === "arrangements") {
+// These answers control blocks that are conditionally included in the rendered
+// questionnaire HTML, so changing either one must rebuild the island. Without
+// this, validation sees the new value while the dependent field remains absent
+// (or stale) in the current DOM.
+if (group === "arrangements" || group === "maritalStatus") {
   rerenderQuestionnaire();
 }
 
