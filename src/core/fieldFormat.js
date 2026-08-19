@@ -2,15 +2,7 @@
 // Used by the CIF island's input/blur delegation for its raw data-bind inputs
 // (the CIF renders innerHTML, so it relies on delegation exactly like the original,
 // rather than React controlled inputs).
-import { validators } from "../lib/validators.js";
-
-function classifyFieldValidation(path) {
-  if (!path) return null;
-  if (/email/i.test(path)) return "email";
-  if (/phone|mobile|telephone/i.test(path)) return "phone";
-  if (/passport_number/i.test(path)) return "passport";
-  return null;
-}
+import { classifyFieldValidation, validators } from "../lib/validators.js";
 
 export function sanitizeMobileField(field) {
   if (!/mobile/i.test(field.dataset.bind || "")) return;
@@ -19,7 +11,9 @@ export function sanitizeMobileField(field) {
 }
 
 export function validateFieldFormat(field) {
-  const kind = classifyFieldValidation(field.dataset.bind);
+  const kind = field.dataset.birthDate === "true"
+    ? "birthDate"
+    : classifyFieldValidation(field.dataset.bind);
   if (!kind) return;
   const msg = validators[kind](field.value);
 

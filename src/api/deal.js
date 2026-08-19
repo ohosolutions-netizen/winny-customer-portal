@@ -98,7 +98,7 @@ let zPayInstance = null;
         if (!applicationData.deal.travellers.every((t) => t.firstName && t.lastName)) return fail("Complete first and last name for every traveller.");
         if (!applicationData.deal.travellers.every((t) => String(t.dob || "").trim())) return fail("Enter the date of birth for every traveller.");
         const invalidTravellerBirthDate = applicationData.deal.travellers.find((t) => validators.birthDate(t.dob));
-        if (invalidTravellerBirthDate) return fail("Every traveller's date of birth must be before today.");
+        if (invalidTravellerBirthDate) return fail(`Every traveller needs a valid date of birth from 1900 that is earlier than today. ${validators.birthDate(invalidTravellerBirthDate.dob)}`);
         if (!applicationData.deal.travellers.every((t) => String(t.mobile || "").trim())) return fail("Enter the mobile number for every traveller.");
         const invalidTravellerMobile = applicationData.deal.travellers.find((t) => validators.phone(t.mobile));
         if (invalidTravellerMobile) return fail("Enter a valid mobile number for every traveller.");

@@ -1,14 +1,24 @@
 import React from "react";
 import { bindInput, fieldErrors } from "../../hooks/useBind.js";
+import { birthDateInputBounds, isBirthDateField } from "../../lib/validators.js";
 
 // Reproduces field() (source 13827-13834). Adds the .invalid class + .error text
 // exactly as the original validateFieldFormat did on blur.
-export function Field({ label, path, type = "text", placeholder = "", required = false, max }) {
+export function Field({ label, path, type = "text", placeholder = "", required = false, min, max }) {
   const err = fieldErrors[path] || "";
+  const isBirthDate = type === "date" && isBirthDateField(path);
+  const birthDateBounds = isBirthDate ? birthDateInputBounds() : {};
   return (
     <div className={`field${err ? " invalid" : ""}`} data-field={path}>
       <label>{label}{required ? " *" : ""}</label>
-      <input type={type} placeholder={placeholder} max={max} data-required={required ? "true" : undefined} {...bindInput(path)} />
+      <input
+        type={type}
+        placeholder={placeholder}
+        min={isBirthDate ? birthDateBounds.min : min}
+        max={isBirthDate ? undefined : max}
+        data-required={required ? "true" : undefined}
+        {...bindInput(path)}
+      />
       <small className="error">{err}</small>
     </div>
   );

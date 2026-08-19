@@ -3,7 +3,13 @@
 // sanitize behaviour is applied in hooks/useBind.js against the same rules.
 
 export function isBirthDateField(path) {
-  return /date_of_birth|dob$/i.test(path || "");
+  return /date[\s_.-]*of[\s_.-]*birth|birth[\s_.-]*date|dob(?:$|[\s_.\[-])/i.test(path || "");
+}
+
+export const MIN_BIRTH_YEAR = 1900;
+
+export function birthDateInputBounds() {
+  return { min: `${MIN_BIRTH_YEAR}-01-01` };
 }
 
 export function classifyFieldValidation(path) {
@@ -23,10 +29,22 @@ export const validators = {
   date(value)     { return !value || !Number.isNaN(Date.parse(value)) ? "" : "Enter a valid date"; },
   birthDate(value) {
     if (!value) return "";
-    const birthDate = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(birthDate.getTime())) return "Enter a valid date";
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+    if (!match) return "Enter a valid date of birth with a four-digit year";
+    const [, yearText, monthText, dayText] = match;
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+    if (year < MIN_BIRTH_YEAR) return `Date of birth must be from ${MIN_BIRTH_YEAR} onwards`;
+    const birthDate = new Date(year, month - 1, day);
+    if (
+      Number.isNaN(birthDate.getTime()) ||
+      birthDate.getFullYear() !== year ||
+      birthDate.getMonth() !== month - 1 ||
+      birthDate.getDate() !== day
+    ) return "Enter a valid date of birth";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return birthDate < today ? "" : "Date of birth must be before today";
+    return birthDate < today ? "" : "Date of birth cannot be today or a future date";
   }
 };

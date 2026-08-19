@@ -3,8 +3,8 @@ import * as CifMod from "../../core/cif.js";
 import { renderCIF, closeAllCmsDropdowns } from "../../core/cif.js";
 import { applicationData } from "../../store/runtime.js";
 import { setByPath } from "../../lib/utils.js";
-import { markAutoSavePending } from "../../lib/ui.js";
-import { isBirthDateField } from "../../lib/validators.js";
+import { markAutoSavePending, toast } from "../../lib/ui.js";
+import { isBirthDateField, validators } from "../../lib/validators.js";
 import { sanitizeMobileField, validateFieldFormat } from "../../core/fieldFormat.js";
 import { cifMarkInstanceDirtyFromPath } from "../../core/cif.js";
 
@@ -27,9 +27,13 @@ const CIF_HANDLERS = [
 function cifHandleInput(event) {
   const field = event.target.closest("[data-bind]");
   if (!field) return;
-  if (field.type === "date" && isBirthDateField(field.dataset.bind) && field.value) {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    if (field.value > todayStr) { field.value = todayStr; }
+  const isBirthDate = field.type === "date" && (
+    field.dataset.birthDate === "true" || isBirthDateField(field.dataset.bind)
+  );
+  if (isBirthDate && field.value) {
+    const birthDateError = validators.birthDate(field.value);
+    validateFieldFormat(field);
+    if (birthDateError) toast(birthDateError);
   }
   if (field.type === "tel") sanitizeMobileField(field);
   setByPath(applicationData, field.dataset.bind, field.type === "checkbox" ? field.checked : field.value);

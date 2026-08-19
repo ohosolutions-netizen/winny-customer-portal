@@ -19,6 +19,7 @@ import {
 import { applicationData, state } from "../store/runtime.js";
 import { qs, qsa } from "../lib/dom.js";
 import { getByPath, setByPath, uid, escapeHtml, safeJsonParse } from "../lib/utils.js";
+import { birthDateInputBounds, isBirthDateField, validators } from "../lib/validators.js";
 import {
   toast, showLoader, hideLoader, markAutoSavePending, requestRender,
   openModal, openConfirmModal, fail
@@ -33,6 +34,8 @@ import { isQuestionnaireChild, qQuestionnaireCountries } from "./questionnaire.j
 import { reconcileTravellerCountries, isPaymentConfirmed } from "./deal.js";
 import { isFullyPaidStatus } from "./derive.js";
 import { saveDealData } from "../api/deal.js";
+
+const cifBirthDateFields = new Map();
 
     // ── cifNormalizeCountry (source 4041-4055) ──
 function cifNormalizeCountry(country) {
@@ -984,9 +987,15 @@ const CIF_UK_SECTIONS = [
       const value = escapeHtml(getByPath(applicationData, path) || "");
       const full = inputType === "textarea" ? " full" : "";
       const placeholder = inputType === "tel" ? 'placeholder="e.g. +91 9820000000"' : "";
+      const isBirthDate = inputType === "date" && (isBirthDateField(path) || isBirthDateField(label));
+      const birthDateBounds = isBirthDate ? birthDateInputBounds() : null;
+      const birthDateAttrs = isBirthDate
+        ? `data-birth-date="true" min="${birthDateBounds.min}"`
+        : "";
+      if (isBirthDate) cifBirthDateFields.set(path, label);
       const inner = inputType === "textarea"
         ? `<textarea data-bind="${path}">${value}</textarea>`
-        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder}>`;
+        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs}>`;
       return `<div class="cifx-field${full}" data-field="${path}">
         <label>${escapeHtml(label)}${req ? ' <span class="req">*</span>' : ""}</label>
         ${inner}
@@ -3374,10 +3383,30 @@ function cifShowValidationSummary(issues) {
   qs("#modalBackdrop").classList.add("show");
 }
 
+function cifGetInvalidBirthDateIssues(travId, instanceId) {
+  const pathPrefix = `cifData.${travId}.instances.${instanceId}.`;
+  return [...cifBirthDateFields.entries()]
+    .filter(([path]) => path.startsWith(pathPrefix))
+    .map(([path, label]) => ({ path, label, message: validators.birthDate(getByPath(applicationData, path)) }))
+    .filter(issue => Boolean(issue.message))
+    .map(issue => ({
+      paths: [issue.path],
+      message: `${issue.label}: ${issue.message}.`
+    }));
+}
+
 async function cifSaveTraveller(travId) {
       const t = applicationData.deal.travellers.find(x => x.id === travId);
       const name = t ? `${t.firstName || ""} ${t.lastName || ""}`.trim() : "this traveller";
       const instance = cifGetInstance(state.activeCifInstance);
+
+      const birthDateIssues = instance ? cifGetInvalidBirthDateIssues(travId, instance.id) : [];
+      if (birthDateIssues.length) {
+        cifClearValidationHighlights();
+        cifHighlightAllIssues(birthDateIssues);
+        cifShowValidationSummary(birthDateIssues);
+        return;
+      }
 
       // NEW: client-side pre-check, UK forms only (Australia/USA already
       // validate via cifValidateGeneric inside saveGenericCIFForTraveller).

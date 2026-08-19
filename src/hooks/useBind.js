@@ -24,8 +24,9 @@ export const fieldErrors = {};
 export function commitField(path, el) {
   const isCheckbox = el.type === "checkbox";
 
-  if (el.type === "date" && isBirthDateField(path) && el.value) {
-    const birthDateError = validators.birthDate(el.value);
+  if (el.type === "date" && isBirthDateField(path)) {
+    const birthDateError = el.value ? validators.birthDate(el.value) : "";
+    fieldErrors[path] = birthDateError;
     if (birthDateError) toast(birthDateError);
   }
   if (el.type === "tel" && /mobile/i.test(path)) {
