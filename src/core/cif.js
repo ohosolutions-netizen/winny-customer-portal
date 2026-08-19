@@ -1579,27 +1579,74 @@ if (finance) {
       "Us_Form_1","Us_Form_2","Us_Form_3","Us_Form_4"
     ]);
 
-    function cifMetadataFields(response) {
-      return response?.fields || response?.data?.fields || response?.meta?.field_layout || response?.data?.meta?.field_layout || [];
+    function cifMetadataFields(response, seen = new Set()) {
+      if (response === undefined || response === null) return [];
+      if (typeof response === "string") {
+        const parsed = safeJsonParse(response);
+        return parsed && parsed !== response ? cifMetadataFields(parsed, seen) : [];
+      }
+      if (typeof response !== "object" || seen.has(response)) return [];
+      seen.add(response);
+      const direct = response.fields || response?.data?.fields || response?.meta?.field_layout || response?.data?.meta?.field_layout;
+      if (Array.isArray(direct)) return direct;
+      for (const nested of [response.response, response.responseText, response.result, response.body]) {
+        const fields = cifMetadataFields(nested, seen);
+        if (fields.length) return fields;
+      }
+      return [];
+    }
+
+    function cifMetadataErrorText(error) {
+      if (error === undefined || error === null) return "Unknown metadata error";
+      if (typeof error === "string") return error;
+      if (error instanceof Error && error.message) return error.message;
+      for (const candidate of [error.message, error.error, error.responseText, error.response, error.data]) {
+        if (!candidate) continue;
+        if (typeof candidate === "string") return candidate;
+        try {
+          const serialized = JSON.stringify(candidate);
+          if (serialized && serialized !== "{}") return serialized;
+        } catch (ignored) {}
+      }
+      try {
+        const serialized = JSON.stringify(error);
+        if (serialized && serialized !== "{}") return serialized;
+      } catch (ignored) {}
+      return String(error);
     }
 
     async function cifFetchStageMetadata(stage) {
       if (state.cifMetadata[stage.form]) return state.cifMetadata[stage.form];
       if (state.cifMetadataLoading[stage.form]) return state.cifMetadataLoading[stage.form];
       state.cifMetadataLoading[stage.form] = (async () => {
-        let response;
+        let rawFields = [];
+        const failures = [];
         if (window.ZOHO?.CREATOR?.META?.getFields) {
-          response = await ZOHO.CREATOR.META.getFields({ app_name:CONFIG.creator.appLinkName, form_name:stage.form });
-        } else if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
-          response = await ZOHO.CREATOR.API.invokeUrl({
-            url:`https://www.zohoapis.in/creator/v2.1/meta/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/form/${stage.form}/fields`,
-            type:"GET",
-            connectionName:CONFIG.creatorConnectionName
-          });
-        } else {
-          throw new Error("Zoho Creator metadata service is unavailable.");
+          try {
+            const response = await ZOHO.CREATOR.META.getFields({ app_name:CONFIG.creator.appLinkName, form_name:stage.form });
+            rawFields = cifMetadataFields(response);
+            if (!rawFields.length) failures.push("embedded metadata service returned no fields");
+          } catch (error) {
+            failures.push(`embedded metadata service: ${cifMetadataErrorText(error)}`);
+          }
         }
-        const rawFields = cifMetadataFields(response);
+        if (!rawFields.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
+          try {
+            const response = await ZOHO.CREATOR.API.invokeUrl({
+              url:`https://www.zohoapis.in/creator/v2.1/meta/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/form/${stage.form}/fields`,
+              type:"GET",
+              connectionName:CONFIG.creatorConnectionName
+            });
+            rawFields = cifMetadataFields(response);
+            if (!rawFields.length) failures.push("Creator REST metadata service returned no fields");
+          } catch (error) {
+            failures.push(`Creator REST metadata service: ${cifMetadataErrorText(error)}`);
+          }
+        }
+        if (!rawFields.length) {
+          const detail = failures.length ? ` ${failures.join("; ")}` : " Zoho Creator metadata service is unavailable.";
+          throw new Error(`Could not load metadata for ${stage.form}.${detail}`);
+        }
         // 15-Aug-2026 FIX: this flatten previously only ran for stage.form
         // starting with "Us_Form_" (USA). Australia_Customer_Information*
         // and Schengen_Visitor_visa stages kept their raw type-28 "Section"
@@ -1635,7 +1682,7 @@ if (finance) {
         delete state.cifMetadataErrors[stage.form];
         return fields;
       })().catch(error => {
-        state.cifMetadataErrors[stage.form] = error.message || String(error);
+        state.cifMetadataErrors[stage.form] = cifMetadataErrorText(error);
         throw error;
       }).finally(() => delete state.cifMetadataLoading[stage.form]);
       return state.cifMetadataLoading[stage.form];
