@@ -19,7 +19,7 @@ import {
 import { applicationData, state } from "../store/runtime.js";
 import { qs, qsa } from "../lib/dom.js";
 import { getByPath, setByPath, uid, escapeHtml, safeJsonParse } from "../lib/utils.js";
-import { birthDateInputBounds, isBirthDateField, validators } from "../lib/validators.js";
+import { birthDateInputBounds, isBirthDateField, classifyFieldValidation, validators } from "../lib/validators.js";
 import {
   toast, showLoader, hideLoader, markAutoSavePending, requestRender,
   openModal, openConfirmModal, fail
@@ -3573,26 +3573,113 @@ function cifGetInvalidBirthDateIssues(travId, instanceId) {
     }));
 }
 
+// Scans all filled fields across all stages for format errors (email, phone,
+// passport, postal). Birth dates are handled separately via cifGetInvalidBirthDateIssues.
+function cifGetFormatIssues(travId, instance) {
+  const issues = [];
+  for (const stage of instance.definition.stages) {
+    const metadata = state.cifMetadata[stage.form];
+    if (!metadata) continue;
+    const data = cifInstanceData(travId, instance.id)[stage.tag] || {};
+    cifCustomerFields(metadata).forEach(field => {
+      const kind = classifyFieldValidation(field.link_name);
+      if (!kind || kind === "birthDate") return;
+      const value = data[field.link_name];
+      if (!value) return;
+      const msg = validators[kind](value);
+      if (msg) {
+        issues.push({
+          paths: [cifPath(travId, stage.tag, field.link_name, instance.id)],
+          message: `${stage.title} — ${field.display_name}: ${msg}`
+        });
+      }
+    });
+  }
+  return issues;
+}
+
+// Collects ALL validation issues for a generic CIF instance (US/Schengen/Australia)
+// instead of stopping at the first one. Each stage contributes:
+//   • every missing mandatory field
+//   • the first conditional rule failure from that stage's dedicated validator
+function cifRunAllGenericValidations(travId, instance) {
+  const issues = [];
+  for (const stage of instance.definition.stages) {
+    const metadata = state.cifMetadata[stage.form];
+    if (!metadata) continue;
+    const data = cifInstanceData(travId, instance.id)[stage.tag] || {};
+    const fields = cifCustomerFields(metadata);
+
+    // Missing required fields
+    fields
+      .filter(field => {
+        if (!cifGenericFieldVisible(instance, stage, data, field.link_name)) return false;
+        if (!field.mandatory) return false;
+        const value = data[field.link_name];
+        if (Array.isArray(value)) return !value.length;
+        if (value && typeof value === "object") return !Object.values(value).some(v => String(v || "").trim());
+        return value === undefined || value === null || String(value).trim() === "";
+      })
+      .forEach(field => {
+        issues.push({
+          paths: [cifPath(travId, stage.tag, field.link_name, instance.id)],
+          message: `${stage.title}: Required field — "${field.display_name}"`
+        });
+      });
+
+    // Conditional rule validation (first error per stage from dedicated validator)
+    let conditionalError = null;
+    if (instance.type === "usa") {
+      if (stage.form === "Us_Form_1") conditionalError = cifValidateUsForm1(data);
+      else if (stage.form === "Us_Form_2") conditionalError = cifValidateUsForm2(data);
+      else if (stage.form === "Us_Form_3") conditionalError = cifValidateUsForm3(data);
+      else if (stage.form === "Us_Form_4") conditionalError = cifValidateUsForm4(data);
+    } else if (instance.type === "australia") {
+      if (stage.form === "Australia_Customer_Information") conditionalError = cifValidateAustraliaForm1(data);
+      else if (stage.form === "Australia_Customer_Information_3") conditionalError = cifValidateAustraliaForm3(data);
+    } else if (instance.type === "schengen") {
+      state.__schengenValidationField = null;
+      conditionalError = cifValidateSchengen(data);
+    }
+    if (conditionalError) {
+      const failedField = instance.type === "schengen" ? state.__schengenValidationField : null;
+      issues.push({
+        paths: failedField ? [cifPath(travId, stage.tag, failedField, instance.id)] : [],
+        message: `${stage.title}: ${conditionalError}`
+      });
+    }
+  }
+  return issues;
+}
+
 async function cifSaveTraveller(travId) {
       const t = applicationData.deal.travellers.find(x => x.id === travId);
       const name = t ? `${t.firstName || ""} ${t.lastName || ""}`.trim() : "this traveller";
       const instance = cifGetInstance(state.activeCifInstance);
 
-      const birthDateIssues = instance ? cifGetInvalidBirthDateIssues(travId, instance.id) : [];
-      if (birthDateIssues.length) {
-        cifClearValidationHighlights();
-        cifHighlightAllIssues(birthDateIssues);
-        cifShowValidationSummary(birthDateIssues);
-        return;
-      }
-
-      // NEW: client-side pre-check, UK forms only (Australia/USA already
-      // validate via cifValidateGeneric inside saveGenericCIFForTraveller).
       if (instance && instance.type === "uk") {
-        const issues = cifRunAllUkValidations(travId, instance.id);
+        const issues = [
+          ...cifGetInvalidBirthDateIssues(travId, instance.id),
+          ...cifRunAllUkValidations(travId, instance.id),
+        ];
         if (issues.length) {
           cifClearValidationHighlights();
-          state.activeCifCategory = issues[0].categoryId;
+          state.activeCifCategory = issues[0].categoryId || state.activeCifCategory;
+          renderCIF();
+          setTimeout(() => cifHighlightAllIssues(issues), 60);
+          cifShowValidationSummary(issues);
+          return;
+        }
+      }
+
+      if (instance && instance.type !== "uk") {
+        const issues = [
+          ...cifGetInvalidBirthDateIssues(travId, instance.id),
+          ...cifGetFormatIssues(travId, instance),
+          ...cifRunAllGenericValidations(travId, instance),
+        ];
+        if (issues.length) {
+          cifClearValidationHighlights();
           renderCIF();
           setTimeout(() => cifHighlightAllIssues(issues), 60);
           cifShowValidationSummary(issues);
