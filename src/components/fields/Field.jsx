@@ -15,7 +15,7 @@ export function Field({ label, path, type = "text", placeholder = "", required =
         type={type}
         placeholder={placeholder}
         min={isBirthDate ? birthDateBounds.min : min}
-        max={isBirthDate ? undefined : max}
+        max={isBirthDate ? birthDateBounds.max : max}
         data-required={required ? "true" : undefined}
         {...bindInput(path)}
       />

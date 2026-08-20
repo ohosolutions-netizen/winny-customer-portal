@@ -9,7 +9,9 @@ export function isBirthDateField(path) {
 export const MIN_BIRTH_YEAR = 1900;
 
 export function birthDateInputBounds() {
-  return { min: `${MIN_BIRTH_YEAR}-01-01` };
+  const today = new Date();
+  const max = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  return { min: `${MIN_BIRTH_YEAR}-01-01`, max };
 }
 
 export function classifyFieldValidation(path) {

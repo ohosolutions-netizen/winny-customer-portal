@@ -25,6 +25,12 @@ export function commitField(path, el) {
   const isCheckbox = el.type === "checkbox";
 
   if (el.type === "date" && isBirthDateField(path)) {
+    if (el.value) {
+      const parts = el.value.split("-");
+      if (parts[0] && parts[0].length > 4) {
+        el.value = `${parts[0].slice(0, 4)}-${parts[1] || "01"}-${parts[2] || "01"}`;
+      }
+    }
     const birthDateError = el.value ? validators.birthDate(el.value) : "";
     fieldErrors[path] = birthDateError;
     if (birthDateError) toast(birthDateError);
