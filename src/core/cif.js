@@ -3044,10 +3044,15 @@ function cifSchengenFundingOptions(data) {
     }
 
     function cifSwitchStage(stageTag) {
-      state.activeCifStage = stageTag;
-      state.activeGenericCifCategory = null;
-      renderCIF();
-      qs("#stepCIF")?.scrollIntoView({ behavior:"smooth", block:"start" });
+      try {
+        state.activeCifStage = stageTag;
+        state.activeGenericCifCategory = null;
+        renderCIF();
+        qs("#stepCIF")?.scrollIntoView({ behavior:"smooth", block:"start" });
+      } catch (e) {
+        console.error("cifSwitchStage error:", e);
+        toast(`Navigation error: ${e?.message || String(e)}`);
+      }
     }
 
     function cifSwitchGenericCategory(categoryId) {
@@ -3653,6 +3658,7 @@ function cifRunAllGenericValidations(travId, instance) {
 }
 
 async function cifSaveTraveller(travId) {
+  try {
       const t = applicationData.deal.travellers.find(x => x.id === travId);
       const name = t ? `${t.firstName || ""} ${t.lastName || ""}`.trim() : "this traveller";
       const instance = cifGetInstance(state.activeCifInstance);
@@ -3673,11 +3679,16 @@ async function cifSaveTraveller(travId) {
       }
 
       if (instance && instance.type !== "uk") {
-        const issues = [
-          ...cifGetInvalidBirthDateIssues(travId, instance.id),
-          ...cifGetFormatIssues(travId, instance),
-          ...cifRunAllGenericValidations(travId, instance),
-        ];
+        let issues = [];
+        try {
+          issues = [
+            ...cifGetInvalidBirthDateIssues(travId, instance.id),
+            ...cifGetFormatIssues(travId, instance),
+            ...cifRunAllGenericValidations(travId, instance),
+          ];
+        } catch (validationErr) {
+          console.error("CIF validation error:", validationErr);
+        }
         if (issues.length) {
           cifClearValidationHighlights();
           renderCIF();
@@ -3713,6 +3724,12 @@ async function cifSaveTraveller(travId) {
         state.cifSaving = null;
         renderCIF();
       }
+  } catch (outerErr) {
+    console.error("cifSaveTraveller unexpected error:", outerErr);
+    toast(`Save failed: ${outerErr?.message || String(outerErr)}`);
+    state.cifSaving = null;
+    renderCIF();
+  }
     }
 
     function cifSwitchTraveller(travId) {
