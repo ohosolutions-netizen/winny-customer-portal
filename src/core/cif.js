@@ -1012,6 +1012,25 @@ const CIF_UK_SECTIONS = [
       </div>`;
     }
 
+    function cifCountryOptions(currentValue = "") {
+      const values = [...COUNTRIES];
+      const current = String(currentValue || "").trim();
+      if (current && !values.includes(current)) values.unshift(current);
+      return ["", ...values];
+    }
+
+    function cifIsCountrySelectorField(field) {
+      const link = String(field?.link_name || "");
+      const label = String(field?.display_name || "").trim();
+      if (!link && !label) return false;
+      if (/authority/i.test(link) || /details|reason|explain/i.test(label)) return false;
+      return /^(country|which_country|in_which_country|select_(?:the_)?country|your_current_country|current_country|name_of_country)/i.test(link)
+        || /(?:^|_)country_(?:of|region|where|they|you|the|currently|residence|service|training)(?:_|$)/i.test(link)
+        || /(?:^|_)country$/i.test(link)
+        || /^(country|which country|select (?:a |the )?country|current country|your current country|name of country)/i.test(label)
+        || /country of (?:birth|issue|nationality|residence|passport|service|training)/i.test(label);
+    }
+
     function cifYesNoField(label, path, req) {
       const value = getByPath(applicationData, path) || "";
       return `<div class="cifx-field full" data-field="${path}">
@@ -1110,7 +1129,9 @@ const CIF_UK_SECTIONS = [
           <input type="text" placeholder="City / District" data-bind="${sub("district_city")}" value="${v("district_city")}">
           <input type="text" placeholder="State / Province" data-bind="${sub("state_province")}" value="${v("state_province")}">
           <input type="text" placeholder="Postal Code" data-bind="${sub("postal_Code")}" value="${v("postal_Code")}">
-          <input type="text" placeholder="Country" data-bind="${sub("country")}" value="${v("country")}">
+          <select data-bind="${sub("country")}">
+            ${cifCountryOptions(getByPath(applicationData, sub("country"))).map(option => `<option value="${escapeHtml(option)}" ${String(getByPath(applicationData, sub("country")) || "") === option ? "selected" : ""}>${option ? escapeHtml(option) : "-- Country --"}</option>`).join("")}
+          </select>
         </div>
       </div>`;
     }
@@ -1782,8 +1803,11 @@ if (finance) {
           const subPath = `${path}.${key}`;
           const current = getByPath(applicationData, subPath) || "";
           const choices = (sub.choices || []).map(choice => String(choice.value ?? choice.key ?? ""));
+          const isCountry = cifIsCountrySelectorField({ link_name: key, display_name: sub.display_name || key });
           return choices.length
             ? `<select data-bind="${subPath}"><option value="">-- ${escapeHtml(sub.display_name || key)} --</option>${choices.map(choice => `<option value="${escapeHtml(choice)}" ${String(current) === choice ? "selected" : ""}>${escapeHtml(choice)}</option>`).join("")}</select>`
+            : isCountry
+              ? `<select data-bind="${subPath}">${cifCountryOptions(current).map(option => `<option value="${escapeHtml(option)}" ${String(current) === option ? "selected" : ""}>${option ? escapeHtml(option) : `-- ${escapeHtml(sub.display_name || key)} --`}</option>`).join("")}</select>`
             : `<input type="text" data-bind="${subPath}" value="${escapeHtml(current)}" placeholder="${escapeHtml(sub.display_name || key)}">`;
         }).join("")}</div>
       </div>`;
@@ -2800,6 +2824,9 @@ function cifSchengenFundingOptions(data) {
     instance?.type === "usa" || instance?.type === "australia"
   );
 }
+      if (cifIsCountrySelectorField(field)) {
+        return cifSelectField(label, path, cifCountryOptions(getByPath(applicationData, path)), field.mandatory, false, false);
+      }
       return cifTextField(label, path, field.type === 3 ? "email" : "text", field.mandatory);
     }
 

@@ -193,7 +193,7 @@ export default function TermsPane() {
 
                       {!requirement.eligibleAdults.length ? (
                         <div className="terms-no-adult">
-                          No adult traveller is assigned to {requirement.country}. Assign an adult traveller before continuing.
+                          This family has no eligible adult. Return to Travellers and add an adult family member before continuing.
                         </div>
                       ) : (
                         <div className="terms-acceptance-fields">
@@ -209,7 +209,7 @@ export default function TermsPane() {
                                 <option value={adult.id} key={adult.id}>{adult.name} — {adult.type}</option>
                               ))}
                             </select>
-                            <small>Only adults in {family.label} travelling to {requirement.country} can accept.</small>
+                            <small>An adult in {family.label} accepts this agreement for all family members applying to {requirement.country}.</small>
                           </label>
 
                           <label className="field">

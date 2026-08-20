@@ -506,7 +506,7 @@ const sections = [
                 ${qOptR("invitationLetter","will-get","I will arrange one before submission","")}
                 ${qOptR("invitationLetter","no","No","")}
               </div>
-              <div class="q-dep ${["will-get","no"].includes(applicationData.questionnaire.invitationLetter||"")?"show":""}" id="dep-inv-letter">
+              <div class="q-dep ${applicationData.questionnaire.invitationLetter === "will-get" ? "show":""}" id="dep-inv-letter">
                 <div class="qn qn-teal">&#x1F4CB; A standard invitation letter template will be included in your document checklist.</div>
               </div>
             </div>
@@ -1462,7 +1462,7 @@ markAutoSavePending();
     function qHandleDep(group, val) {
       const deps = {
         "purpose":         {"other": "dep-purpose-other", "family-func": "blk-function-type"},
-        "invitationLetter":{"will-get":"dep-inv-letter","no":"dep-inv-letter"}
+        "invitationLetter":{"will-get":"dep-inv-letter"}
       };
       const map = deps[group];
       if (!map) return;

@@ -1,7 +1,7 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
-import { addFamilyGroup, addTraveller, removeTraveller } from "../../core/deal.js";
-import { Field, SelectField } from "../fields/Field.jsx";
+import { addFamilyGroup, addTraveller, removeTraveller, setTravellerType } from "../../core/deal.js";
+import { Field } from "../fields/Field.jsx";
 
 const DEFAULT_FAMILY_ID = "family-1";
 
@@ -43,7 +43,7 @@ export default function TravellerList() {
               <article className="traveller-card" key={traveller.id}>
                 <div className="traveller-head">
                   <div className="traveller-title">
-                    <span className="avatar">{index === 0 ? "PA" : memberIndex + 1}</span>
+                    <span className="avatar">{traveller.type === "Primary Applicant" ? "PA" : memberIndex + 1}</span>
                     <span>
                       {traveller.type || "Traveller"}
                       {memberIndex === 0 ? ` — Family ${familyIndex + 1}` : ""}
@@ -54,10 +54,18 @@ export default function TravellerList() {
                 <div className="form-grid three">
                   <Field label="First Name" path={`deal.travellers.${index}.firstName`} type="text" placeholder="First name" required />
                   <Field label="Last Name" path={`deal.travellers.${index}.lastName`} type="text" placeholder="Last name" required />
-                  <SelectField label="Traveller Type" path={`deal.travellers.${index}.type`} options={["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"]} />
+                  <div className="field" data-field={`deal.travellers.${index}.type`}>
+                    <label>Traveller Type</label>
+                    <select value={traveller.type || ""} onChange={(event) => setTravellerType(traveller.id, event.target.value)}>
+                      {["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"].map((option) => (
+                        <option value={option} key={option}>{option}</option>
+                      ))}
+                    </select>
+                    <small className="error"></small>
+                  </div>
                   <Field label="Date of Birth" path={`deal.travellers.${index}.dob`} type="date" placeholder="" required />
                   <Field label="Nationality" path={`deal.travellers.${index}.nationality`} type="text" placeholder="Indian" />
-                  <Field label={memberIndex === 0 ? "Primary Applicant Email" : "Email"} path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" required={memberIndex === 0} />
+                  <Field label={traveller.type === "Primary Applicant" ? "Primary Applicant Email" : "Email"} path={`deal.travellers.${index}.email`} type="email" placeholder="traveller@example.com" required={traveller.type === "Primary Applicant"} />
                   <Field label="Mobile" path={`deal.travellers.${index}.mobile`} type="tel" placeholder="+91" required />
                 </div>
               </article>

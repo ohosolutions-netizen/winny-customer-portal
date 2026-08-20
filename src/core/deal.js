@@ -13,6 +13,7 @@ import { recalculatePayment, isFullyPaidStatus, deriveTravellerRelationship, isD
 import { saveDraft } from "./drafts.js";
 import { showDashboard } from "./navigation.js";
 import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalDefinition, getProductCountries } from "./catalog.js";
+import { isAdultTraveller } from "./terms.js";
 
     // ── destination ↔ traveller country mapping ──
     function getDestinationCountries() {
@@ -160,7 +161,59 @@ import { GOAL_DEFS, countriesMatch, getAddonProducts, getGoalCountries, getGoalD
       markAutoSavePending();
     }
 
+    function setTravellerType(id, nextType) {
+      const traveller = applicationData.deal.travellers.find((item) => item.id === id);
+      if (!traveller) return;
+      const familyId = traveller.familyId || DEFAULT_FAMILY_ID;
+      const family = applicationData.deal.travellers.filter(
+        (item) => (item.familyId || DEFAULT_FAMILY_ID) === familyId
+      );
+      if (traveller.type === nextType && nextType !== "Primary Applicant") return;
+
+      if (nextType === "Primary Applicant") {
+        if (!String(traveller.dob || "").trim()) {
+          toast("Enter the traveller's date of birth before selecting Primary Applicant.");
+          requestRender();
+          return;
+        }
+        if (!isAdultTraveller(traveller)) {
+          toast("A minor cannot be the Primary Applicant. Select an adult family member.");
+          requestRender();
+          return;
+        }
+        family.forEach((member) => {
+          if (member.id !== id && member.type === "Primary Applicant") {
+            member.type = "Additional Traveller";
+            if (member.relationship === "Self") member.relationship = "";
+          }
+        });
+        traveller.relationship = "Self";
+      } else if (traveller.type === "Primary Applicant") {
+        toast("Every family needs one Primary Applicant. Select another adult as Primary Applicant first.");
+        return;
+      }
+
+      traveller.type = nextType;
+      requestRender();
+      markAutoSavePending();
+    }
+
     function removeTraveller(id) {
+      const traveller = applicationData.deal.travellers.find((item) => item.id === id);
+      if (!traveller) return;
+      const familyId = traveller.familyId || DEFAULT_FAMILY_ID;
+      const remainingFamily = applicationData.deal.travellers.filter(
+        (item) => item.id !== id && (item.familyId || DEFAULT_FAMILY_ID) === familyId
+      );
+      if (traveller.type === "Primary Applicant" && remainingFamily.length) {
+        const replacement = remainingFamily.find((item) => isAdultTraveller(item));
+        if (!replacement) {
+          toast("Add an adult Primary Applicant before removing this family member.");
+          return;
+        }
+        replacement.type = "Primary Applicant";
+        replacement.relationship = "Self";
+      }
       applicationData.deal.travellers = applicationData.deal.travellers.filter((t) => t.id !== id);
       requestRender();
       markAutoSavePending();
@@ -460,7 +513,7 @@ function togglePackage(id) {
 export {
   getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getPackageDestinationCountries, getAssignedTravellerIdsForGoal,
   syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
-  toggleTravellerCountry, addTraveller, addFamilyGroup, removeTraveller, addCoordinator,
+  toggleTravellerCountry, addTraveller, addFamilyGroup, setTravellerType, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
   togglePackage, getSelectedServiceTypeKey, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
   addPendingToBasket, removeBasketItem, toggleAddon, setUSAAddons,

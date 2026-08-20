@@ -49,7 +49,11 @@ export function getTermsRequirements() {
       const countryTravellers = family.members.filter((traveller) =>
         (traveller.countries || []).includes(country)
       );
-      const eligibleAdults = countryTravellers
+      // One adult accepts on behalf of the family-country group. The adult
+      // belongs to the family but does not need to be one of the applicants
+      // travelling to that particular country (for example, a parent can
+      // accept the agreement for a minor child).
+      const eligibleAdults = family.members
         .filter((traveller) => isAdultTraveller(traveller))
         .map((traveller) => ({
           id: traveller.id,
@@ -140,7 +144,7 @@ export function validateTermsAcceptances() {
 
   for (const requirement of requirements) {
     if (!requirement.eligibleAdults.length) {
-      return `${requirement.familyLabel} needs an adult traveller assigned to ${requirement.country} to accept its agreement.`;
+      return `${requirement.familyLabel} needs an adult family member before its ${requirement.country} agreement can be accepted.`;
     }
     const record = getTermsAcceptance(requirement);
     if (!record.acceptorId) return `Select an adult terms acceptor for ${requirement.familyLabel} — ${requirement.country}.`;

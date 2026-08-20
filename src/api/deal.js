@@ -17,7 +17,7 @@ import {
   getCustomerName, getSelectedServiceNames, syncPaymentBreakdown, getPaymentMode
 } from "../core/derive.js";
 import { ensurePrimaryTravellerFromCustomer, applyTravellerCrmIds } from "../core/deal.js";
-import { validateTermsAcceptances } from "../core/terms.js";
+import { isAdultTraveller, validateTermsAcceptances } from "../core/terms.js";
 import { saveDraft } from "../core/drafts.js";
 import { showWizard, showStep } from "../core/navigation.js";
 import { submitPortalCrmRequest, pollCreatorRecord, findTravellersForDeal, reconcileTravellerCrmRows } from "./portal.js";
@@ -102,13 +102,19 @@ let zPayInstance = null;
         if (!applicationData.deal.travellers.every((t) => String(t.mobile || "").trim())) return fail("Enter the mobile number for every traveller.");
         const invalidTravellerMobile = applicationData.deal.travellers.find((t) => validators.phone(t.mobile));
         if (invalidTravellerMobile) return fail("Enter a valid mobile number for every traveller.");
-        const seenFamilies = new Set();
-        const familyPrimaryTravellers = applicationData.deal.travellers.filter((traveller) => {
+        const families = new Map();
+        applicationData.deal.travellers.forEach((traveller) => {
           const familyId = traveller.familyId || "family-1";
-          if (seenFamilies.has(familyId)) return false;
-          seenFamilies.add(familyId);
-          return true;
+          if (!families.has(familyId)) families.set(familyId, []);
+          families.get(familyId).push(traveller);
         });
+        const familyPrimaryTravellers = [];
+        for (const [familyId, members] of families) {
+          const primaryApplicants = members.filter((traveller) => traveller.type === "Primary Applicant");
+          if (primaryApplicants.length !== 1) return fail(`${familyId === "family-1" ? "Family 1" : "Each family"} must have exactly one Primary Applicant.`);
+          if (!isAdultTraveller(primaryApplicants[0])) return fail("A Primary Applicant must be at least 18 years old.");
+          familyPrimaryTravellers.push(primaryApplicants[0]);
+        }
         if (!familyPrimaryTravellers.every((traveller) => String(traveller.email || "").trim())) return fail("Enter the primary applicant email for every family.");
         if (familyPrimaryTravellers.some((traveller) => validators.email(traveller.email))) return fail("Enter a valid primary applicant email for every family.");
       }
