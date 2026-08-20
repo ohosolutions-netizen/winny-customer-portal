@@ -1864,6 +1864,20 @@ if (finance) {
           if (arr.includes("sponsor") || arr.includes("inviter")) return "Sponsor";
           return "";
         })() },
+        // Schengen — funding dropdown (exact field name used by Schengen CIF form)
+        { re: /^How_will_you_be_funding_your_trip$/, value: (() => {
+          if (cifType !== "schengen" || !finance.funding) return "";
+          const arr = Array.isArray(finance.funding) ? finance.funding : [finance.funding];
+          if (arr.includes("inviter")) return "My Inviter";
+          if (arr.includes("sponsor")) return "A Sponsor (Third party)";
+          if (arr.includes("self")) return "Self-funded";
+          return "";
+        })() },
+        // Schengen — sponsor details (visible when funding = "A Sponsor (Third party)")
+        { re: /^Name_of_sponsor$/,              value: cifType === "schengen" ? (q.inviter || "") : "" },
+        { re: /^Your_relationship_with_sponsor$/, value: cifType === "schengen" ? (q.inviterRelation || "") : "" },
+        // US — previous US visa
+        { re: /^Have_you_ever_been_issued_a_U_S_Visa$/, value: cifType === "usa" ? yesNo(history.usaVisa) : "" },
       ];
 
       fields.forEach(field => {
