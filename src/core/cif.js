@@ -1279,25 +1279,18 @@ const setIfEmpty = (path, value) => {
       setIfEmpty(cifPath(travId, "f1", "Provide_Email_address"), traveller.email || (isPrimary ? applicationData.customer.email : ""));
       setIfEmpty(cifPath(travId, "f1", "Provide_your_telephone_number"), traveller.mobile || (isPrimary ? applicationData.customer.mobile : ""));
 
-      if (isPrimary) {
-        setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.address_line_1"), applicationData.customer.mailingStreet);
-        setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.district_city"), applicationData.customer.mailingCity);
-        setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.state_province"), applicationData.customer.mailingState);
-        setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.postal_Code"), applicationData.customer.mailingZip);
-        setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.country"), applicationData.customer.mailingCountry);
-      }
+      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.address_line_1"), applicationData.customer.mailingStreet);
+      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.district_city"), applicationData.customer.mailingCity);
+      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.state_province"), applicationData.customer.mailingState);
+      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.postal_Code"), applicationData.customer.mailingZip);
+      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.country"), applicationData.customer.mailingCountry);
 
-      // ── From Questionnaire (Step 2) — deliberately limited scope ──────────
-      // Only autofilling answers that are safe to copy as-is: visit purpose
-      // (same trip, same reason, for everyone travelling together) and
-      // employment status (a categorical fact, not a figure). Explicitly NOT
-      // autofilling: money amounts (Questionnaire only has bucketed ranges,
-      // not exact GBP figures — a guessed number is worse than a blank one),
-      // or anything touching criminal record / immigration history /
-      // character declarations. Those are high-stakes legal answers on a
-      // visa form and the Questionnaire's version is a simpler, differently-
-      // scoped question — the customer should answer them deliberately inside
-      // the CIF itself, not inherit them silently from an earlier screen.
+      // ── From Questionnaire (Step 2) ─────────────────────────────────────
+      // Autofills categorical facts that map cleanly: purpose, employment,
+      // marital status, travel dates, history declarations. All use setIfEmpty
+      // so the applicant's own CIF edits are never overwritten.
+      // NOT autofilled: money amounts (questionnaire only has bucketed ranges,
+      // not exact GBP figures — a guessed number is worse than a blank one).
       const q = applicationData.questionnaire || {};
 
       if (isPrimary && q.maritalStatus) {
@@ -1523,6 +1516,23 @@ if (finance) {
   [...new Set(matched)]
 );
         }
+      }
+
+      // ── History & character declarations (f3) ────────────────────────────
+      // "Above_the_Immigration_history" covers: visa refusals, border refusals,
+      // deportation, removal — any true flag in history means the answer is Yes.
+      const history = (q.history || {})[travId] || {};
+      const hadImmigrationIssue = history.refusal || history.border;
+      if (hadImmigrationIssue === true || hadImmigrationIssue === "Yes") {
+        setIfEmpty(cifPath(travId, "f3", "Above_the_Immigration_history"), "Yes");
+      } else if (hadImmigrationIssue === false || hadImmigrationIssue === "No") {
+        setIfEmpty(cifPath(travId, "f3", "Above_the_Immigration_history"), "No");
+      }
+
+      if (history.criminalRecord === true || history.criminalRecord === "Yes") {
+        setIfEmpty(cifPath(travId, "f3", "Have_you_ever_had_any_convictions_offences_cautions_penalties_or_court_judgments_including_under_U"), "Yes");
+      } else if (history.criminalRecord === false || history.criminalRecord === "No") {
+        setIfEmpty(cifPath(travId, "f3", "Have_you_ever_had_any_convictions_offences_cautions_penalties_or_court_judgments_including_under_U"), "No");
       }
     }
 
