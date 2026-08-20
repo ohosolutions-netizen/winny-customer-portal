@@ -20,14 +20,24 @@ export function classifyFieldValidation(path) {
   if (/email/i.test(path)) return "email";
   if (/phone|mobile|telephone/i.test(path)) return "phone";
   if (/passport_number/i.test(path)) return "passport";
+  if (/postal|zip|pincode|pin.?code/i.test(path)) return "postal";
   return null;
 }
 
 export const validators = {
   required(value) { return String(value ?? "").trim() ? "" : "Required"; },
   email(value)    { return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim()) ? "" : "Enter a valid email"; },
-  phone(value)    { return !value || /^[+()\-\s0-9]{7,18}$/.test(String(value).trim()) ? "" : "Enter a valid phone number"; },
+  phone(value)    { return !value || /^[+()\-\s0-9]{7,18}$/.test(String(value).trim()) ? "" : "Enter a valid phone number (digits, +, spaces, hyphens only — no letters)"; },
   passport(value) { return !value || /^[A-Z0-9]{6,12}$/i.test(String(value).trim()) ? "" : "Enter a valid passport number"; },
+  postal(value)   {
+    if (!value) return "";
+    const trimmed = String(value).trim();
+    // Allow only letters, digits, spaces, hyphens — all real postal code formats (India, UK, US, EU, AU).
+    // Reject special characters (@, !, #, etc.) and lengths outside 2–12 chars.
+    return /^[A-Z0-9][A-Z0-9 -]{1,11}$/i.test(trimmed)
+      ? ""
+      : "Enter a valid postal / ZIP code (letters, digits, spaces and hyphens only)";
+  },
   date(value)     { return !value || !Number.isNaN(Date.parse(value)) ? "" : "Enter a valid date"; },
   birthDate(value) {
     if (!value) return "";

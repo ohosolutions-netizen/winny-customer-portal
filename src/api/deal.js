@@ -94,6 +94,7 @@ let zPayInstance = null;
         const missing  = required.find(([path]) => validators.required(getByPath(applicationData, path)));
         if (missing) return fail(missing[1]);
         if (validators.email(applicationData.customer.email)) return fail(validators.email(applicationData.customer.email));
+        if (validators.phone(applicationData.customer.mobile)) return fail(`Customer mobile: ${validators.phone(applicationData.customer.mobile)}`);
         if (!isDealSaved()) return fail("Save the Deal first.");
         if (!applicationData.deal.travellers.every((t) => t.firstName && t.lastName)) return fail("Complete first and last name for every traveller.");
         if (!applicationData.deal.travellers.every((t) => String(t.dob || "").trim())) return fail("Enter the date of birth for every traveller.");
