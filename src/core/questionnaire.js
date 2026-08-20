@@ -14,6 +14,7 @@ import { escapeHtml, setByPath } from "../lib/utils.js";
 import { markAutoSavePending, toast } from "../lib/ui.js";
 import { saveDraft } from "./drafts.js";
 import { submitQuestionnaire } from "../api/questionnaire.js";
+import { SCHENGEN_COUNTRIES } from "../config/config.js";
 
 // The component registers its re-inject callback here; the original called
 // renderQuestionnaire() to rebuild #stepQuestionnaire in place.
@@ -1577,10 +1578,17 @@ markAutoSavePending();
       return Boolean((multiAnswers || {})[exclusiveKey]) && qSelectedKeys(multiAnswers, otherKeys).length > 0;
     }
 
+    function qIsSchengenCountry(country) {
+      const lower = String(country || "").trim().toLowerCase();
+      return lower === "schengen" || SCHENGEN_COUNTRIES.has(lower);
+    }
+
     function qTravelDateGapMessage() {
       const countries = qQuestionnaireCountries();
       const travelDates = applicationData.questionnaire.travelDates || {};
       for (let i = 0; i < countries.length - 1; i++) {
+        // Only enforce continuous-dates between consecutive Schengen countries.
+        if (!qIsSchengenCountry(countries[i]) || !qIsSchengenCountry(countries[i + 1])) continue;
         const exitStr = (travelDates[countries[i]] || {}).exit;
         const entryStr = (travelDates[countries[i + 1]] || {}).entry;
         if (!exitStr || !entryStr) continue;
