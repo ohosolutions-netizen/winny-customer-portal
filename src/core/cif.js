@@ -3555,9 +3555,10 @@ function cifHighlightAllIssues(issues) {
 // instead of a sequence of separate toasts.
 function cifShowValidationSummary(issues) {
   const listHtml = issues.map(issue => `<li style="margin-bottom:8px;line-height:1.5">${escapeHtml(issue.message)}</li>`).join("");
-  qs("#modalTitle").textContent = `${issues.length} issue${issues.length > 1 ? "s" : ""} to fix before saving`;
-  qs("#modalBody").innerHTML = `<ul style="margin:0;padding-left:20px">${listHtml}</ul>`;
-  qs("#modalBackdrop").classList.add("show");
+  const title = `${issues.length} issue${issues.length > 1 ? "s" : ""} to fix before saving`;
+  // openModal goes through React state so the Close button works correctly.
+  // Modal.jsx renders modal.body via dangerouslySetInnerHTML for text-kind modals.
+  openModal(title, `<ul style="margin:0;padding-left:20px">${listHtml}</ul>`);
 }
 
 function cifGetInvalidBirthDateIssues(travId, instanceId) {

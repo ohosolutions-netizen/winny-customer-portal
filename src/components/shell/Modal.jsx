@@ -23,7 +23,7 @@ export default function Modal() {
               </div>
             </>
           ) : (
-            modal.body
+            <div dangerouslySetInnerHTML={{ __html: modal.body }} />
           )}
         </div>
       </div>
