@@ -1750,33 +1750,125 @@ if (finance) {
       return scores.length ? Math.round(scores.reduce((a,b) => a + b, 0) / scores.length) : 0;
     }
 
-    function cifAutofillGenericTraveller(travId, instance) {
+    function cifAutofillGenericTraveller(travId, instance, activeStage) {
       if (!state.cifAutofilledIds) state.cifAutofilledIds = new Set();
-      const autofillKey = `${travId}::${instance.id}::generic`;
+      const stg = activeStage || instance.definition.stages[0];
+      const autofillKey = `${travId}::${instance.id}::${stg.tag}`;
       if (state.cifAutofilledIds.has(autofillKey)) return;
       const traveller = applicationData.deal.travellers.find(t => t.id === travId);
-      const stage = instance.definition.stages[0];
-      const fields = cifCustomerFields(state.cifMetadata[stage.form]);
+      const fields = cifCustomerFields(state.cifMetadata[stg.form]);
       if (!traveller || !fields.length) return;
+
       const setEmpty = (path, value) => {
         if (value === undefined || value === null || value === "") return;
         const current = getByPath(applicationData, path);
         if (current === undefined || current === null || current === "") setByPath(applicationData, path, value);
       };
-      const directValues = {
-        Surnames:traveller.lastName,
-        Given_Names:traveller.firstName,
-        Date1:traveller.dob,
-        Date_of_Birth:traveller.dob,
-        Your_email_id:traveller.email || applicationData.customer.email,
-        Email_address:traveller.email || applicationData.customer.email,
-        Email1:traveller.email || applicationData.customer.email,
-        Phone_Number:traveller.mobile || applicationData.customer.mobile,
-        Mobile_Cell_phone:traveller.mobile || applicationData.customer.mobile
-      };
+
+      const q = applicationData.questionnaire || {};
+      const finance = (q.finance || {})[travId] || {};
+      const history = (q.history || {})[travId] || {};
+      const cifType = instance.type; // "usa" | "schengen" | "australia"
+      const cust = applicationData.customer || {};
+
+      // Resolve travel dates for this CIF's destination
+      const allDates = q.travelDates || {};
+      let entryDate = "", exitDate = "";
+      if (cifType === "usa") {
+        const td = allDates["United States"] || allDates["United States of America"] || {};
+        entryDate = td.entry || ""; exitDate = td.exit || "";
+      } else if (cifType === "australia") {
+        const td = allDates["Australia"] || {};
+        entryDate = td.entry || ""; exitDate = td.exit || "";
+      } else {
+        // Schengen — pick first destination that has dates
+        const dests = (q.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean);
+        for (const dest of dests) {
+          const td = allDates[dest] || {};
+          if (td.entry) { entryDate = td.entry; exitDate = td.exit || ""; break; }
+        }
+        if (!entryDate) { const td = allDates["Schengen"] || {}; entryDate = td.entry || ""; exitDate = td.exit || ""; }
+      }
+
+      // Purpose mapping per CIF type
+      const rawPurpose = Array.isArray(q.purpose) ? q.purpose.filter(Boolean)
+        : String(q.purpose || "").split(",").map(s => s.trim()).filter(Boolean);
+      const PURPOSE_USA = { tourism:"Tourism/Vacation", family:"Visit Family/Friends", friend:"Visit Family/Friends", business:"Business", medical:"Medical Treatment", transit:"Transit", "family-func":"Other", convocation:"Other", other:"Other" };
+      const PURPOSE_SCHENGEN = { tourism:"Tourism", family:"Visiting family or friends", friend:"Visiting family or friends", business:"Business", medical:"Medical reasons", transit:"Transit", "family-func":"Cultural/Sports/Religious events", convocation:"Study", other:"Other" };
+      const PURPOSE_AUSTRALIA = { tourism:"Tourist stream (tourism/visit family or friends)", family:"Tourist stream (tourism/visit family or friends)", friend:"Tourist stream (tourism/visit family or friends)", business:"Business Visitor stream (business visit for meetings, conferences or negotiations but not for work)", "family-func":"Tourist stream (tourism/visit family or friends)", convocation:"Tourist stream (tourism/visit family or friends)", medical:"Other", transit:"Other", other:"Other" };
+      const purposeMap = cifType === "usa" ? PURPOSE_USA : cifType === "australia" ? PURPOSE_AUSTRALIA : PURPOSE_SCHENGEN;
+      const purposeValue = rawPurpose.length ? (purposeMap[rawPurpose[0]] || "") : "";
+
+      // Marital status mapping per CIF type
+      const MARITAL_USA = { single:"Single", married:"Married", divorced:"Divorced", widowed:"Widowed", separated:"Separated" };
+      const MARITAL_SCHENGEN = { single:"Single", married:"Married", divorced:"Divorced", widowed:"Widow/Widower", separated:"Legally Separated" };
+      const MARITAL_AUSTRALIA = { single:"Never married", married:"Married", divorced:"Divorced", widowed:"Widowed", separated:"Separated" };
+      const maritalMap = cifType === "usa" ? MARITAL_USA : cifType === "australia" ? MARITAL_AUSTRALIA : MARITAL_SCHENGEN;
+      const maritalValue = maritalMap[q.maritalStatus] || "";
+
+      // Employment status from multiAnswers occ-* keys
+      const EMP_USA = { "occ-employed":"Employed", "occ-freelancer":"Self Employed", "occ-business":"Self Employed", "occ-student":"Student", "occ-pensioner":"Retired", "occ-retired-nopension":"Retired", "occ-unemployed":"Unemployed" };
+      const EMP_AUSTRALIA = { "occ-employed":"Employed", "occ-freelancer":"Self employed", "occ-business":"Self employed", "occ-student":"Student", "occ-pensioner":"Retired", "occ-retired-nopension":"Retired", "occ-unemployed":"Unemployed" };
+      const empMap = cifType === "australia" ? EMP_AUSTRALIA : EMP_USA;
+      const empMatched = Object.entries(empMap).filter(([key]) => finance.multiAnswers?.[key]).map(([, label]) => label);
+      const empValue = empMatched.length ? empMatched[0] : "";
+
+      // History yes/no helpers (boolean or truthy string)
+      const yesNo = val => val === true || val === "Yes" ? "Yes" : (val === false || val === "No" ? "No" : "");
+
+      // Field-name patterns — matched against each field's link_name
+      const PATTERNS = [
+        // Personal basics
+        { re: /^Surnames$|^surname$/i,                       value: traveller.lastName },
+        { re: /^Given_Names$|^given.names?$/i,               value: traveller.firstName },
+        { re: /^(Date1|Date_of_Birth)$|date.of.birth/i,      value: traveller.dob },
+        { re: /^(Your_email_id|Email_address|Email1)$|^email/i, value: traveller.email || cust.email },
+        { re: /^(Phone_Number|Mobile_Cell_phone)$|^phone.number$/i, value: traveller.mobile || cust.mobile },
+        { re: /^nationality$|^country.of.nationality$/i,      value: traveller.nationality },
+        { re: /^country.of.birth$/i,                          value: traveller.nationality },
+        // Travel dates
+        { re: /arrival.date|date.of.arrival|intended.*arrival|planned.*arrival/i, value: entryDate },
+        { re: /departure.date|date.of.departure|intended.*departure|planned.*departure|final.*departure/i, value: exitDate },
+        // Purpose
+        { re: /purpose.of.trip|purpose.of.visit|purpose.of.the.trip|reason.for.travel|visit.purpose/i, value: purposeValue },
+        { re: /^Select_all_reasons_for_visiting_Australia$/,  value: purposeValue },
+        { re: /^Select_the_stream_the_applicant_is_applying_for$/, value: cifType === "australia" ? purposeValue : "" },
+        // Marital status
+        { re: /marital.status|civil.status|current.marital/i, value: maritalValue },
+        // Employment
+        { re: /^Employment_status$|^employment.status$/i,     value: empValue },
+        // History declarations (Yes/No only — skip detail/narrative fields)
+        { re: /visa.*refus|refus.*visa|ever.*refused|refused.*visa/i,
+          skip: /detail|give|add|explain|provide/i, value: yesNo(history.refusal) },
+        { re: /criminal.*record|convicted|ever.*been.*charged|has.*the.*applicant.*been.*convicted/i,
+          skip: /detail|give|add|explain|provide/i, value: yesNo(history.criminalRecord) },
+        { re: /deport|removed.*from.*country|overstay.*visa|border.*issue/i,
+          skip: /detail|give|add|explain|provide/i, value: yesNo(history.border) },
+        { re: /previously.*travel|travelled.*outside|lived.*outside/i,
+          skip: /detail|give|add|explain|provide/i, value: yesNo(history.prevTravel) },
+        // Finance / funding (Schengen)
+        { re: /means.of.support|source.of.funds|cost.of.trip.paid/i, value: (() => {
+          if (!finance.funding) return "";
+          const arr = Array.isArray(finance.funding) ? finance.funding : [finance.funding];
+          if (arr.includes("self")) return "Cash";
+          if (arr.includes("sponsor") || arr.includes("inviter")) return "Sponsor";
+          return "";
+        })() },
+      ];
+
       fields.forEach(field => {
-        const basePath = cifPath(travId, stage.tag, field.link_name, instance.id);
-        if (directValues[field.link_name]) setEmpty(basePath, directValues[field.link_name]);
+        const fn = field.link_name;
+        const basePath = cifPath(travId, stg.tag, fn, instance.id);
+
+        // Pattern matching
+        for (const pat of PATTERNS) {
+          if (pat.re.test(fn) && !(pat.skip && pat.skip.test(fn)) && pat.value) {
+            setEmpty(basePath, pat.value);
+            break;
+          }
+        }
+
+        // Composite name field (type 29) — match subfields by label
         if (field.type === 29) {
           (field.subfields || []).filter(sub => !sub.is_hidden).forEach(sub => {
             const key = sub.link_name || sub.column_name;
@@ -1785,7 +1877,27 @@ if (finance) {
             else if (/given|first/.test(label)) setEmpty(`${basePath}.${key}`, traveller.firstName);
           });
         }
+
+        // Composite address field — fill customer mailing address into residential/home address fields
+        if (/residential.address|home.address|permanent.address|current.address|address.in.india|address.in.home|applicant.*address/i.test(fn) && !/sponsor|organisation|org|postal|office/i.test(fn)) {
+          const subParts = (field.subfields || []).filter(sub => !sub.is_hidden);
+          const defaults = subParts.length ? subParts : [
+            {link_name:"address_line_1"},{link_name:"address_line_2"},{link_name:"district_city"},
+            {link_name:"state_province"},{link_name:"postal_Code"},{link_name:"country"}
+          ];
+          defaults.forEach(sub => {
+            const key = sub.link_name || sub.column_name || "";
+            const subPath = `${basePath}.${key}`;
+            if (/address.line.1|^street$/i.test(key)) setEmpty(subPath, cust.mailingStreet);
+            else if (/address.line.2/i.test(key)) setEmpty(subPath, "");
+            else if (/city|district/i.test(key)) setEmpty(subPath, cust.mailingCity);
+            else if (/state|province/i.test(key)) setEmpty(subPath, cust.mailingState);
+            else if (/postal|zip/i.test(key)) setEmpty(subPath, cust.mailingZip);
+            else if (/^country$/i.test(key)) setEmpty(subPath, cust.mailingCountry || "India");
+          });
+        }
       });
+
       state.cifAutofilledIds.add(autofillKey);
     }
 
@@ -2972,7 +3084,7 @@ const fields = cifCustomerFields(
 ).filter(field => cifGenericFieldVisible(instance, stage, stageData, field.link_name));
 
 const traveller = travellers.find(t => t.id === travId);
-      cifAutofillGenericTraveller(travId, instance);
+      cifAutofillGenericTraveller(travId, instance, stage);
       const name = `${traveller?.firstName || ""} ${traveller?.lastName || ""}`.trim() || "Traveller";
       const progress = cifGenericProgress(travId, instance);
       const saved = cifIsInstanceSaved(travId, instance.id);
