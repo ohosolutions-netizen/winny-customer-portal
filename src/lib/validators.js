@@ -21,6 +21,12 @@ export function classifyFieldValidation(path) {
   if (/phone|mobile|telephone/i.test(path)) return "phone";
   if (/passport_number/i.test(path)) return "passport";
   if (/postal|zip|pincode|pin.?code/i.test(path)) return "postal";
+  // Passport / document issue date — must be in the past
+  if (/passport_issue_date|date_of_issue|issue_date_passport/i.test(path)) return "pastDate";
+  // Passport / document expiry date — must be in the future
+  if (/passport_expiry_date|date_of_expiry|expiration_date|expiry_date/i.test(path)) return "expiryDate";
+  // Previous visit dates — must be in the past
+  if (/most_recent_visit|second_recent_visit|visit_start_date|visit_end_date|date_you_arrived_in_the_uk/i.test(path)) return "pastDate";
   return null;
 }
 
@@ -39,6 +45,20 @@ export const validators = {
       : "Enter a valid postal / ZIP code (letters, digits, spaces and hyphens only)";
   },
   date(value)     { return !value || !Number.isNaN(Date.parse(value)) ? "" : "Enter a valid date"; },
+  pastDate(value) {
+    if (!value) return "";
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return "Enter a valid date";
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return d < today ? "" : "This date must be in the past";
+  },
+  expiryDate(value) {
+    if (!value) return "";
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return "Enter a valid date";
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return d > today ? "" : "Passport expiry date must be in the future (passport has expired)";
+  },
   birthDate(value) {
     if (!value) return "";
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));

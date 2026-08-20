@@ -991,13 +991,22 @@ const CIF_UK_SECTIONS = [
       const placeholder = inputType === "tel" ? 'placeholder="e.g. +91 9820000000"' : "";
       const isBirthDate = inputType === "date" && (isBirthDateField(path) || isBirthDateField(label));
       const birthDateBounds = isBirthDate ? birthDateInputBounds() : null;
-      const birthDateAttrs = isBirthDate
-        ? `data-birth-date="true" min="${birthDateBounds.min}"`
-        : "";
+      const birthDateAttrs = isBirthDate ? `data-birth-date="true" min="${birthDateBounds.min}"` : "";
       if (isBirthDate) cifBirthDateFields.set(path, label);
+
+      // For non-birth date fields, constrain the date picker based on semantic kind:
+      // pastDate (issue dates, visit dates) → max = today; expiryDate → min = today
+      let dateConstraintAttrs = "";
+      if (inputType === "date" && !isBirthDate) {
+        const today = new Date().toISOString().split("T")[0];
+        const dateKind = classifyFieldValidation(path) || classifyFieldValidation(label);
+        if (dateKind === "pastDate") dateConstraintAttrs = `max="${today}"`;
+        else if (dateKind === "expiryDate") dateConstraintAttrs = `min="${today}"`;
+      }
+
       const inner = inputType === "textarea"
         ? `<textarea data-bind="${path}">${value}</textarea>`
-        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs}>`;
+        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs || dateConstraintAttrs}>`;
       return `<div class="cifx-field${full}" data-field="${path}">
         <label>${escapeHtml(label)}${req ? ' <span class="req">*</span>' : ""}</label>
         ${inner}
@@ -3578,6 +3587,72 @@ function cifGetInvalidBirthDateIssues(travId, instanceId) {
     }));
 }
 
+// Checks UK CIF passport and visit dates for past/future constraints.
+// UK CIF uses hardcoded field definitions so Zoho metadata is not available;
+// these checks must be done explicitly by field name.
+function cifGetUkDateIssues(travId, instanceId) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const issues = [];
+
+  const f1 = cifInstanceData(travId, instanceId)["f1"] || {};
+  const f3 = cifInstanceData(travId, instanceId)["f3"] || {};
+
+  const checkPast = (value, form, key, label) => {
+    if (!value) return;
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return;
+    if (d >= today) issues.push({
+      paths: [cifPath(travId, form, key, instanceId)],
+      message: `${label}: this date must be in the past.`
+    });
+  };
+
+  const checkFuture = (value, form, key, label) => {
+    if (!value) return;
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return;
+    if (d <= today) issues.push({
+      paths: [cifPath(travId, form, key, instanceId)],
+      message: `${label}: passport has expired — expiry date must be in the future.`
+    });
+  };
+
+  // Primary passport
+  checkPast(f1.Passport_issue_date_Your_passport, "f1", "Passport_issue_date_Your_passport", "Passport Issue Date");
+  checkFuture(f1.Passport_expiry_date_Your_passport, "f1", "Passport_expiry_date_Your_passport", "Passport Expiry Date");
+
+  // Other nationality passport (only when applicable)
+  if (f1.Can_you_provide_a_valid_passport_for_your_other_nationality === "Yes") {
+    checkPast(f1.Passport_issue_date_Other_nationality, "f1", "Passport_issue_date_Other_nationality", "Other Nationality Passport Issue Date");
+    checkFuture(f1.Passport_expiry_date_Other_nationality, "f1", "Passport_expiry_date_Other_nationality", "Other Nationality Passport Expiry Date");
+  }
+
+  // Most recent visit dates (only when visits ≠ Zero)
+  const timesVisited = f3.How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo;
+  if (timesVisited && timesVisited !== "Zero") {
+    checkPast(f3.Date_of_your_most_recent_visit, "f3", "Date_of_your_most_recent_visit", "Most Recent Visit — Start Date");
+    checkPast(f3.End_date_of_your_most_recent_visit, "f3", "End_date_of_your_most_recent_visit", "Most Recent Visit — End Date");
+    if (timesVisited === "2 to 5 times" || timesVisited === "6 or more times") {
+      checkPast(f3.Date_of_your_second_recent_visit, "f3", "Date_of_your_second_recent_visit", "Second Recent Visit — Start Date");
+      checkPast(f3.End_date_of_your_second_recent_visit, "f3", "End_date_of_your_second_recent_visit", "Second Recent Visit — End Date");
+    }
+  }
+
+  // UK visit subform rows
+  const ukVisits = f3.Your_most_recent_time_in_the_UK || [];
+  ukVisits.forEach((row, i) => {
+    if (!row.Date_you_arrived_in_the_UK) return;
+    const d = new Date(`${row.Date_you_arrived_in_the_UK}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return;
+    if (d >= today) issues.push({
+      paths: [cifPath(travId, "f3", `Your_most_recent_time_in_the_UK.${i}.Date_you_arrived_in_the_UK`, instanceId)],
+      message: `UK Visit ${i + 1} — Arrival Date: this date must be in the past.`
+    });
+  });
+
+  return issues;
+}
+
 // Scans all filled fields across all stages for format errors (email, phone,
 // passport, postal). Birth dates are handled separately via cifGetInvalidBirthDateIssues.
 function cifGetFormatIssues(travId, instance) {
@@ -3666,6 +3741,7 @@ async function cifSaveTraveller(travId) {
       if (instance && instance.type === "uk") {
         const issues = [
           ...cifGetInvalidBirthDateIssues(travId, instance.id),
+          ...cifGetUkDateIssues(travId, instance.id),
           ...cifRunAllUkValidations(travId, instance.id),
         ];
         if (issues.length) {
