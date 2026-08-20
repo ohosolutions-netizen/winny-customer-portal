@@ -1224,6 +1224,8 @@ markAutoSavePending();
       if (!applicationData.questionnaire.travelDates) applicationData.questionnaire.travelDates = {};
       if (!applicationData.questionnaire.travelDates[country]) applicationData.questionnaire.travelDates[country] = {};
       applicationData.questionnaire.travelDates[country][type] = val;
+      const gapMsg = qTravelDateGapMessage();
+      if (gapMsg) toast(gapMsg);
       markAutoSavePending();
     }
 
@@ -1575,6 +1577,27 @@ markAutoSavePending();
       return Boolean((multiAnswers || {})[exclusiveKey]) && qSelectedKeys(multiAnswers, otherKeys).length > 0;
     }
 
+    function qTravelDateGapMessage() {
+      const countries = qQuestionnaireCountries();
+      const travelDates = applicationData.questionnaire.travelDates || {};
+      for (let i = 0; i < countries.length - 1; i++) {
+        const exitStr = (travelDates[countries[i]] || {}).exit;
+        const entryStr = (travelDates[countries[i + 1]] || {}).entry;
+        if (!exitStr || !entryStr) continue;
+        const exitDate = new Date(`${exitStr}T00:00:00`);
+        const entryDate = new Date(`${entryStr}T00:00:00`);
+        if (Number.isNaN(exitDate.getTime()) || Number.isNaN(entryDate.getTime())) continue;
+        const gapDays = Math.round((entryDate - exitDate) / (1000 * 60 * 60 * 24));
+        if (gapDays > 1) {
+          const nextDay = new Date(exitDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const nextDayStr = nextDay.toISOString().split("T")[0];
+          return `Gap of ${gapDays} days between route ${i + 1} exit (${exitStr}) and route ${i + 2} entry (${entryStr}). Next route must start on ${exitStr} or ${nextDayStr}.`;
+        }
+      }
+      return "";
+    }
+
     function qValidateTravelDates() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -1590,6 +1613,8 @@ markAutoSavePending();
           if (exit <= entry) return `The exit date for ${country} must be after the entry date.`;
         }
       }
+      const gapError = qTravelDateGapMessage();
+      if (gapError) return gapError;
       return "";
     }
 
