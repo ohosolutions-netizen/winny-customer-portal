@@ -59,6 +59,8 @@ function cifNormalizeCountry(country) {
       const normalized = cifNormalizeCountry(country);
       if (normalized === "Australia") return "australia";
       if (normalized === "United States") return "usa";
+      // "Schengen" stored as zone name (not a specific country) → Schengen CIF
+      if (normalized.toLowerCase() === "schengen") return "schengen";
       if (SCHENGEN_COUNTRIES.has(normalized.toLowerCase())) return "schengen";
       return "uk";
     }
