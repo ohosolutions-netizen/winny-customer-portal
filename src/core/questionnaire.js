@@ -1588,10 +1588,13 @@ markAutoSavePending();
         const entryDate = new Date(`${entryStr}T00:00:00`);
         if (Number.isNaN(exitDate.getTime()) || Number.isNaN(entryDate.getTime())) continue;
         const gapDays = Math.round((entryDate - exitDate) / (1000 * 60 * 60 * 24));
+        const nextDay = new Date(exitDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay.toISOString().split("T")[0];
+        if (gapDays < 0) {
+          return `Route ${i + 2} (${countries[i + 1]}) entry (${entryStr}) overlaps with route ${i + 1} (${countries[i]}) which exits on ${exitStr}. Route ${i + 2} must start on ${exitStr} or ${nextDayStr}.`;
+        }
         if (gapDays > 1) {
-          const nextDay = new Date(exitDate);
-          nextDay.setDate(nextDay.getDate() + 1);
-          const nextDayStr = nextDay.toISOString().split("T")[0];
           return `Gap of ${gapDays} days between route ${i + 1} exit (${exitStr}) and route ${i + 2} entry (${entryStr}). Next route must start on ${exitStr} or ${nextDayStr}.`;
         }
       }

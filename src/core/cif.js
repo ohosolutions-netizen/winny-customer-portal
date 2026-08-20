@@ -930,8 +930,8 @@ const CIF_UK_SECTIONS = [
       { id:"finance_cat",    title:"Employment & Finances",           icon:"&#x1F4BC;", sections:["employment","income","tripcost"] },
       { id:"trip_cat",       title:"Trip & Purpose",                  icon:"&#x1F3AF;", sections:["purpose","returntrip","academic","marriage","medical","study","orgvisit"] },
       { id:"family_cat",     title:"Family",                          icon:"&#x1F46A;", sections:["family","dependents","dependentsList","parents","relativesUK","adultsTravelling","accommodation","stayPlan"] },
-      { id:"history_cat",    title:"Travel &amp; Immigration History",icon:"&#x1F6C2;", sections:["ukHistory","ukVisits","ukMedical","ukMedicalDetails","ukMisc","publicFunds","visaHistory","worldTravel","immigrationHist","immigrationProblems","breachHist","breachDetails","convictionsHist","convictionsDetails"] },
-      { id:"character_cat",  title:"Character &amp; Security",        icon:"&#x1F6E1;&#xFE0F;", sections:["character"] }
+      { id:"history_cat",    title:"Travel & Immigration History",   icon:"&#x1F6C2;", sections:["ukHistory","ukVisits","ukMedical","ukMedicalDetails","ukMisc","publicFunds","visaHistory","worldTravel","immigrationHist","immigrationProblems","breachHist","breachDetails","convictionsHist","convictionsDetails"] },
+      { id:"character_cat",  title:"Character & Security",           icon:"&#x1F6E1;&#xFE0F;", sections:["character"] }
     ];
 
     // Collect every field/section "showIf" trigger key as "form.key" so we
@@ -3018,9 +3018,8 @@ const traveller = travellers.find(t => t.id === travId);
             <div class="cifx-fg">${fields.map(field => cifGenericRenderField(travId, instance, stage, field)).join("")}</div></div>`;
       }
 
-      // Prev/next category navigation, matching UK CIF's cifGoToCategoryOffset
-      // pattern — only rendered when this instance type actually has category
-      // grouping (currently just Schengen).
+      // Prev/next category navigation — rendered when this instance type has
+      // category grouping (currently just Schengen).
       let categoryNavHtml = "";
       if (grouping) {
         const allNavTabs = grouping.unmapped.length
@@ -3035,13 +3034,26 @@ const traveller = travellers.find(t => t.id === travId);
         </div>`;
       }
 
+      // Prev/next stage navigation for forms with multiple stages (USA / Australia)
+      // that don't use category grouping — gives the same bottom-nav UX as UK CIF.
+      let stageNavHtml = "";
+      if (!grouping && instance.definition.stages.length > 1) {
+        const stageIdx = instance.definition.stages.findIndex(s => s.tag === state.activeCifStage);
+        const prevStage = instance.definition.stages[stageIdx - 1];
+        const nextStage = instance.definition.stages[stageIdx + 1];
+        stageNavHtml = `<div style="display:flex;justify-content:space-between;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--cx-line)">
+          ${prevStage ? `<button class="btn" type="button" onclick="cifSwitchStage('${prevStage.tag}')">&larr; ${escapeHtml(prevStage.title)}</button>` : "<span></span>"}
+          ${nextStage ? `<button class="btn primary" type="button" onclick="cifSwitchStage('${nextStage.tag}')">${escapeHtml(nextStage.title)} &rarr;</button>` : "<span></span>"}
+        </div>`;
+      }
+
       qs("#stepCIF").innerHTML = `<section class="wizard-panel"><div class="panel-head"><div><h3>${instance.definition.icon} ${escapeHtml(instance.country)} — ${escapeHtml(instance.definition.title)}</h3><p>Complete and save this destination form separately for every traveller.</p></div></div>
         <div class="panel-body">${cifRenderDestinationTabs(instances)}${cifRenderOverview(instance)}
           <div class="cifx-info-b">&#x2139;&#xFE0F; Answering for <strong>${escapeHtml(name)}</strong> — ${progress}% complete${saved ? ' · <strong style="color:var(--cx-green)">&#x2713; Saved to Zoho</strong>' : ""}.</div>
           ${instance.definition.stages.length > 1 ? `<div class="cifx-cattabs">${stageTabs}</div>` : ""}
           ${categoryTabsHtml}
           <div class="cifx-stack">${fieldsBodyHtml}</div>
-          ${categoryNavHtml}
+          ${categoryNavHtml}${stageNavHtml}
           <div style="margin-top:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn primary" type="button" onclick="cifSaveTraveller('${travId}')" ${state.cifSaving ? "disabled" : ""}>${state.cifSaving ? "Saving…" : (saved ? "↻ Update this CIF" : "💾 Save this CIF")}</button>
             <small style="color:var(--cx-muted)">${travellers.filter(t => cifIsInstanceSaved(t.id, instance.id)).length} of ${travellers.length} travellers saved for ${escapeHtml(instance.country)}</small></div>
         </div></section>`;
