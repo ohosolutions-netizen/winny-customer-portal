@@ -722,7 +722,7 @@ const CIF_UK_SECTIONS = [
   { id:"accommodation", title:"Accommodation in the UK", icon:"&#x1F3E8;", subform:true, form:"f2", key:"Accommodation_in_UK",
     showIf:{key:"Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK",form:"f2",equals:"Yes"}, rowFields:[
     ["Where are you planning to stay?","Where_are_you_planning_to_stay_in_the_UK","text",null,false],
-    ["Address","Address","address",null,false],
+    ["Address","Address","textarea",null,false],
     ["Arrival date","When_will_you_arrive_there","date",null,false],
     ["Departure date","When_will_you_leave_there","date",null,false],
   ]},
@@ -4041,6 +4041,12 @@ async function completeCIF() {
               v = row[subkey] || "";
               if (ftype === "multiselect" && v) v = v.split(",").map(s => s.trim()).filter(Boolean);
               if (ftype === "date" && v) v = toZohoDateCIF(v);
+              // Address composite stored as object — flatten to plain text for Zoho subform fields.
+              if (ftype === "address") {
+                const addr = typeof v === "object" && v !== null ? v : {};
+                v = [addr.address_line_1, addr.address_line_2, addr.district_city,
+                     addr.state_province, addr.postal_Code, addr.country].filter(Boolean).join(", ");
+              }
               rowOut[subkey] = v;
             });
             return rowOut;
