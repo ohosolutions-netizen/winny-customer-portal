@@ -259,7 +259,7 @@ const CIF_UK_SECTIONS = [
   { id:"address", title:"Address", icon:"&#x1F3E0;", fields:[
     ["Current residence address","f1","Your_current_residence_address","address",null,true],
     ["How long lived at this address?","f1","How_long_have_you_lived_at_this_address","select",["Days","Weeks","Months","Years"],true],
-    ["Value (number)","f1","TimeValue","number",null,false,{key:"How_long_have_you_lived_at_this_address",form:"f1",notEmpty:true}],
+    ["Please input number of days/weeks/months/years","f1","TimeValue","number",null,false,{key:"How_long_have_you_lived_at_this_address",form:"f1",notEmpty:true}],
     ["Ownership status of home","f1","What_is_the_ownership_status_of_your_home","select",["I own it","I rent it","Other"],true],
     ["More about your living situation","f1","Give_more_details_about_your_living_situation_such_as_who_you_live_with_and_who_owns_the_property","textarea",null,false,{key:"What_is_the_ownership_status_of_your_home",form:"f1",equals:"Other"}],
     ["Is this also your correspondence address?","f1","Is_this_address_also_your_correspondence_address","yesno",null,true],
@@ -1004,9 +1004,10 @@ const CIF_UK_SECTIONS = [
         else if (dateKind === "expiryDate") dateConstraintAttrs = `min="${today}"`;
       }
 
+      const numberAttrs = inputType === "number" ? 'min="0"' : "";
       const inner = inputType === "textarea"
         ? `<textarea data-bind="${path}">${value}</textarea>`
-        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs || dateConstraintAttrs}>`;
+        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs || dateConstraintAttrs} ${numberAttrs}>`;
       return `<div class="cifx-field${full}" data-field="${path}">
         <label>${escapeHtml(label)}${req ? ' <span class="req">*</span>' : ""}</label>
         ${inner}
