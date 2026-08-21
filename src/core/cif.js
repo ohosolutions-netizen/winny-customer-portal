@@ -2964,6 +2964,13 @@ function cifSchengenFundingOptions(data) {
         if (instance?.type === "schengen") return cifSchengenMultiSelectField(label, path, choices, field.mandatory);
         return cifMultiSelectField(label, path, choices, field.mandatory);
       }
+      // Type 9 = Zoho boolean/decision-box — render as Yes/No dropdown.
+      // Type 12/13 with no choices = Zoho sometimes omits choices for Yes/No
+      // radio/dropdown fields; treat them as Yes/No dropdowns too.
+      if (field.type === 9 || ([12,13].includes(field.type) && !choices.length)) {
+        return cifSelectField(label, path, ["", "Yes", "No"], field.mandatory, false,
+          instance?.type === "usa" || instance?.type === "australia");
+      }
       if ([12,13].includes(field.type) && choices.length) {
   const effectiveChoices = (instance?.type === "schengen" && field.link_name === "How_will_you_be_funding_your_trip")
     ? cifSchengenFundingOptions(cifInstanceData(travId, instance.id)[stage.tag] || {})
@@ -3672,9 +3679,12 @@ function cifGetFormatIssues(travId, instance) {
       if (!kind || kind === "birthDate") return;
       const value = data[field.link_name];
       if (!value) return;
+      // Skip non-string values (arrays from subforms, objects from composites) —
+      // they can't be phone/email/dates and would produce false positives.
+      if (typeof value !== "string") return;
       // Skip Yes/No dropdown gating fields — their names may contain "phone",
       // "email", etc. but the stored value is never an actual phone/email/date.
-      const normalizedValue = String(value).trim().toLowerCase();
+      const normalizedValue = value.trim().toLowerCase();
       if (normalizedValue === "yes" || normalizedValue === "no") return;
       const msg = validators[kind](value);
       if (msg) {
