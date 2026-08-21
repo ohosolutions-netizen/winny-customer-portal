@@ -1839,9 +1839,10 @@ if (finance) {
 
       // Field-name patterns — matched against each field's link_name
       const PATTERNS = [
-        // Personal basics
-        { re: /^Surnames$|^surname$/i,                       value: traveller.lastName },
-        { re: /^Given_Names$|^given.names?$/i,               value: traveller.firstName },
+        // Personal basics — firstStageOnly prevents filling contact-person / parent
+        // name fields in later stages that share the same Surnames/Given_Names link_name.
+        { re: /^Surnames$|^surname$/i,    value: traveller.lastName,  firstStageOnly: true },
+        { re: /^Given_Names$|^given.names?$/i, value: traveller.firstName, firstStageOnly: true },
         // Only match the applicant's own DOB — exclude father/mother/spouse/child DOB fields.
         { re: /^(Date1|Date_of_Birth|Date_of_Birth_of_the_Applicant)$/i, value: traveller.dob },
         { re: /^(Your_email_id|Email_address|Email1)$|^email/i, value: traveller.email || cust.email },
@@ -1898,7 +1899,7 @@ if (finance) {
 
         // Pattern matching
         for (const pat of PATTERNS) {
-          if (pat.re.test(fn) && !(pat.skip && pat.skip.test(fn)) && pat.value) {
+          if (pat.re.test(fn) && !(pat.skip && pat.skip.test(fn)) && pat.value && !(pat.firstStageOnly && stg !== instance.definition.stages[0])) {
             setEmpty(basePath, pat.value);
             break;
           }
