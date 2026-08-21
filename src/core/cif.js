@@ -722,7 +722,7 @@ const CIF_UK_SECTIONS = [
   { id:"accommodation", title:"Accommodation in the UK", icon:"&#x1F3E8;", subform:true, form:"f2", key:"Accommodation_in_UK",
     showIf:{key:"Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK",form:"f2",equals:"Yes"}, rowFields:[
     ["Where are you planning to stay?","Where_are_you_planning_to_stay_in_the_UK","text",null,false],
-    ["Address","Address","textarea",null,false],
+    ["Address","Address","address",null,false],
     ["Arrival date","When_will_you_arrive_there","date",null,false],
     ["Departure date","When_will_you_leave_there","date",null,false],
   ]},
@@ -4041,17 +4041,19 @@ async function completeCIF() {
               v = row[subkey] || "";
               if (ftype === "multiselect" && v) v = v.split(",").map(s => s.trim()).filter(Boolean);
               if (ftype === "date" && v) v = toZohoDateCIF(v);
-              // Address composite stored as object — flatten to plain text for Zoho subform fields.
               if (ftype === "address") {
+                // Zoho type-30 composite field — must be sent as a nested object, not a plain string.
+                // Only include sub-fields that have a value; empty strings are rejected by Zoho.
                 const addr = typeof v === "object" && v !== null ? v : {};
-                v = [addr.address_line_1, addr.address_line_2, addr.district_city,
-                     addr.state_province, addr.postal_Code, addr.country].filter(Boolean).join(", ");
-              }
-              // Safety: old data may have stored an address composite as a plain object even
-              // when the field type is now "textarea" or "text". Flatten any non-array object
-              // to a string so Zoho never receives a raw JS object.
-              if (v !== null && typeof v === "object" && !Array.isArray(v)) {
-                v = Object.values(v).filter(x => x !== null && x !== undefined && String(x).trim()).join(", ");
+                const cleaned = {};
+                if (addr.address_line_1) cleaned.address_line_1 = addr.address_line_1;
+                if (addr.address_line_2) cleaned.address_line_2 = addr.address_line_2;
+                if (addr.district_city)  cleaned.district_city  = addr.district_city;
+                if (addr.state_province) cleaned.state_province = addr.state_province;
+                if (addr.postal_Code)    cleaned.postal_Code    = addr.postal_Code;
+                if (addr.country)        cleaned.country        = addr.country;
+                if (Object.keys(cleaned).length) rowOut[subkey] = cleaned;
+                return;
               }
               rowOut[subkey] = v;
             });
