@@ -21,11 +21,15 @@ export function setByPath(source, path, value) {
   const keys = path.split(".");
   const last = keys.pop();
   const target = keys.reduce((obj, key) => {
-    if (/^\d+$/.test(key)) return obj[Number(key)];
-    if (!obj[key]) obj[key] = {};
+    if (obj == null || typeof obj !== "object") return null;
+    if (/^\d+$/.test(key)) return Array.isArray(obj) ? obj[Number(key)] : null;
+    if (obj[key] == null) obj[key] = {};
+    // If an intermediate key holds a primitive (e.g. "Yes" from a Yes/No field),
+    // bail out rather than crash with "Cannot create property on string".
+    if (typeof obj[key] !== "object") return null;
     return obj[key];
   }, source);
-  target[last] = value;
+  if (target != null && typeof target === "object") target[last] = value;
 }
 
 export function mergeDeep(target, source) {

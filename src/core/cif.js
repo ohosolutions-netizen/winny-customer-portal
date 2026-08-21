@@ -1915,6 +1915,10 @@ if (finance) {
 
         // Composite address field — fill customer mailing address into residential/home address fields
         if (/residential.address|home.address|permanent.address|current.address|address.in.india|address.in.home|applicant.*address/i.test(fn) && !/sponsor|organisation|org|postal|office/i.test(fn)) {
+          // Skip if the field already holds a primitive value (e.g. "Yes" from a Yes/No question
+          // whose link_name happens to match the address pattern) — traversing into it would crash.
+          const existingVal = getByPath(applicationData, basePath);
+          if (existingVal != null && typeof existingVal !== "object") return;
           const subParts = (field.subfields || []).filter(sub => !sub.is_hidden);
           const defaults = subParts.length ? subParts : [
             {link_name:"address_line_1"},{link_name:"address_line_2"},{link_name:"district_city"},
