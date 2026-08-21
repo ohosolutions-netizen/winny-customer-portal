@@ -481,7 +481,7 @@ const sections = [
   </div>
 </div>` : ""}
 
-            ${needsFamilyInviterPerson && applicationData.questionnaire.maritalStatus === "married" ? `<div class="q-blk">
+            ${hasInviterPurpose && applicationData.questionnaire.maritalStatus === "married" ? `<div class="q-blk">
               <div class="q-lbl">Is the inviter related to you directly, or through your spouse? <span class="q-req">Required</span></div>
               <div class="q-opts c2">
                 ${qOptR("inviterRelation","direct","Directly related to me","")}
