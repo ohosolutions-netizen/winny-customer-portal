@@ -1842,7 +1842,8 @@ if (finance) {
         // Personal basics
         { re: /^Surnames$|^surname$/i,                       value: traveller.lastName },
         { re: /^Given_Names$|^given.names?$/i,               value: traveller.firstName },
-        { re: /^(Date1|Date_of_Birth)$|date.of.birth/i,      value: traveller.dob },
+        // Only match the applicant's own DOB — exclude father/mother/spouse/child DOB fields.
+        { re: /^(Date1|Date_of_Birth|Date_of_Birth_of_the_Applicant)$/i, value: traveller.dob },
         { re: /^(Your_email_id|Email_address|Email1)$|^email/i, value: traveller.email || cust.email },
         { re: /^(Phone_Number|Mobile_Cell_phone)$|^phone.number$/i, value: traveller.mobile || cust.mobile },
         { re: /^nationality$|^country.of.nationality$/i,      value: traveller.nationality },
