@@ -4412,14 +4412,6 @@ async function completeCIF() {
     }
   }
 
-  if (
-    data.Purpose_of_Trip_to_the_U_S ===
-      "TEMP. BUSINESS OR PLEASURE VISITOR (B)" &&
-    !hasValue(data.Specifydr)
-  ) {
-    return "Please specify the business or pleasure visitor category.";
-  }
-
   return "";
 }
 function cifValidateUsForm2(data) {
