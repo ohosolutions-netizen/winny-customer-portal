@@ -1005,7 +1005,9 @@ const CIF_UK_SECTIONS = [
         else dateConstraintAttrs = `min="1900-01-01" max="2100-12-31"`;
       }
 
-      const numberAttrs = inputType === "number" ? 'min="0"' : "";
+      // Duration/count fields that must be at least 1 (entering 0 days makes no sense).
+      const isPositiveOnlyNumber = inputType === "number" && /Number_of_Days|How_long_were_you/i.test(path);
+      const numberAttrs = inputType === "number" ? `min="${isPositiveOnlyNumber ? "1" : "0"}"` : "";
       const inner = inputType === "textarea"
         ? `<textarea data-bind="${path}">${value}</textarea>`
         : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs || dateConstraintAttrs} ${numberAttrs}>`;
@@ -3561,6 +3563,19 @@ function cifRunAllUkValidations(travId, instanceId) {
 
   const futurePastVisit = cifCheckPastUkVisitsNotInFuture(travId, instanceId);
   if (futurePastVisit) issues.push({ categoryId: "history_cat", paths: [futurePastVisit.path], message: `"${futurePastVisit.label}" cannot be today or in the future — this section is for trips that have already happened.` });
+
+  // Validate that each UK visit row has a positive number of days (0 is not valid).
+  const ukVisitRows = getByPath(applicationData, cifPath(travId, "f3", "Your_most_recent_time_in_the_UK", instanceId)) || [];
+  ukVisitRows.forEach((row, i) => {
+    const days = Number(row.How_long_were_you_in_the_UK_Number_of_Days ?? "");
+    if (!days || days < 1) {
+      issues.push({
+        categoryId: "history_cat",
+        paths: [cifPath(travId, "f3", `Your_most_recent_time_in_the_UK.${i}.How_long_were_you_in_the_UK_Number_of_Days`, instanceId)],
+        message: `Your Most Recent Times in the UK — Entry ${i + 1}: "How long (days)" must be at least 1.`
+      });
+    }
+  });
 
   return issues;
 }
