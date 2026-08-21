@@ -44,7 +44,14 @@ export const validators = {
       ? ""
       : "Enter a valid postal / ZIP code (letters, digits, spaces and hyphens only)";
   },
-  date(value)     { return !value || !Number.isNaN(Date.parse(value)) ? "" : "Enter a valid date"; },
+  date(value)     {
+    if (!value) return "";
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return "Enter a valid date";
+    const yr = d.getFullYear();
+    if (yr < 1900 || yr > 2100) return "Enter a valid date";
+    return "";
+  },
   pastDate(value) {
     if (!value) return "";
     const d = new Date(`${value}T00:00:00`);

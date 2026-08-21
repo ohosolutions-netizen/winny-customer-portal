@@ -1000,8 +1000,9 @@ const CIF_UK_SECTIONS = [
       if (inputType === "date" && !isBirthDate) {
         const today = new Date().toISOString().split("T")[0];
         const dateKind = classifyFieldValidation(path) || classifyFieldValidation(label);
-        if (dateKind === "pastDate") dateConstraintAttrs = `max="${today}"`;
-        else if (dateKind === "expiryDate") dateConstraintAttrs = `min="${today}"`;
+        if (dateKind === "pastDate") dateConstraintAttrs = `min="1900-01-01" max="${today}"`;
+        else if (dateKind === "expiryDate") dateConstraintAttrs = `min="${today}" max="2100-12-31"`;
+        else dateConstraintAttrs = `min="1900-01-01" max="2100-12-31"`;
       }
 
       const numberAttrs = inputType === "number" ? 'min="0"' : "";
