@@ -4047,6 +4047,12 @@ async function completeCIF() {
                 v = [addr.address_line_1, addr.address_line_2, addr.district_city,
                      addr.state_province, addr.postal_Code, addr.country].filter(Boolean).join(", ");
               }
+              // Safety: old data may have stored an address composite as a plain object even
+              // when the field type is now "textarea" or "text". Flatten any non-array object
+              // to a string so Zoho never receives a raw JS object.
+              if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+                v = Object.values(v).filter(x => x !== null && x !== undefined && String(x).trim()).join(", ");
+              }
               rowOut[subkey] = v;
             });
             return rowOut;
