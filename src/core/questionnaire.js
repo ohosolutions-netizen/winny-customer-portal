@@ -1671,7 +1671,7 @@ markAutoSavePending();
         if (purposeArr.includes("family") && qIsBlank(q.inviter)) return "Who is inviting you is mandatory for a family visit.";
         if (qIsBlank(q.inviterStatus)) return "Inviter immigration status is mandatory for the selected purpose.";
         if (qIsBlank(q.invitationLetter)) return "Invitation letter answer is mandatory for the selected purpose.";
-        if (purposeArr.includes("family") && q.maritalStatus === "married" && qIsBlank(q.inviterRelation)) return "Please indicate whether the family inviter is related directly or through your spouse.";
+        if (inviterPurpose && q.maritalStatus === "married" && qIsBlank(q.inviterRelation)) return "Please indicate whether the inviter is related directly or through your spouse.";
         return "";
       }
 
