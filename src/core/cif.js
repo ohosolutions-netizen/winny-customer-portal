@@ -1164,11 +1164,13 @@ const CIF_UK_SECTIONS = [
       let rows = getByPath(applicationData, path);
       if (!Array.isArray(rows)) { rows = []; setByPath(applicationData, path, rows); }
       const row = {};
-      section.rowFields.forEach(([, subkey]) => {
+      section.rowFields.forEach(([, subkey, ftype]) => {
         if (subkey.includes(".")) {
           const [parent, child] = subkey.split(".");
           if (!row[parent]) row[parent] = {};
           row[parent][child] = "";
+        } else if (ftype === "address") {
+          row[subkey] = {};
         } else {
           row[subkey] = "";
         }
