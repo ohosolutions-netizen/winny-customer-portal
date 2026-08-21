@@ -2967,7 +2967,10 @@ function cifSchengenFundingOptions(data) {
       // Type 9 = Zoho boolean/decision-box — render as Yes/No dropdown.
       // Type 12/13 with no choices = Zoho sometimes omits choices for Yes/No
       // radio/dropdown fields; treat them as Yes/No dropdowns too.
-      if (field.type === 9 || ([12,13].includes(field.type) && !choices.length)) {
+      // Name pattern: Zoho sometimes returns Yes/No question fields as type 1
+      // (plain text) — catch those by their link_name prefix.
+      const isYesNoByName = /^(Does_the_|Does_your_|Have_you_|Has_your_|Has_the_|Is_the_applicant_|Is_your_|Do_you_|Did_you_|Are_you_|Was_|Were_|Had_you_)/i.test(field.link_name);
+      if (field.type === 9 || ([12,13].includes(field.type) && !choices.length) || (field.type === 1 && isYesNoByName)) {
         return cifSelectField(label, path, ["", "Yes", "No"], field.mandatory, false,
           instance?.type === "usa" || instance?.type === "australia");
       }
