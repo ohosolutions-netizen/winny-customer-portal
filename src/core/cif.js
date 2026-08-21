@@ -3668,6 +3668,10 @@ function cifGetFormatIssues(travId, instance) {
       if (!kind || kind === "birthDate") return;
       const value = data[field.link_name];
       if (!value) return;
+      // Skip Yes/No dropdown gating fields — their names may contain "phone",
+      // "email", etc. but the stored value is never an actual phone/email/date.
+      const normalizedValue = String(value).trim().toLowerCase();
+      if (normalizedValue === "yes" || normalizedValue === "no") return;
       const msg = validators[kind](value);
       if (msg) {
         issues.push({
