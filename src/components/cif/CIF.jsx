@@ -22,8 +22,11 @@ const CIF_HANDLERS = [
   "cmsToggle", "cmsSelect", "cmsRemove", "cmsClear", "cmsFilter",
 ];
 
-// Verbatim handleInput body (source 2179-2216), trimmed to the parts that apply
-// to the CIF island's data-bind fields.
+// Tracks the last toast message shown to deduplicate rapid-fire identical toasts
+// (browser date pickers fire multiple input+change events per edit).
+let _lastBirthDateToast = "";
+let _lastBirthDateToastTimer = null;
+
 function cifHandleInput(event) {
   const field = event.target.closest("[data-bind]");
   if (!field) return;
@@ -33,7 +36,14 @@ function cifHandleInput(event) {
   if (isBirthDate && field.value) {
     const birthDateError = validators.birthDate(field.value);
     validateFieldFormat(field);
-    if (birthDateError) toast(birthDateError);
+    // Only toast on the final "change" event (not intermediate "input" events),
+    // and deduplicate so the same message never appears more than once per edit.
+    if (birthDateError && event.type === "change" && birthDateError !== _lastBirthDateToast) {
+      _lastBirthDateToast = birthDateError;
+      clearTimeout(_lastBirthDateToastTimer);
+      _lastBirthDateToastTimer = setTimeout(() => { _lastBirthDateToast = ""; }, 3000);
+      toast(birthDateError);
+    }
   }
   if (field.type === "tel") sanitizeMobileField(field);
   setByPath(applicationData, field.dataset.bind, field.type === "checkbox" ? field.checked : field.value);

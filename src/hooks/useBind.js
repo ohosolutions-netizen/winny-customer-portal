@@ -21,6 +21,18 @@ import { cifMarkInstanceDirtyFromPath } from "../core/cif.js";
 // path -> error message (empty string clears). Mutated by blurField, read by fields.
 export const fieldErrors = {};
 
+// Deduplicates birth-date error toasts — date pickers fire onChange per component
+// (day/month/year), which would otherwise show the same toast 3+ times per edit.
+let _lastDobToast = "";
+let _lastDobToastTimer = null;
+function toastDobOnce(msg) {
+  if (!msg || msg === _lastDobToast) return;
+  _lastDobToast = msg;
+  clearTimeout(_lastDobToastTimer);
+  _lastDobToastTimer = setTimeout(() => { _lastDobToast = ""; }, 3000);
+  toast(msg);
+}
+
 export function commitField(path, el) {
   const isCheckbox = el.type === "checkbox";
 
@@ -33,7 +45,7 @@ export function commitField(path, el) {
     }
     const birthDateError = el.value ? validators.birthDate(el.value) : "";
     fieldErrors[path] = birthDateError;
-    if (birthDateError) toast(birthDateError);
+    toastDobOnce(birthDateError);
   }
   if (el.type === "tel" && /mobile/i.test(path)) {
     const digitsOnly = el.value.replace(/\D/g, "").slice(0, 10);
