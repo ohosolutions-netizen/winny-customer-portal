@@ -390,7 +390,7 @@ Do_you_have_or_will_you_have_invitation_letter_for_your_visit:
     : "",
 
 Is_the_inviter_related_to_you_directly_or_through_your_spouse:
-  hasInviterPurposeForSave
+  hasFamilyPurposeForSave
     ? (inviterRelationMap[q.inviterRelation] || "")
     : "",
 
