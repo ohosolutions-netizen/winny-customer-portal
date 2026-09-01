@@ -46,7 +46,7 @@ function cifHandleInput(event) {
     }
   }
   if (field.type === "tel") sanitizeMobileField(field);
-  if (field.dataset.bind?.includes("U_S_Social_Security_Number")) {
+  if (/\.U_S_Social_Security_Number$/.test(field.dataset.bind || "")) {
     const digits = field.value.replace(/\D/g, "").slice(0, 9);
     const formatted = digits.length > 5
       ? `${digits.slice(0,3)}-${digits.slice(3,5)}-${digits.slice(5)}`
