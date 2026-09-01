@@ -2306,6 +2306,7 @@ function cifUsForm2FieldVisible(instance, stage, data, fieldName) {
       );
 
     case "Add_previous_U_S_Visit_Details":
+    case "Do_you_or_did_you_ever_hold_a_U_S_Driver_s_License":
       return equals("Have_you_ever_been_in_the_U_S", "Yes");
 
     case "Add_U_S_Driver_s_License":
@@ -2954,9 +2955,15 @@ function cifSchengenFundingOptions(data) {
     ? ["Self-funded", "My Inviter", "A Sponsor (Third party)"]
     : ["Self-funded", "A Sponsor (Third party)"];
 }
+    // Display-name overrides for specific Zoho fields whose labels need adjusting.
+    const CIF_LABEL_OVERRIDES = {
+      "Does_the_applicant_have_an_Expiration_Date": "Passport Expiration Date",
+      "Expiration_Date": "Passport Expiration Date",
+    };
+
     function cifGenericRenderField(travId, instance, stage, field, pathOverride) {
       const path = pathOverride || cifPath(travId, stage.tag, field.link_name, instance.id);
-      const label = field.display_name || field.link_name;
+      const label = CIF_LABEL_OVERRIDES[field.link_name] || field.display_name || field.link_name;
       const choices = (field.choices || []).map(choice => String(choice.value ?? choice.key ?? ""));
       if (field.type === 21) return cifGenericRenderSubform(travId, instance, stage, field);
       if (field.type === 29 || field.type === 30) return cifGenericCompositeField(label, path, field);
@@ -4323,6 +4330,18 @@ async function completeCIF() {
     "Enter the U.S. Social Security Number."
   );
   if (error) return error;
+
+  if (
+    data.Does_the_applicant_have_a_U_S_Social_Security_Number === "Yes" &&
+    data.U_S_Social_Security_Number
+  ) {
+    const ssn = String(data.U_S_Social_Security_Number).trim();
+    // Accept either raw 9 digits or already-formatted XXX-XX-XXXX
+    const digits = ssn.replace(/-/g, "");
+    if (!/^\d{9}$/.test(digits)) {
+      return "Social Security Number must be 9 digits formatted as XXX-XX-XXXX.";
+    }
+  }
 
   error = requireField(
     data.Does_the_applicant_have_a_U_S_Taxpayer_ID_Number === "Yes",

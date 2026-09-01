@@ -46,6 +46,15 @@ function cifHandleInput(event) {
     }
   }
   if (field.type === "tel") sanitizeMobileField(field);
+  if (field.dataset.bind?.includes("U_S_Social_Security_Number")) {
+    const digits = field.value.replace(/\D/g, "").slice(0, 9);
+    const formatted = digits.length > 5
+      ? `${digits.slice(0,3)}-${digits.slice(3,5)}-${digits.slice(5)}`
+      : digits.length > 3
+      ? `${digits.slice(0,3)}-${digits.slice(3)}`
+      : digits;
+    if (formatted !== field.value) field.value = formatted;
+  }
   setByPath(applicationData, field.dataset.bind, field.type === "checkbox" ? field.checked : field.value);
   cifMarkInstanceDirtyFromPath(field.dataset.bind);
   markAutoSavePending();
