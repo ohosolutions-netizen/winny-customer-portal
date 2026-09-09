@@ -22,7 +22,183 @@ let _rerender = () => {};
 export function registerQuestionnaireRerender(fn) { _rerender = fn || (() => {}); }
 export function rerenderQuestionnaire() { _rerender(); }
 
-    let qState = { currentSection: 0, completedSections: [] };
+// ── deriveQuestionnaireUnits ───────────────────────────────────────────────
+// Groups the deal's travellers into questionnaire units based on familyId.
+//   Individual booking (1 traveller, no familyId)  → 1 unit
+//   Family / Couple (all share the same familyId)   → 1 unit
+//   Friends / Group / Corporate (each own familyId) → 1 unit per traveller
+//   Two families in one booking                     → 1 unit per family
+// Returns an ordered array of unit descriptors so the questionnaire step
+// can show an overview and render each unit's form independently.
+export function deriveQuestionnaireUnits() {
+  const travellers = applicationData.deal.travellers || [];
+  const familyMap = new Map();
+  travellers.forEach((t) => {
+    const fid = t.familyId || "family-1";
+    if (!familyMap.has(fid)) familyMap.set(fid, []);
+    familyMap.get(fid).push(t);
+  });
+
+  const isMulti = familyMap.size > 1;
+  const units = [];
+  let idx = 0;
+  for (const [familyId, members] of familyMap) {
+    const primary =
+      members.find((t) => t.type === "Primary Applicant") || members[0] || {};
+    const primaryName =
+      `${primary.firstName || ""} ${primary.lastName || ""}`.trim() ||
+      "Applicant";
+    let label;
+    if (!isMulti) {
+      label =
+        members.length === 1
+          ? primaryName
+          : `${primary.firstName || "Your"} Family`;
+    } else {
+      label = members.length > 1 ? `${primaryName} & Family` : primaryName;
+    }
+    units.push({
+      familyId,
+      label,
+      primaryTraveller: primary,
+      travellers: members,
+      index: idx,
+    });
+    idx++;
+  }
+  return units;
+}
+
+// ── Per-unit shared-data helpers ───────────────────────────────────────────
+// Trip-level fields (purpose, maritalStatus, travelDates, …) are stored flat
+// in applicationData.questionnaire and always reflect the ACTIVE unit.
+// On unit switch these helpers save/restore them so each unit keeps its own answers.
+const UNIT_SHARED_KEYS = [
+  "applyingCountries","purpose","purposeOther","functionType","maritalStatus",
+  "arrangements","travelDates","inviter","inviterRelation","inviterStatus",
+  "invitationLetter","multiAnswers",
+];
+
+function qSaveUnitSharedData(familyId) {
+  if (!familyId) return;
+  if (!applicationData.questionnaire.unitShared) applicationData.questionnaire.unitShared = {};
+  const snap = {};
+  UNIT_SHARED_KEYS.forEach((k) => {
+    const v = applicationData.questionnaire[k];
+    snap[k] = Array.isArray(v) ? [...v] : (v && typeof v === "object" ? { ...v } : v);
+  });
+  applicationData.questionnaire.unitShared[familyId] = snap;
+}
+
+function qLoadUnitSharedData(familyId) {
+  if (!familyId) return;
+  const snap = (applicationData.questionnaire.unitShared || {})[familyId] || {};
+  UNIT_SHARED_KEYS.forEach((k) => {
+    const def = (k === "purpose" || k === "inviter") ? [] : (k === "travelDates" || k === "multiAnswers") ? {} : "";
+    applicationData.questionnaire[k] = snap[k] !== undefined ? snap[k] : def;
+  });
+}
+
+// ── qState ─────────────────────────────────────────────────────────────────
+    let qState = {
+  currentSection:  0,
+  completedSections: [],
+  activeUnitIndex: 0,    // which unit is currently being filled
+  unitCompletions: {},   // { familyId: true } — units whose questionnaire was submitted
+  viewMode: "auto",      // "auto" → overview for multi-unit, form for single-unit; "form" → force form
+};
+
+// ── Unit navigation handlers ───────────────────────────────────────────────
+export function qStartUnit(idx) {
+  const units = deriveQuestionnaireUnits();
+  if (idx < 0 || idx >= units.length) return;
+
+  // Save the active unit's shared trip-level data before switching
+  const currentUnit = units[qState.activeUnitIndex];
+  if (currentUnit && units.length > 1) qSaveUnitSharedData(currentUnit.familyId);
+
+  qState.activeUnitIndex = idx;
+  qState.viewMode = "form";
+  qState.currentSection = 0;
+  qState.completedSections = [];
+
+  // Load the target unit's shared data (or defaults for a fresh unit)
+  if (units.length > 1) qLoadUnitSharedData(units[idx].familyId);
+
+  rerenderQuestionnaire();
+}
+
+export function qBackToOverview() {
+  const units = deriveQuestionnaireUnits();
+  const currentUnit = units[qState.activeUnitIndex];
+  if (currentUnit && units.length > 1) qSaveUnitSharedData(currentUnit.familyId);
+  qState.viewMode = "auto";
+  rerenderQuestionnaire();
+}
+
+// ── Unit overview panel ────────────────────────────────────────────────────
+function renderUnitOverviewHTML(units) {
+  const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
+
+  const cards = units
+    .map((u) => {
+      const done = qState.unitCompletions[u.familyId];
+      const memberNames = u.travellers
+        .map((t) => `${t.firstName || ""} ${t.lastName || ""}`.trim())
+        .filter(Boolean)
+        .join(", ");
+      const statusBadge = done
+        ? `<span class="badge done">&#x2713; Submitted</span>`
+        : `<span class="badge">Not started</span>`;
+      const btnLabel = done ? "View answers" : "Start questionnaire";
+
+      return `
+        <div class="q-unit-card${done ? " q-unit-card--done" : ""}">
+          <div class="q-unit-card-body">
+            <div class="q-unit-av">${escapeHtml(u.label[0] || "Q")}</div>
+            <div class="q-unit-info">
+              <div class="q-unit-name">${escapeHtml(u.label)}</div>
+              <div class="q-unit-members">${escapeHtml(memberNames)}</div>
+            </div>
+            ${statusBadge}
+          </div>
+          <button
+            class="btn${done ? "" : " primary"}"
+            type="button"
+            onclick="qStartUnit(${u.index})"
+          >${btnLabel} &#x2192;</button>
+        </div>`;
+    })
+    .join("");
+
+  return `
+    <section class="wizard-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Case Questionnaire</h3>
+          <p>This application has <strong>${units.length} questionnaire units</strong>.
+             Each must be completed separately.</p>
+        </div>
+        ${allDone ? `<span class="badge done">All submitted</span>` : ""}
+      </div>
+      <div class="panel-body">
+        <div class="qn qn-blue">&#x1F4CB;
+          Questionnaires are grouped by family. Complete one unit at a time — each
+          unit&rsquo;s answers are saved separately.
+        </div>
+        <div class="q-units-list">${cards}</div>
+        ${
+          allDone
+            ? `<div style="margin-top:18px">
+                 <button class="btn primary" type="button" data-step-nav="3">
+                   Continue to Document Checklist &#x2192;
+                 </button>
+               </div>`
+            : ""
+        }
+      </div>
+    </section>`;
+}
 
     // readOnlyCountryList — used by renderQuestionnaireHTML for the applying-for
     // countries display. Copied VERBATIM from the field builders (source 13858-13871).
@@ -127,6 +303,20 @@ export function rerenderQuestionnaire() { _rerender(); }
 
     return;
   }
+  // ── Grouping logic: determine which questionnaire unit is active ──────────
+  const _units = deriveQuestionnaireUnits();
+  const _isMultiUnit = _units.length > 1;
+
+  // For multi-unit bookings, show the unit overview when not explicitly filling a unit
+  if (_isMultiUnit && qState.viewMode !== "form") {
+    return renderUnitOverviewHTML(_units);
+  }
+
+  // Clamp activeUnitIndex in case travellers changed
+  if (qState.activeUnitIndex >= _units.length) qState.activeUnitIndex = 0;
+  const _activeUnit = _units[Math.max(0, qState.activeUnitIndex)];
+  const _activeUnitTravellers = _activeUnit ? _activeUnit.travellers : (applicationData.deal.travellers || []);
+
   // Keep applying-for-countries in sync with Step 1's destination — merge in
       // any destination country not already present, without clobbering manual
       // additions/removals the person made here. A one-time "seed only if empty"
@@ -138,14 +328,14 @@ export function rerenderQuestionnaire() { _rerender(); }
       if (mergedCountries.length && mergedCountries.join(", ") !== applicationData.questionnaire.applyingCountries) {
         applicationData.questionnaire.applyingCountries = mergedCountries.join(", ");
       }
-            const adults = applicationData.deal.travellers.filter(
+            const adults = _activeUnitTravellers.filter(
         traveller => !isQuestionnaireChild(traveller)
       );
 
-      const children = applicationData.deal.travellers.filter(
+      const children = _activeUnitTravellers.filter(
         isQuestionnaireChild
       );
-      const allTravellers = applicationData.deal.travellers;
+      const allTravellers = _activeUnitTravellers;
       const pas = allTravellers.filter(t => t.type === "Primary Applicant");
       const primaryTraveller = pas[0] || allTravellers[0] || {};
       const spouseTraveller = allTravellers.find(t => t.type === "Spouse");
@@ -1130,7 +1320,11 @@ const unmappedWarning = unmappedTravellers.length
       return `
         <section class="wizard-panel">
           <div class="panel-head">
-            <div><h3>Case Questionnaire</h3><p>Your answers generate your personalised document checklist and prepare your application file.</p></div>
+            <div>
+              <h3>Case Questionnaire${_isMultiUnit ? ` — ${escapeHtml(_activeUnit.label)}` : ""}</h3>
+              <p>Your answers generate your personalised document checklist and prepare your application file.</p>
+            </div>
+            ${_isMultiUnit ? `<button class="btn" type="button" onclick="qBackToOverview()">&#x2190; All Questionnaires</button>` : ""}
           </div>
           <div class="panel-body">
             <div class="q-prog-wrap">
@@ -1524,6 +1718,27 @@ markAutoSavePending();
     function qSubmitFinal() {
       if (!qState.completedSections.includes("sec-history")) qState.completedSections.push("sec-history");
       applicationData.questionnaire.countriesText = applicationData.questionnaire.applyingCountries || applicationData.deal.destination || "";
+
+      const units = deriveQuestionnaireUnits();
+      const activeUnit = units[qState.activeUnitIndex] || units[0];
+
+      if (units.length > 1) {
+        // Mark this unit as complete and save its shared data
+        if (activeUnit) {
+          qState.unitCompletions[activeUnit.familyId] = true;
+          qSaveUnitSharedData(activeUnit.familyId);
+        }
+
+        const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
+        if (!allDone) {
+          // Return to the overview so the next unit can be started
+          qState.viewMode = "auto";
+          rerenderQuestionnaire();
+          return;
+        }
+        // All units complete — proceed to the single shared submit
+      }
+
       submitQuestionnaire();
     }
 
@@ -1550,9 +1765,10 @@ markAutoSavePending();
     }
 
     function qChildTravellers() {
-  return applicationData.deal.travellers
-    .filter(isQuestionnaireChild)
-    .slice(0, 3);
+  const units = deriveQuestionnaireUnits();
+  const activeUnit = units[qState.activeUnitIndex] || units[0];
+  const travellers = activeUnit ? activeUnit.travellers : applicationData.deal.travellers;
+  return travellers.filter(isQuestionnaireChild).slice(0, 3);
 }
 
     function qQuestionnaireSectionOrder() {
@@ -1631,7 +1847,9 @@ markAutoSavePending();
 
     function validateQuestionnaireSection(sectionId) {
       const q = applicationData.questionnaire || {};
-      const travellers = applicationData.deal.travellers || [];
+      const units = deriveQuestionnaireUnits();
+      const activeUnit = units[qState.activeUnitIndex] || units[0];
+      const travellers = activeUnit ? activeUnit.travellers : (applicationData.deal.travellers || []);
       const primary = travellers.find(t => t.type === "Primary Applicant") || travellers[0];
       if (!primary) return "Add at least one traveller before submitting the questionnaire.";
 
@@ -1764,5 +1982,5 @@ export {
   qFinSel, qFinTogFunding, qFinTogM, qFinSetField, qTieTogM, qChiSel, qHistSel,
   qHistSetField, qHandleDep, qGoNext, qGoPrev, qSubmitFinal, qIsBlank,
   qHasAnySelected, qQuestionnaireCountries, qIsCanadaSelected, qFirstTravelDate, qChildTravellers,
-  qQuestionnaireSectionOrder, validateQuestionnaireSection, showQuestionnaireValidationSection
+  qQuestionnaireSectionOrder, validateQuestionnaireSection, showQuestionnaireValidationSection,
 };

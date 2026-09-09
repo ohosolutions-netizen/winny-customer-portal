@@ -59,7 +59,11 @@ balanceAmount: 0, crmBalanceAmount: null,
         // Section 5 - Children (up to 3, mapped to fixed Child 1/2/3 slots at save time)
         childrenInfo:        {},   // {travellerId: {doing}}
         // Section 6 - Travel history (per traveller, mapped to Own/Spouse/Child N slots at save time)
-        history:             {}    // {travellerId: {prevTravel, usaVisa, refusal, refusalDetail, border, borderDetail, criminalRecord, criminalDetail}}
+        history:             {},   // {travellerId: {prevTravel, usaVisa, refusal, refusalDetail, border, borderDetail, criminalRecord, criminalDetail}}
+        // Multi-unit support: per-family-group snapshot of trip-level shared fields
+        // (purpose, maritalStatus, travelDates, etc.). Keyed by familyId.
+        // The flat fields above always reflect the ACTIVE unit; swapped in/out by qStartUnit.
+        unitShared:          {}    // { familyId: { applyingCountries, purpose, purposeOther, functionType, maritalStatus, arrangements, travelDates, inviter, inviterRelation, inviterStatus, invitationLetter, multiAnswers } }
       },
        // 29-Jul-2026: Data is separated by traveller and destination CIF instance.
       // cifData[travellerId].instances[instanceId].f1/f2/f3/f4

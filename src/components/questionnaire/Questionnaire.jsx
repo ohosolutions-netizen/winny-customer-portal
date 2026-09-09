@@ -13,6 +13,8 @@ const Q_HANDLERS = [
   "qSelOpt", "qTogOpt", "qTogMulti", "qSetField", "qSetTravelDate",
   "qFinSel", "qFinTogFunding", "qFinTogM", "qFinSetField", "qTieTogM",
   "qChiSel", "qHistSel", "qHistSetField", "qGoNext", "qGoPrev", "qSubmitFinal",
+  // Multi-unit navigation
+  "qStartUnit", "qBackToOverview",
 ];
 
 export default function Questionnaire() {
