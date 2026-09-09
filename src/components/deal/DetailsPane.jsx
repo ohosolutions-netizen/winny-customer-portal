@@ -4,36 +4,24 @@ import { isDealSaved } from "../../core/derive.js";
 import { saveDealDetails } from "../../api/deal.js";
 import { Field } from "../fields/Field.jsx";
 import TravellerList from "./TravellerList.jsx";
-import ApplicationTypeSelector from "./ApplicationTypeSelector.jsx";
 import { CoordinatorList, AuthorisationList } from "./CoordinatorSection.jsx";
-
-const TRAVELLER_PANEL_LABELS = {
-  individual: { title: "Your Details", sub: "Just you — fill in your own details below." },
-  family:     { title: "Family Members", sub: "Add everyone travelling with you as part of your family." },
-  friends:    { title: "Travellers", sub: "Add each person travelling in your group — they will each get a separate questionnaire." },
-  corporate:  { title: "Employees", sub: "Add each employee travelling — each one will fill their own questionnaire privately." },
-};
 
 export default function DetailsPane() {
   const dealSaved = isDealSaved();
-  const appType = applicationData.deal.applicationType || "";
-  const typeSelected = !!appType;
-  const panelLabel = TRAVELLER_PANEL_LABELS[appType] || { title: "Families & Travellers", sub: "Group applicants family-wise while keeping an individual record for every traveller." };
-
   return (
     <>
       <section className="wizard-panel">
         <div className="panel-head">
           <div>
             <h3>Your Details</h3>
-            <p>{dealSaved ? "Your application is saved." : "Fill in your details to create your application."}</p>
+            <p>{dealSaved ? "Your application is saved. Add travellers below." : "Fill in your details to create your application."}</p>
           </div>
         </div>
         <div className="panel-body">
           {dealSaved ? (
             <div className="notice teal">
               <strong>✓ Application saved</strong>
-              <span>Your application has been created. Add travellers below.</span>
+              <span>Your application has been created. You can now add travellers below.</span>
             </div>
           ) : null}
           <div className="form-grid">
@@ -51,25 +39,11 @@ export default function DetailsPane() {
         </div>
       </section>
 
-      {/* Application type selector — shown after deal is saved */}
       <section className={`wizard-panel ${dealSaved ? "" : "hidden"}`}>
         <div className="panel-head">
           <div>
-            <h3>Who is this application for?</h3>
-            <p>Choose the type that best describes your travel group. This affects how we collect details and questionnaires.</p>
-          </div>
-        </div>
-        <div className="panel-body">
-          <ApplicationTypeSelector />
-        </div>
-      </section>
-
-      {/* Traveller list — shown only after type is selected */}
-      <section className={`wizard-panel ${dealSaved && typeSelected ? "" : "hidden"}`}>
-        <div className="panel-head">
-          <div>
-            <h3>{panelLabel.title}</h3>
-            <p>{panelLabel.sub}</p>
+            <h3>Travellers</h3>
+            <p>Add everyone travelling. Use "Add a family member to X's group" to keep families together, or "Add another traveller / group" for separate questionnaires.</p>
           </div>
         </div>
         <div className="panel-body">
