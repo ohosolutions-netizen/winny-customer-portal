@@ -161,6 +161,20 @@ import { isAdultTraveller } from "./terms.js";
       markAutoSavePending();
     }
 
+    // For friends/corporate: each person gets a unique familyId → own questionnaire unit
+    function addIndependentTraveller() {
+      if (!isDealSaved()) { toast("Save the Deal first, then add travellers."); return; }
+      applicationData.deal.travellers.push(createTraveller(uid("family")));
+      requestRender();
+      markAutoSavePending();
+    }
+
+    function setApplicationType(type) {
+      applicationData.deal.applicationType = type;
+      requestRender();
+      markAutoSavePending();
+    }
+
     function setTravellerType(id, nextType) {
       const traveller = applicationData.deal.travellers.find((item) => item.id === id);
       if (!traveller) return;
@@ -513,7 +527,7 @@ function togglePackage(id) {
 export {
   getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getPackageDestinationCountries, getAssignedTravellerIdsForGoal,
   syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
-  toggleTravellerCountry, addTraveller, addFamilyGroup, setTravellerType, removeTraveller, addCoordinator,
+  toggleTravellerCountry, addTraveller, addFamilyGroup, addIndependentTraveller, setApplicationType, setTravellerType, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
   togglePackage, getSelectedServiceTypeKey, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,
   addPendingToBasket, removeBasketItem, toggleAddon, setUSAAddons,
