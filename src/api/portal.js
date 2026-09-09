@@ -64,8 +64,6 @@ const requestEmail = isPortalReadRequest
             ])
           ),
           travellers: applicationData.deal.travellers.map((traveller) => {
-            // familyId groups cards in the portal only. Keep the CRM traveller
-            // payload identical to the pre-grouping contract.
             const crmTraveller = { ...traveller };
             delete crmTraveller.familyId;
             return {
@@ -78,6 +76,9 @@ const requestEmail = isPortalReadRequest
               Mobile: traveller.mobile || "",
               serviceType: selectedServiceType,
               Service_Type: selectedServiceType,
+              // Store family group so CRM-side reads can reconstruct grouping
+              // without relying on the savedPayload snapshot.
+              Family_Group: traveller.familyId || "family-1",
               relationship: deriveTravellerRelationship(
                 traveller,
                 applicationData.deal.travellers
@@ -1020,6 +1021,9 @@ const stale =
         if (!matchingRow) return;
         traveller.crmId = String(matchingRow.id || matchingRow.ID);
         usedCrmIds.add(traveller.crmId);
+        // Restore family group from CRM if the local traveller doesn't have one yet
+        const crmFamilyGroup = readZohoValue(matchingRow.Family_Group);
+        if (crmFamilyGroup && !traveller.familyId) traveller.familyId = crmFamilyGroup;
         matchedCount += 1;
       });
 
@@ -1171,7 +1175,7 @@ applicationData.stepStatus.dealCompleted =
         return {
           id:           `crm-traveller-${row.id||row.ID||index}`,
           crmId:        row.id || row.ID || "",
-          familyId:     "family-1",
+          familyId:     readZohoValue(row.Family_Group) || "family-1",
           type:
   readZohoValue(row.Traveller_Type) === "Primary Applicant"
     ? "Primary Applicant"
