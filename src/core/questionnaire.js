@@ -15,6 +15,7 @@ import { markAutoSavePending, toast } from "../lib/ui.js";
 import { saveDraft } from "./drafts.js";
 import { submitQuestionnaire } from "../api/questionnaire.js";
 import { SCHENGEN_COUNTRIES } from "../config/config.js";
+import { isAdultTraveller } from "./terms.js";
 
 // The component registers its re-inject callback here; the original called
 // renderQuestionnaire() to rebuild #stepQuestionnaire in place.
@@ -57,11 +58,13 @@ export function deriveQuestionnaireUnits() {
     } else {
       label = members.length > 1 ? `${primaryName} & Family` : primaryName;
     }
+    const minorOnly = members.every((t) => !isAdultTraveller(t));
     units.push({
       familyId,
       label,
       primaryTraveller: primary,
       travellers: members,
+      minorOnly,
       index: idx,
     });
     idx++;
@@ -151,14 +154,18 @@ function renderUnitOverviewHTML(units) {
         ? `<span class="badge done">&#x2713; Submitted</span>`
         : `<span class="badge">Not started</span>`;
       const btnLabel = done ? "View answers" : "Start questionnaire";
+      const guardianNote = u.minorOnly
+        ? `<div class="q-unit-guardian">&#x1F9D2; Minor — guardian/parent fills on their behalf</div>`
+        : "";
 
       return `
-        <div class="q-unit-card${done ? " q-unit-card--done" : ""}">
+        <div class="q-unit-card${done ? " q-unit-card--done" : ""}${u.minorOnly ? " q-unit-card--minor" : ""}">
           <div class="q-unit-card-body">
             <div class="q-unit-av">${escapeHtml(u.label[0] || "Q")}</div>
             <div class="q-unit-info">
               <div class="q-unit-name">${escapeHtml(u.label)}</div>
               <div class="q-unit-members">${escapeHtml(memberNames)}</div>
+              ${guardianNote}
             </div>
             ${statusBadge}
           </div>
@@ -1327,6 +1334,12 @@ const unmappedWarning = unmappedTravellers.length
             ${_isMultiUnit ? `<button class="btn" type="button" onclick="qBackToOverview()">&#x2190; All Questionnaires</button>` : ""}
           </div>
           <div class="panel-body">
+            ${_activeUnit && _activeUnit.minorOnly ? `
+            <div class="notice amber" style="margin-bottom:16px">
+              <strong>&#x1F9D2; Filling on behalf of a minor</strong>
+              <span>This questionnaire is for <strong>${escapeHtml(_activeUnit.label)}</strong>, who is a minor.
+              As their parent or guardian, please answer the questions on their behalf.</span>
+            </div>` : ""}
             <div class="q-prog-wrap">
               <div class="q-prog-card">
                 <div class="q-prog-top">

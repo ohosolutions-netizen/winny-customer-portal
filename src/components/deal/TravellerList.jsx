@@ -20,6 +20,17 @@ export default function TravellerList() {
   return (
     <div className="traveller-list" id="travellerList">
 
+      <div className="traveller-group-guide">
+        <div className="traveller-guide-row">
+          <span>👨‍👩‍👧</span>
+          <span><strong>Same group</strong> — share one questionnaire (e.g. parent &amp; child, husband &amp; wife)</span>
+        </div>
+        <div className="traveller-guide-row">
+          <span>👤</span>
+          <span><strong>Separate group</strong> — each gets their own questionnaire (e.g. friends, sibling, colleague, grandparent with grandchild)</span>
+        </div>
+      </div>
+
       {groups.map((group, groupIndex) => {
         const lead = group.members[0]?.traveller;
         const leadName = lead
