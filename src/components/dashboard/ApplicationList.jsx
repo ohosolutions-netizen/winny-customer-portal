@@ -137,7 +137,22 @@ export default function ApplicationList() {
       </section>
     );
   }
-  if (!applications.length) return null;
+  if (!applications.length) {
+    return (
+      <section className="application-section">
+        <div className="application-head">
+          <div>
+            <div className="eyebrow">Applications</div>
+            <h2>Your applications</h2>
+          </div>
+          <button className="btn primary" type="button" onClick={() => startNewApplication()}>New Application</button>
+        </div>
+        <div className="no-deal-state" style={{ margin: "16px 0" }}>
+          <p>No applications to show. Start a new one.</p>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="application-section">
       <div className="application-head">

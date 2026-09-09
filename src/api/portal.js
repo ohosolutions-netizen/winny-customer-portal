@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { CONFIG, packageCatalog } from "../config/config.js";
 import { applicationData, state, blankApplication, replaceApplicationData } from "../store/runtime.js";
-import { mergeDeep, safeJsonParse } from "../lib/utils.js";
+import { mergeDeep, safeJsonParse, uid } from "../lib/utils.js";
 import { toast, showLoader, hideLoader, requestRender } from "../lib/ui.js";
 import {
   hasZohoTransport, hasCreatorRestTransport, canUseCrmSdk, getZohoTransportDiagnostics,
@@ -22,7 +22,8 @@ import {
 } from "../core/derive.js";
 import { getGoalDefinition } from "../core/catalog.js";
 import {
-  saveDraft, getDraftIndexKey, draftsToApplicationCards, loadApplicationDraftIndex
+  saveDraft, getDraftIndexKey, draftsToApplicationCards, loadApplicationDraftIndex,
+  loadHiddenApplicationKeys, saveHiddenApplicationKeys
 } from "../core/drafts.js";
 
     // ── submit + poll (Portal_CRM_Request bridge) ──
@@ -89,7 +90,10 @@ const requestEmail = isPortalReadRequest
           selectedCrmProductIds: applicationData.deal.selectedServices.map((id) => {
             const pkg = packageCatalog.find((p) => p.id === id);
             return pkg ? (pkg.crmId || pkg.id) : id;
-          })
+          }),
+          // Pre-serialized basket so Deluge can store it verbatim to CRM
+          // without needing to re-serialize a Map/List on the Deluge side.
+          serviceBasketJson: JSON.stringify(applicationData.deal.serviceBasket || [])
                },
                 payment: applicationData.payment,
         questionnaire: applicationData.questionnaire,
@@ -252,6 +256,23 @@ const requestEmail = isPortalReadRequest
 const { success: requestSucceeded, deals: requestDeals } = await fetchApplicationsViaPortalRequest();
         if (requestSucceeded) {
           pruneStaleLocalDrafts(requestDeals);
+          // If the user previously "removed" all cards but the deals still exist
+          // in CRM, the hidden-keys list would filter every card and show a blank
+          // dashboard. Un-hide any deal that CRM confirms still belongs to this user.
+          if (requestDeals.length) {
+            try {
+              const validIds = new Set(requestDeals.map((d) => String(d.id || d.ID || "")).filter(Boolean));
+              const hidden = loadHiddenApplicationKeys();
+              let changed = false;
+              hidden.forEach((key) => {
+                if (key.startsWith("deal:") && validIds.has(key.slice(5))) {
+                  hidden.delete(key);
+                  changed = true;
+                }
+              });
+              if (changed) saveHiddenApplicationKeys(hidden);
+            } catch (e) {}
+          }
         } else {
           console.warn("[Winny] Skipping stale-draft pruning — could not confirm current CRM state.");
         }
@@ -274,6 +295,48 @@ const contact = await findContactByEmail(loggedInEmail);
         if (!contact) {
           if (requestDeals.length) {
             await loadApplicationCardsFromDeals(requestDeals);
+
+            // Get Applications returns deal-level fields only — no contact/traveller data.
+            // Fetch full details for the active deal (or fall back to the most recent)
+            // so customer fields and travellers are populated from the CRM Contact.
+            // Prefer the deal the user already had open (from localStorage) to avoid
+            // showing a different application's data when the user has multiple deals.
+            const savedDealId = String(applicationData.deal.crmDealId || "").trim();
+            const targetDeal = (savedDealId && requestDeals.find((d) => String(d.id || d.ID || "") === savedDealId))
+              ? savedDealId
+              : String(requestDeals[0]?.id || requestDeals[0]?.ID || "");
+
+            if (targetDeal) {
+              try {
+                const details = await fetchApplicationDetailsViaPortalRequest(targetDeal);
+                // Abort if the user switched to a different application while this was loading.
+                // Compare the deal we fetched for against the current active deal —
+                // openApplication() updates crmDealId immediately so this reliably detects a switch.
+                if (String(applicationData.deal.crmDealId || "").trim() !== targetDeal) return;
+                if (details) {
+                  hydrateApplicationDetails(details);
+                  // If no travellers were in CRM, seed a primary applicant from the contact
+                  if (!(applicationData.deal.travellers || []).length && applicationData.customer.email) {
+                    applicationData.deal.travellers = [{
+                      id: uid("t"),
+                      crmId: "",
+                      familyId: "family-1",
+                      type: "Primary Applicant",
+                      firstName: applicationData.customer.firstName || "",
+                      lastName: applicationData.customer.lastName || "",
+                      dob: "",
+                      relationship: "Self",
+                      nationality: applicationData.customer.nationality || "Indian",
+                      email: applicationData.customer.email || "",
+                      mobile: applicationData.customer.mobile || "",
+                      serviceType: applicationData.deal.goal || ""
+                    }];
+                  }
+                }
+              } catch (e) {
+                console.warn("[Winny] Could not hydrate contact details from CRM deal:", e);
+              }
+            }
             toast("CRM applications loaded for this portal user.");
           } else if (requestSucceeded) {
             toast("No CRM contact found for this portal email. A contact will be created when details are saved.");
@@ -324,10 +387,15 @@ const contact = await findContactByEmail(loggedInEmail);
         }
         return card;
       });
-      const latestDeal = deals[0] || null;
-      if (!latestDeal || hasApplicationInfo()) return;
-      hydrateDealFromCrm(latestDeal);
-      const dealId = latestDeal.id || latestDeal.ID;
+      // Prefer the deal the user had previously active (from localStorage) so
+      // opening the portal always restores the same deal, not just the newest.
+      const savedDealId = String(applicationData.deal.crmDealId || "").trim();
+      const activeDeal = (savedDealId && deals.find((d) => String(d.id || d.ID || "") === savedDealId))
+        || deals[0]
+        || null;
+      if (!activeDeal || hasApplicationInfo()) return;
+      hydrateDealFromCrm(activeDeal);
+      const dealId = activeDeal.id || activeDeal.ID;
       if (dealId) applicationData.deal.crmDealId = dealId;
     }
 
@@ -567,12 +635,20 @@ function hydrateApplicationDetails(details) {
 
   // Overlay the latest Contact and Deal values from CRM.
   if (details.contact) {
-    hydrateCustomerFromContact(details.contact);
+    // The CRM Contact is shared across ALL deals for this person. If another
+    // deal was saved after this one, the contact's name/email/mobile reflects
+    // that later deal — overwriting the savedPayload customer would show the
+    // wrong person's name. Only use the live contact for name/email/mobile
+    // when there is no savedPayload customer (e.g. pure CRM-created deals).
+    if (!savedPayload.customer) {
+      hydrateCustomerFromContact(details.contact);
+    }
 
     applicationData.deal.crmContactId =
       String(details.contact.id || details.contact.ID || "") ||
       applicationData.deal.crmContactId;
 
+    // Mailing address is not stored in savedPayload, so always pull from CRM.
     applicationData.customer.mailingStreet =
       readZohoValue(details.contact.Mailing_Street) ||
       applicationData.customer.mailingStreet;
@@ -1145,6 +1221,21 @@ if (
 if (hasCrmNumber(crmRequestedRaw)) {
   applicationData.payment.payableNow =
     Number(crmRequestedRaw);
+}
+
+const crmServiceBasketRaw = readZohoValue(deal.Service_Basket_JSON);
+if (crmServiceBasketRaw && !(applicationData.deal.serviceBasket || []).length) {
+  try {
+    const basket = JSON.parse(crmServiceBasketRaw);
+    if (Array.isArray(basket) && basket.length) {
+      applicationData.deal.serviceBasket = basket;
+      applicationData.deal.selectedServices = [
+        ...new Set(basket.map((item) => item.pkgId).filter(Boolean))
+      ];
+    }
+  } catch (e) {
+    console.warn("[Winny] Could not parse Service_Basket_JSON from CRM:", e);
+  }
 }
 
 const crmStatusRaw =

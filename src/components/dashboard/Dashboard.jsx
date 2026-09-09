@@ -3,7 +3,6 @@ import { applicationData, state } from "../../store/runtime.js";
 import {
   hasApplicationInfo, getCurrentStage, getStageNote
 } from "../../core/derive.js";
-import { startNewApplication } from "../../core/drafts.js";
 import ApplicationList from "./ApplicationList.jsx";
 
 // Reproduces the static #dashboardView shell (source 1185-1231) + renderDashboard()
@@ -43,17 +42,6 @@ export default function Dashboard() {
 
         <div className="journey-grid" id="journeyCards">
           <ApplicationList />
-          {waitingForApplications
-            ? null
-            : hasInfo
-            ? null
-            : (
-              <section className="no-deal-state">
-                <h2>No application information found</h2>
-                <p>Start a new application for this customer.</p>
-                <button className="btn primary" type="button" onClick={() => startNewApplication()}>Add New Application</button>
-              </section>
-            )}
         </div>
       </main>
     </section>
