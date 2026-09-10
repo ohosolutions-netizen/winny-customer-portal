@@ -79,7 +79,7 @@ const requestEmail = isPortalReadRequest
               Service_Type: selectedServiceType,
               // Store family group so CRM-side reads can reconstruct grouping
               // without relying on the savedPayload snapshot.
-              Family_Group: traveller.familyId || "family-1",
+              Family_Group: (traveller.familyId || "family-1").slice(0, 30),
               relationship: deriveTravellerRelationship(
                 traveller,
                 applicationData.deal.travellers
