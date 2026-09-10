@@ -154,9 +154,23 @@ import { isAdultTraveller } from "./terms.js";
       markAutoSavePending();
     }
 
+    function nextFamilyId() {
+      const today = new Date();
+      const dateStr =
+        String(today.getFullYear()) +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        String(today.getDate()).padStart(2, "0");
+      const existing = new Set(
+        applicationData.deal.travellers.map((t) => t.familyId || DEFAULT_FAMILY_ID)
+      );
+      let n = 1;
+      while (existing.has(`family-${dateStr}-${n}`)) n++;
+      return `family-${dateStr}-${n}`;
+    }
+
     function addFamilyGroup() {
       if (!isDealSaved()) { toast("Save the Deal first, then add a family group."); return; }
-      applicationData.deal.travellers.push(createTraveller(uid("family")));
+      applicationData.deal.travellers.push(createTraveller(nextFamilyId()));
       requestRender();
       markAutoSavePending();
     }
@@ -164,7 +178,7 @@ import { isAdultTraveller } from "./terms.js";
     // For friends/corporate: each person gets a unique familyId → own questionnaire unit
     function addIndependentTraveller() {
       if (!isDealSaved()) { toast("Save the Deal first, then add travellers."); return; }
-      applicationData.deal.travellers.push(createTraveller(uid("family")));
+      applicationData.deal.travellers.push(createTraveller(nextFamilyId()));
       requestRender();
       markAutoSavePending();
     }
