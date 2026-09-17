@@ -132,25 +132,45 @@ export default function TravellerList() {
               );
             })}
 
-            {/* Add family member to this group */}
-            <button className="family-member-add" type="button" onClick={() => addTraveller(group.id)}>
-              <span aria-hidden="true">+</span>
-              Add a family member to {leadName}&apos;s group
-            </button>
+            {/* Add member to this group — label varies by application type */}
+            {appType !== "individual" && (
+              <button className="family-member-add" type="button" onClick={() => addTraveller(group.id)}>
+                <span aria-hidden="true">+</span>
+                {appType === "family"
+                  ? "Add a family member"
+                  : `Add a family member to ${leadName}’s group`}
+              </button>
+            )}
 
           </div>
         );
       })}
 
-      {/* Add a new independent traveller / group */}
-      <button className="add-family-group" type="button" onClick={() => addFamilyGroup()}>
-        <span className="add-family-group-icon" aria-hidden="true">👤</span>
-        <span className="add-family-group-copy">
-          <strong>Add another traveller / group</strong>
-          <small>Each separate group gets its own questionnaire</small>
-        </span>
-        <span className="add-family-group-plus" aria-hidden="true">+</span>
-      </button>
+      {/* Add independent traveller / new group — hidden for individual */}
+      {appType !== "individual" && (
+        <button className="add-family-group" type="button" onClick={() => addFamilyGroup()}>
+          <span className="add-family-group-icon" aria-hidden="true">👤</span>
+          <span className="add-family-group-copy">
+            {appType === "family" ? (
+              <>
+                <strong>Add a separate family unit</strong>
+                <small>Use this only if another family in your group needs a separate questionnaire</small>
+              </>
+            ) : appType === "friends" ? (
+              <>
+                <strong>Add another friend</strong>
+                <small>Each friend gets their own questionnaire</small>
+              </>
+            ) : (
+              <>
+                <strong>Add another traveller</strong>
+                <small>Each person gets their own questionnaire</small>
+              </>
+            )}
+          </span>
+          <span className="add-family-group-plus" aria-hidden="true">+</span>
+        </button>
+      )}
 
     </div>
   );
