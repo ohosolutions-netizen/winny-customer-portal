@@ -21,6 +21,10 @@ export const blankApplication = () => ({
       deal: {
         crmDealId: "", crmContactId: "", dealName: "", dealSavedToCRM: false,
         applicationType: "",   // "individual" | "family" | "friends" | "corporate"
+        travelDateFrom: "",    // yyyy-mm-dd — intended departure date
+        travelDateTo: "",      // yyyy-mm-dd — intended return date
+        payerMode: "primary",  // "primary" | "someone-else" | "per-group"
+        externalPayer: { name: "", email: "", mobile: "", relation: "" },
         destination: "", goal: "", serviceTypeKey: "",
         serviceCountries: {},
         travellers: [],   // ← empty until deal saved; primary applicant seeded on save

@@ -129,6 +129,17 @@ import { isAdultTraveller } from "./terms.js";
       reconcileTravellerCountries();
     }
 
+    function toggleDealDestination(country) {
+      const current = getDestinationCountries();
+      const next = current.includes(country)
+        ? current.filter((c) => c !== country)
+        : [...current, country];
+      applicationData.deal.destination = next.join(", ");
+      reconcileTravellerCountries();
+      markAutoSavePending();
+      requestRender();
+    }
+
     function toggleGoalCountry(goalKey, country) {
       const goal = GOAL_DEFS.find(item => item.key === goalKey);
       if (!goal || goal.countryMode === "none") return;
@@ -540,7 +551,7 @@ function togglePackage(id) {
 
 export {
   getDestinationCountries, reconcileTravellerCountries, getGoalCountrySelection, getPackageDestinationCountries, getAssignedTravellerIdsForGoal,
-  syncDestinationFromServiceCountries, toggleGoalCountry, applyTravellerCrmIds,
+  syncDestinationFromServiceCountries, toggleDealDestination, toggleGoalCountry, applyTravellerCrmIds,
   toggleTravellerCountry, addTraveller, addFamilyGroup, addIndependentTraveller, setApplicationType, setTravellerType, removeTraveller, addCoordinator,
   removeCoordinator, toggleCoordAssign, toggleCoordAuth, blockPaidServiceChange,
   togglePackage, getSelectedServiceTypeKey, setGoal, closeGoal, selectPendingPackage, toggleAssignTraveller,

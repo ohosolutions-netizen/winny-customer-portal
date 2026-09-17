@@ -138,6 +138,10 @@ import { isApplicationHidden } from "./drafts.js";
     }
   }
 
+  if (type === "Parent") return "Parent";
+  if (type === "Additional Traveller") return "Additional Traveller";
+  if (type === "Other") return "Other";
+
   return "";
 }
 

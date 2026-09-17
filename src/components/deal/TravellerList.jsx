@@ -1,12 +1,31 @@
 import React from "react";
 import { applicationData } from "../../store/runtime.js";
 import { addFamilyGroup, addTraveller, removeTraveller, setTravellerType } from "../../core/deal.js";
+import { isAdultTraveller } from "../../core/terms.js";
 import { Field } from "../fields/Field.jsx";
 
 const DEFAULT_FAMILY_ID = "family-1";
 
+// Returns allowed Traveller_Type options based on application type and group position
+function getTravellerTypeOptions(isGroupLead, appType) {
+  if (appType === "individual") return ["Primary Applicant"];
+  if (appType === "corporate") {
+    return isGroupLead
+      ? ["Primary Applicant"]
+      : ["Additional Traveller", "Spouse", "Child", "Parent", "Other"];
+  }
+  if (appType === "friends") {
+    return isGroupLead
+      ? ["Primary Applicant"]
+      : ["Spouse", "Child", "Parent", "Additional Traveller", "Other"];
+  }
+  // family/couple — all options
+  return ["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"];
+}
+
 export default function TravellerList() {
   const travellers = applicationData.deal.travellers;
+  const appType = applicationData.deal.applicationType || "family";
 
   // Group by familyId — each group is one "card block"
   const groups = [];
@@ -41,35 +60,58 @@ export default function TravellerList() {
           <div className="traveller-group" key={group.id}>
 
             {/* Group members */}
-            {group.members.map(({ traveller, index }, memberIndex) => (
+            {group.members.map(({ traveller, index }, memberIndex) => {
+              const isGroupLead = memberIndex === 0;
+              const hasDob = String(traveller.dob || "").trim().length > 0;
+              const isMinor = hasDob && !isAdultTraveller(traveller);
+              const typeOptions = getTravellerTypeOptions(isGroupLead, appType);
+              const canSetAsPrimary = !isGroupLead && hasDob && isAdultTraveller(traveller) && traveller.type !== "Primary Applicant";
+
+              return (
               <article className="traveller-card" key={traveller.id}>
                 <div className="traveller-head">
                   <div className="traveller-title">
                     <span className="avatar">
-                      {memberIndex === 0 ? (groupIndex === 0 ? "PA" : String(groupIndex + 1)) : "·"}
+                      {isGroupLead ? (groupIndex === 0 ? "PA" : String(groupIndex + 1)) : "·"}
                     </span>
                     <span>
-                      {memberIndex === 0
+                      {isGroupLead
                         ? (groupIndex === 0 ? "Primary Applicant" : "Independent Traveller")
                         : "Family Member"}
                     </span>
+                    {isMinor && <span className="minor-badge">Minor</span>}
                   </div>
-                  <button
-                    className="btn danger"
-                    type="button"
-                    disabled={travellers.length === 1}
-                    onClick={() => removeTraveller(traveller.id)}
-                  >
-                    Remove
-                  </button>
+                  <div className="traveller-head-actions">
+                    {canSetAsPrimary && (
+                      <button
+                        className="btn ghost small"
+                        type="button"
+                        onClick={() => setTravellerType(traveller.id, "Primary Applicant")}
+                      >
+                        Set as primary
+                      </button>
+                    )}
+                    <button
+                      className="btn danger"
+                      type="button"
+                      disabled={travellers.length === 1}
+                      onClick={() => removeTraveller(traveller.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
                 <div className="form-grid three">
                   <Field label="First Name" path={`deal.travellers.${index}.firstName`} type="text" placeholder="First name" required />
                   <Field label="Last Name" path={`deal.travellers.${index}.lastName`} type="text" placeholder="Last name" required />
                   <div className="field" data-field={`deal.travellers.${index}.type`}>
-                    <label>Traveller Type</label>
-                    <select value={traveller.type || ""} onChange={(e) => setTravellerType(traveller.id, e.target.value)}>
-                      {["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"].map((o) => (
+                    <label>Relation / Role</label>
+                    <select
+                      value={traveller.type || ""}
+                      onChange={(e) => setTravellerType(traveller.id, e.target.value)}
+                      disabled={appType === "individual"}
+                    >
+                      {typeOptions.map((o) => (
                         <option value={o} key={o}>{o}</option>
                       ))}
                     </select>
@@ -87,7 +129,8 @@ export default function TravellerList() {
                   <Field label="Mobile" path={`deal.travellers.${index}.mobile`} type="tel" placeholder="+91" required />
                 </div>
               </article>
-            ))}
+              );
+            })}
 
             {/* Add family member to this group */}
             <button className="family-member-add" type="button" onClick={() => addTraveller(group.id)}>

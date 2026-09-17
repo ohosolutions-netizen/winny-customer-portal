@@ -2,12 +2,25 @@ import React from "react";
 import { applicationData } from "../../store/runtime.js";
 import { isDealSaved } from "../../core/derive.js";
 import { saveDealDetails } from "../../api/deal.js";
+import { getDestinationCountries, toggleDealDestination } from "../../core/deal.js";
 import { Field } from "../fields/Field.jsx";
 import TravellerList from "./TravellerList.jsx";
 import { CoordinatorList, AuthorisationList } from "./CoordinatorSection.jsx";
 
+const DESTINATION_PRESETS = [
+  { label: "Canada",      value: "Canada" },
+  { label: "USA",         value: "United States" },
+  { label: "UK",          value: "United Kingdom" },
+  { label: "Schengen",    value: "Schengen" },
+  { label: "UAE",         value: "UAE" },
+  { label: "Australia",   value: "Australia" },
+  { label: "New Zealand", value: "New Zealand" },
+  { label: "Singapore",   value: "Singapore" },
+];
+
 export default function DetailsPane() {
   const dealSaved = isDealSaved();
+  const selectedDests = getDestinationCountries();
   return (
     <>
       <section className="wizard-panel">
@@ -35,6 +48,45 @@ export default function DetailsPane() {
             <div style={{ marginTop: 16 }}>
               <button className="btn primary" type="button" onClick={() => saveDealDetails()}>Save &amp; Continue</button>
             </div>
+          )}
+        </div>
+      </section>
+
+      <section className={`wizard-panel ${dealSaved ? "" : "hidden"}`}>
+        <div className="panel-head"><div><h3>Travel Dates</h3><p>Approximate dates help Winny plan your application timeline. You can update these any time.</p></div></div>
+        <div className="panel-body">
+          <div className="form-grid">
+            <Field label="Intended Departure Date" path="deal.travelDateFrom" type="date" />
+            <Field label="Intended Return Date" path="deal.travelDateTo" type="date" />
+          </div>
+        </div>
+      </section>
+
+      <section className={`wizard-panel ${dealSaved ? "" : "hidden"}`}>
+        <div className="panel-head">
+          <div>
+            <h3>Destination</h3>
+            <p>Where are you planning to travel? Select all that apply — this helps us show the right services.</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div className="destination-badges">
+            {DESTINATION_PRESETS.map((d) => (
+              <button
+                key={d.value}
+                type="button"
+                className={`dest-badge${selectedDests.includes(d.value) ? " selected" : ""}`}
+                onClick={() => toggleDealDestination(d.value)}
+              >
+                {d.label}
+                {selectedDests.includes(d.value) && <span className="dest-badge-check" aria-hidden="true"> ✓</span>}
+              </button>
+            ))}
+          </div>
+          {selectedDests.length > 0 && (
+            <p className="dest-selected-summary">
+              Selected: <strong>{selectedDests.join(", ")}</strong>
+            </p>
           )}
         </div>
       </section>

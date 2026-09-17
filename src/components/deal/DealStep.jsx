@@ -2,6 +2,7 @@ import React from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import { formatCurrency } from "../../lib/utils.js";
 import { goDealSubStep } from "../../api/deal.js";
+import ApplicationTypeSelector from "./ApplicationTypeSelector.jsx";
 import DetailsPane from "./DetailsPane.jsx";
 import ServicesPane, { ServiceBasket } from "./ServicesPane.jsx";
 import TermsPane from "./TermsPane.jsx";
@@ -27,13 +28,17 @@ function PricingSummary() {
   );
 }
 
-const SUB_LABELS = ["Who's applying", "Services", "Terms", "Payment"];
+const SUB_LABELS = ["Application Type", "Who's applying", "Services", "Terms", "Payment"];
 
 // Reproduces renderDeal() (source 2501-2545).
 export default function DealStep() {
   const sub = state.dealSubStep;
   const showHero = sub === 1;
-  const Pane = sub === 1 ? DetailsPane : sub === 2 ? ServicesPane : sub === 3 ? TermsPane : PaymentPane;
+  const Pane = sub === 1 ? ApplicationTypeSelector
+              : sub === 2 ? DetailsPane
+              : sub === 3 ? ServicesPane
+              : sub === 4 ? TermsPane
+              : PaymentPane;
 
   return (
     <section id="stepDeal" className="wizard-step active">
@@ -54,10 +59,10 @@ export default function DealStep() {
           </section>
         ) : null}
 
-        <div className={sub === 3 ? "" : "deal-layout"}>
+        <div className={sub === 4 ? "" : "deal-layout"}>
           <div>
             <div className="sub-stepper">
-              {[1, 2, 3, 4].map((n) => (
+              {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} className={`sub-step ${sub === n ? "active" : sub > n ? "done" : ""}`} type="button" onClick={() => goDealSubStep(n)}>
                   {n}. {SUB_LABELS[n - 1]}
                 </button>
@@ -65,7 +70,7 @@ export default function DealStep() {
             </div>
             <Pane />
           </div>
-          {sub !== 3 ? (
+          {sub !== 4 ? (
             <aside className="summary-card">
               <ServiceBasket compact />
               <h3>Pricing Summary</h3>

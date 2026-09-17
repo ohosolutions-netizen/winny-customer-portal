@@ -513,6 +513,10 @@
       flex: 0 0 auto;
     }
     .traveller-title { display: flex; align-items: center; gap: 10px; font-weight: 900; }
+    .traveller-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .minor-badge { display:inline-block; font-size:11px; font-weight:700; color:#92400e; background:#fef3c7; border:1px solid #fbbf24; border-radius:20px; padding:2px 8px; letter-spacing:.3px; }
+    .btn.ghost.small { font-size:12px; padding:4px 10px; border:1px solid var(--blue); color:var(--blue); background:transparent; border-radius:var(--r); cursor:pointer; white-space:nowrap; }
+    .btn.ghost.small:hover { background:var(--soft-blue); }
     .package-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .package-card {
       position: relative;
@@ -1008,6 +1012,24 @@
     .app-type-desc { font-size:12px; color:var(--muted); margin:0; line-height:1.4; }
     .app-type-badge { font-size:11px; font-weight:700; color:var(--blue); background:var(--soft-blue); border-radius:20px; padding:2px 10px; margin-top:4px; }
     @media (max-width:540px) { .app-type-grid { grid-template-columns:1fr; } }
+
+    /* ── Payer mode selector ────────────────────────────────────── */
+    .payer-mode-toggle { display:flex; flex-direction:column; gap:8px; }
+    .payer-mode-btn { display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; border:2px solid var(--line); border-radius:var(--r); padding:12px 14px; background:#fff; cursor:pointer; text-align:left; transition:border-color .15s, background .15s; }
+    .payer-mode-btn strong { font-size:14px; color:var(--ink); }
+    .payer-mode-btn small { font-size:12px; color:var(--muted); }
+    .payer-mode-btn:hover { border-color:var(--blue); }
+    .payer-mode-btn.active { border-color:var(--blue); background:var(--soft-blue); }
+    .payer-mode-btn.active strong { color:var(--blue); }
+    .payer-fields { margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+
+    /* ── Destination badges ─────────────────────────────────────── */
+    .destination-badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+    .dest-badge { display:inline-flex; align-items:center; gap:4px; border:2px solid var(--line); border-radius:20px; padding:6px 16px; font-size:13px; font-weight:600; color:var(--ink); background:#fff; cursor:pointer; transition:border-color .15s, background .15s, color .15s; }
+    .dest-badge:hover { border-color:var(--blue); color:var(--blue); }
+    .dest-badge.selected { border-color:var(--blue); background:var(--soft-blue); color:var(--blue); }
+    .dest-badge-check { font-size:12px; }
+    .dest-selected-summary { margin:10px 0 0; font-size:13px; color:var(--muted); }
 
     /* ── Traveller grouping guide ───────────────────────────────── */
     .traveller-group-guide { background:var(--soft-blue); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; margin-bottom:16px; display:flex; flex-direction:column; gap:6px; }

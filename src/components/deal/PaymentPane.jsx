@@ -10,6 +10,7 @@ import {
 import { isPaymentConfirmed } from "../../core/deal.js";
 import { openZPayWidget } from "../../api/deal.js";
 import { refreshCurrentDealFromCrm } from "../../api/portal.js";
+import PayerModeSelector from "./PayerModeSelector.jsx";
 
 // Reproduces renderDealPane() sub-step 4 — Payment (source 2720-2797).
 export default function PaymentPane() {
@@ -48,6 +49,8 @@ export default function PaymentPane() {
             <span>Total</span><span>{formatCurrency(grand)}</span>
           </div>
         </div>
+
+        {!confirmed && <PayerModeSelector />}
 
         {confirmed ? (
           <div className="notice teal">

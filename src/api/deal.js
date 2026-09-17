@@ -27,7 +27,7 @@ let zPayInstance = null;
 
     // ── deal sub-step navigation + validation ──
     async function goDealSubStep(step) {
-  if (step > 1 && !isDealSaved()) {
+  if (step > 2 && !isDealSaved()) {
     toast("Save the Deal first, then continue.");
     return;
   }
@@ -39,18 +39,18 @@ let zPayInstance = null;
     return;
   }
 
-  const targetStep = Math.max(1, Math.min(step, 4));
+  const targetStep = Math.max(1, Math.min(step, 5));
 
   /*
-   * Save travellers and selected services when leaving Services.
+   * Save travellers and selected services when leaving Services (sub-step 3).
    * The second condition supports older drafts that may already be
    * on the Terms step without having been synchronized.
    */
   const shouldSyncApplicationDetails =
-    (targetStep === 3 && state.dealSubStep < 3) ||
+    (targetStep === 4 && state.dealSubStep < 4) ||
     (
-      targetStep === 4 &&
-      state.dealSubStep < 4 &&
+      targetStep === 5 &&
+      state.dealSubStep < 5 &&
       !applicationData.crmSync.applicationDetailsSynced
     );
 
@@ -90,6 +90,9 @@ let zPayInstance = null;
 
     function validateDealSubStep(step) {
       if (step === 1) {
+        if (!applicationData.deal.applicationType) return fail("Please select an application type before continuing.");
+      }
+      if (step === 2) {
         const required = [["customer.firstName","First name is required."],["customer.lastName","Last name is required."],["customer.email","Email is required."],["customer.mobile","Mobile is required."]];
         const missing  = required.find(([path]) => validators.required(getByPath(applicationData, path)));
         if (missing) return fail(missing[1]);
@@ -119,11 +122,11 @@ let zPayInstance = null;
         if (!familyPrimaryTravellers.every((traveller) => String(traveller.email || "").trim())) return fail("Enter the primary applicant email for every family.");
         if (familyPrimaryTravellers.some((traveller) => validators.email(traveller.email))) return fail("Enter a valid primary applicant email for every family.");
       }
-      if (step === 2) {
+      if (step === 3) {
         const hasBasket = (applicationData.deal.serviceBasket || []).length > 0 || (applicationData.deal.selectedAddons || []).length > 0;
         if (!hasBasket) return fail("Add at least one service to your basket before continuing.");
       }
-      if (step === 3) {
+      if (step === 4) {
         const termsError = validateTermsAcceptances();
         if (termsError) return fail(termsError);
       }
@@ -132,7 +135,7 @@ let zPayInstance = null;
 
     // ── Zoho Payments widget ──
    async function openZPayWidget() {
-      if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3)) return;
+      if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3) || !validateDealSubStep(4)) return;
 
       if (!CONFIG.paymentsApiKey || !CONFIG.paymentsAccountId) {
         openModal(
@@ -526,7 +529,7 @@ ${sigBlock()}
 
     // ── payment ──
     async function completePayment() {
-      if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3)) return;
+      if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3) || !validateDealSubStep(4)) return;
       if (!applicationData.payment.method) return fail("Select a payment method.");
       showLoader("Saving payment & travellers to CRM...");
       try {
@@ -560,7 +563,7 @@ ${sigBlock()}
     }
 
     async function createZohoPaymentLink() {
-      if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3)) return;
+      if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3) || !validateDealSubStep(4)) return;
       if (!CONFIG.paymentsAccountId) {
         openModal("Zoho Payments Account ID Needed","Add your Zoho Payments account ID in CONFIG.paymentsAccountId before generating live payment links.");
         return;

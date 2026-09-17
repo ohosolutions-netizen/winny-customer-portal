@@ -48,7 +48,7 @@ export function showStep(stepNumber) {
 // nextStep / previousStep — copied VERBATIM from the original (source 7963-7992).
 export function nextStep() {
   if (applicationData.currentStep === 1) {
-    if (state.dealSubStep < 4) {
+    if (state.dealSubStep < 5) {
       if (!validateDealSubStep(state.dealSubStep)) return;
       goDealSubStep(state.dealSubStep + 1);
       return;

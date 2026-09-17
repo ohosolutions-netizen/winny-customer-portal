@@ -20,6 +20,7 @@ import {
   hasApplicationInfo, isFullyPaidStatus, syncCustomerToTraveller,
   getSelectedServiceNames, deriveTravellerRelationship
 } from "../core/derive.js";
+import { isAdultTraveller } from "../core/terms.js";
 import { getGoalDefinition } from "../core/catalog.js";
 import {
   saveDraft, getDraftIndexKey, draftsToApplicationCards, loadApplicationDraftIndex,
@@ -80,6 +81,7 @@ const requestEmail = isPortalReadRequest
               // Store family group so CRM-side reads can reconstruct grouping
               // without relying on the savedPayload snapshot.
               Family_Group: (traveller.familyId || "family-1").slice(0, 30),
+              Age_Group: traveller.dob ? (isAdultTraveller(traveller) ? "Adult" : "Minor") : "",
               relationship: deriveTravellerRelationship(
                 traveller,
                 applicationData.deal.travellers
@@ -621,6 +623,30 @@ function hydrateApplicationDetails(details) {
       applicationData.questionnaire || {},
       savedPayload.questionnaire
     );
+  }
+
+  // Per-family-group questionnaire snapshots (more recent than Payment Complete snapshot).
+  // Keyed by Family_Group; family-1 merges into the main questionnaire object,
+  // all others go into unitShared[familyGroup].
+  if (Array.isArray(details.questionnaireSnapshots) && details.questionnaireSnapshots.length) {
+    details.questionnaireSnapshots.forEach((snap) => {
+      const fg = String(snap.familyGroup || "family-1");
+      const rawPayload = snap.snapshotPayload;
+      const parsed = typeof rawPayload === "string" ? safeJsonParse(rawPayload) : rawPayload;
+      if (!parsed || typeof parsed !== "object" || !parsed.questionnaire) return;
+      if (fg === "family-1") {
+        applicationData.questionnaire = mergeDeep(
+          applicationData.questionnaire || {},
+          parsed.questionnaire
+        );
+      } else {
+        applicationData.questionnaire.unitShared = applicationData.questionnaire.unitShared || {};
+        applicationData.questionnaire.unitShared[fg] = mergeDeep(
+          applicationData.questionnaire.unitShared[fg] || {},
+          parsed.questionnaire
+        );
+      }
+    });
   }
 
   if (
@@ -1289,8 +1315,71 @@ applicationData.stepStatus.dealCompleted =
       });
     }
 
+    // ── Questionnaire Snapshot ────────────────────────────────────────────────
+    // Saves (or updates) the raw questionnaire state JSON for one family group
+    // to Visitor_Visa_Questionnaire_Sales1 via the Deluge bridge, keyed by
+    // CRM Deal ID + Family Group.  Returns the Creator record ID or null.
+    async function saveQuestionnaireSnapshot(familyGroupId = "family-1") {
+      if (!applicationData.deal.crmDealId) return null;
+
+      const fg = String(familyGroupId || "family-1").slice(0, 30);
+      const travellersInGroup = applicationData.deal.travellers.filter(
+        (t) => (t.familyId || "family-1") === familyGroupId
+      );
+      const primaryTraveller =
+        travellersInGroup.find((t) => t.type === "Primary Applicant") ||
+        travellersInGroup[0] ||
+        null;
+
+      const snapshotPayload = JSON.stringify({
+        familyGroup:        fg,
+        primaryTravellerId: primaryTraveller?.id || "",
+        questionnaire:      applicationData.questionnaire
+      });
+
+      const recordData = {
+        Request_Type: "Questionnaire Snapshot",
+        Status:       "Pending",
+        Customer_Email: applicationData.customer.email || applicationData.crmSync.loggedInEmail || "",
+        CRM_Deal_ID:  String(applicationData.deal.crmDealId).trim(),
+        Payload:      snapshotPayload
+      };
+
+      try {
+        let recordId = null;
+        if (window.ZOHO?.CREATOR?.DATA?.addRecords) {
+          const res = await ZOHO.CREATOR.DATA.addRecords({
+            app_name:  CONFIG.creator.appLinkName,
+            form_name: CONFIG.creator.formLinkNames.portalCrmRequest,
+            payload:   { data: recordData }
+          });
+          if (res?.code === 3000) recordId = res?.data?.ID || res?.data?.id || null;
+        } else if (window.ZOHO?.CREATOR?.API?.addRecord) {
+          const res = await ZOHO.CREATOR.API.addRecord({
+            appName:  CONFIG.creator.appLinkName,
+            formName: CONFIG.creator.formLinkNames.portalCrmRequest,
+            data:     { data: recordData }
+          });
+          if (res?.code === 3000) recordId = res?.data?.ID || res?.data?.id || null;
+        }
+
+        if (!recordId) return null;
+
+        const result = await pollCreatorRecord(recordId, 8, 2000);
+        if (result?.Status === "Success" || result?._timedOut) {
+          console.log("[Winny] Questionnaire snapshot saved. Creator record:", result?.CRM_Response || recordId);
+          return result?.CRM_Response || recordId;
+        }
+        console.warn("[Winny] Questionnaire snapshot failed:", result?.Error_Message);
+        return null;
+      } catch (e) {
+        console.warn("[Winny] saveQuestionnaireSnapshot error:", e.message || e);
+        return null;
+      }
+    }
+
 export {
-  submitPortalCrmRequest, pollCreatorRecord,
+  submitPortalCrmRequest, pollCreatorRecord, saveQuestionnaireSnapshot,
   loadPortalCustomerData, loadApplicationCardsFromDeals,
   fetchApplicationsViaPortalRequest, fetchApplicationDetailsViaPortalRequest,
   hydrateApplicationDetails, parseApplicationsResponse,
