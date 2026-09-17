@@ -1151,6 +1151,15 @@ const stale =
       if (appNo) applicationData.applicationId = appNo;
       applicationData.deal.dealName      = readZohoValue(deal.Deal_Name)      || applicationData.deal.dealName;
       applicationData.deal.destination   = readZohoValue(deal.Destination)    || applicationData.deal.destination;
+      const crmAppType = readZohoValue(deal.Application_Type);
+      if (crmAppType) {
+        const appTypeMap = { "Individual": "individual", "Family/couple": "family", "Friends/Group": "friends", "Corporate": "corporate" };
+        applicationData.deal.applicationType = appTypeMap[crmAppType] || applicationData.deal.applicationType;
+      }
+      const crmDateFrom = readZohoValue(deal.Travel_Date_From);
+      const crmDateTo   = readZohoValue(deal.Travel_Date_To);
+      if (crmDateFrom) applicationData.deal.travelDateFrom = String(crmDateFrom);
+      if (crmDateTo)   applicationData.deal.travelDateTo   = String(crmDateTo);
       const crmServiceType = readZohoValue(deal.Service_Type);
       const crmGoal = getGoalDefinition(crmServiceType);
       if (crmGoal) {
