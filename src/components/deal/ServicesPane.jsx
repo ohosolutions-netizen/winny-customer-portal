@@ -215,14 +215,20 @@ function AddonSection() {
 
 // Reproduces renderActiveGoalPanel() (source 14095-14130).
 function ActiveGoalPanel() {
+  // Restore runtime activeGoal from persisted serviceTypeKey after a page reload.
   if (!state.activeGoal) {
-    return (
-      <div style={{ textAlign: "center", padding: 28, border: "2px dashed var(--line)", borderRadius: 14, color: "var(--muted)", marginBottom: 14 }}>
-        <div style={{ fontSize: 32, marginBottom: 10 }}>☝️</div>
-        <div style={{ fontWeight: 800, color: "var(--ink)" }}>Select a service category above</div>
-        <div style={{ fontSize: 13, marginTop: 4 }}>Click a tile to see available packages</div>
-      </div>
-    );
+    const restoredKey = getSelectedServiceTypeKey();
+    if (restoredKey) {
+      state.activeGoal = restoredKey;
+    } else {
+      return (
+        <div style={{ textAlign: "center", padding: 28, border: "2px dashed var(--line)", borderRadius: 14, color: "var(--muted)", marginBottom: 14 }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>☝️</div>
+          <div style={{ fontWeight: 800, color: "var(--ink)" }}>Select a service category above</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Click a tile to see available packages</div>
+        </div>
+      );
+    }
   }
   const goal = GOAL_DEFS.find((g) => g.key === state.activeGoal);
   const selectedCountries = getGoalCountrySelection(state.activeGoal);
