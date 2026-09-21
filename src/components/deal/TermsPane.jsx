@@ -186,7 +186,11 @@ export default function TermsPane() {
                     ? { label: "Service Agreement" }
                     : agreementDetails(requirement.country, hasUSADate, hasPremium);
                   const agreementHtml = isGeneric
-                    ? (applicationData.deal.agreementHtml || "")
+                    ? (() => {
+                        const byCountry = applicationData.deal.agreementHtmlByCountry || {};
+                        const firstKey = Object.keys(byCountry)[0];
+                        return (firstKey && byCountry[firstKey]) || applicationData.deal.agreementHtml || "";
+                      })()
                     : agreementForCountry(agreementMap, requirement.country, requirements.length);
                   const displayCountry = isGeneric ? "Service Agreement" : requirement.country;
                   const complete = !!(record.acceptorId && record.accepted && String(record.signature || "").trim());
@@ -211,7 +215,7 @@ export default function TermsPane() {
 
                       <div className="terms-document">
                         <div className="terms-document-head">
-                          <span><b>Step 1</b> Read {displayCountry} agreement</span>
+                          <span><b>Step 1</b> Read {isGeneric ? "Service Agreement" : `${displayCountry} agreement`}</span>
                           <small>{agreementHtml ? "✓ Agreement loaded" : "Preparing agreement…"}</small>
                         </div>
                         {agreementHtml ? (
