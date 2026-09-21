@@ -12,6 +12,29 @@ import { openZPayWidget } from "../../api/deal.js";
 import { refreshCurrentDealFromCrm } from "../../api/portal.js";
 import PayerModeSelector from "./PayerModeSelector.jsx";
 
+function buildInvoiceLines(serviceBasket, travellers) {
+  const lines = [];
+  const isMultiCountry = (serviceBasket || []).some((item) => (item.destinations || []).length > 1);
+
+  (serviceBasket || []).forEach((item) => {
+    const perHead = Number(item.price || 0);
+    const showDest = (item.destinations || []).length > 0 && isMultiCountry;
+    const destLabel = (item.destinations || []).join(", ");
+
+    (item.assignedTo || []).forEach((tid) => {
+      const t = (travellers || []).find((x) => x.id === tid);
+      const tName = t ? `${t.firstName || ""} ${t.lastName || ""}`.trim() || t.type : "Traveller";
+      lines.push({ key: `${item.id}-${tid}`, service: item.name, traveller: tName, dest: showDest ? destLabel : "", amount: perHead });
+    });
+
+    if (!(item.assignedTo || []).length) {
+      lines.push({ key: item.id, service: item.name, traveller: item.applicants || "", dest: "", amount: Number(item.total || 0) });
+    }
+  });
+
+  return lines;
+}
+
 // Reproduces renderDealPane() sub-step 4 — Payment (source 2720-2797).
 export default function PaymentPane() {
   const basketItems = applicationData.deal.serviceBasket || [];
@@ -21,6 +44,18 @@ export default function PaymentPane() {
   const grand = Number(applicationData.payment.grandTotal || 0);
   const paid = Number(applicationData.payment.paidAmount || 0);
   const remainingMax = Math.max(grand - paid, 0);
+
+  const travellers = applicationData.deal.travellers || [];
+  const invoiceLines = buildInvoiceLines(basketItems, travellers);
+  const addons = (applicationData.deal.selectedAddons || []).map((id) => packageCatalog.find((x) => x.id === id)).filter(Boolean);
+  const baseCost = Number(applicationData.payment.baseCost || 0);
+  const taxes = Number(applicationData.payment.taxes || 0);
+
+  const primaryApplicant = travellers.find((t) => t.type === "Primary Applicant") || travellers[0];
+  const customerName = primaryApplicant
+    ? `${primaryApplicant.firstName || ""} ${primaryApplicant.lastName || ""}`.trim() || "Applicant"
+    : "Applicant";
+  const refNumber = applicationData.deal.applicationNumber || applicationData.deal.crmDealId || "—";
 
   return (
     <section className="wizard-panel">
@@ -32,21 +67,48 @@ export default function PaymentPane() {
         </div>
       </div>
       <div className="panel-body">
-        <div className="review-card" style={{ marginBottom: 18 }}>
-          <h3 style={{ marginBottom: 14 }}>Order Summary</h3>
-          {basketItems.map((item) => (
-            <div className="review-row" key={item.id}>
-              <span>{item.name}<br /><small style={{ color: "var(--muted)", fontSize: 11 }}>{item.applicants}</small></span>
-              <strong>{formatCurrency(item.total)}</strong>
+        <div className="invoice-card">
+          <div className="invoice-header">
+            <div className="invoice-header-left">
+              <span className="invoice-kicker">Invoice</span>
+              <span className="invoice-customer">{customerName}</span>
             </div>
-          ))}
-          {(applicationData.deal.selectedAddons || []).map((id) => {
-            const p = packageCatalog.find((x) => x.id === id);
-            return p ? <div className="review-row" key={id}><span>{p.name}</span><strong>{formatCurrency(p.price)}</strong></div> : null;
-          })}
-          <div className="review-row"><span>GST (18%)</span><strong>{formatCurrency(applicationData.payment.taxes)}</strong></div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 0", borderTop: "2px solid var(--line)", fontSize: 18, fontWeight: 900, color: "var(--navy)" }}>
-            <span>Total</span><span>{formatCurrency(grand)}</span>
+            <div className="invoice-header-right">
+              <span className="invoice-ref-label">Reference</span>
+              <span className="invoice-ref">{refNumber}</span>
+            </div>
+          </div>
+          <div className="invoice-lines">
+            {invoiceLines.map((line) => (
+              <div className="invoice-line" key={line.key}>
+                <div className="invoice-line-info">
+                  <div className="invoice-line-service">{line.service}</div>
+                  {line.traveller ? <div className="invoice-line-traveller">{line.traveller}</div> : null}
+                </div>
+                {line.dest ? <span className="invoice-line-dest">{line.dest}</span> : null}
+                <div className="invoice-line-amount">{formatCurrency(line.amount)}</div>
+              </div>
+            ))}
+            {addons.map((p) => (
+              <div className="invoice-line" key={p.id}>
+                <div className="invoice-line-info">
+                  <div className="invoice-line-service">{p.name}</div>
+                  <div className="invoice-line-traveller">Add-on service</div>
+                </div>
+                <div className="invoice-line-amount">{formatCurrency(p.price)}</div>
+              </div>
+            ))}
+          </div>
+          <div className="invoice-totals">
+            <div className="invoice-total-row subtotal">
+              <span>Subtotal</span><span>{formatCurrency(baseCost)}</span>
+            </div>
+            <div className="invoice-total-row gst">
+              <span>GST (18%)</span><span>{formatCurrency(taxes)}</span>
+            </div>
+            <div className="invoice-total-row grand">
+              <span>Total</span><span>{formatCurrency(grand)}</span>
+            </div>
           </div>
         </div>
 
