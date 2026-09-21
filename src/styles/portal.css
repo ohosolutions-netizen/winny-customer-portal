@@ -555,6 +555,19 @@
       font-size: 10px;
       font-weight: 900;
     }
+    .package-card.in-basket { border-color: #25b99a; box-shadow: 0 8px 28px rgba(0,159,127,.10); }
+    .package-card.in-basket::after {
+      content: "Added ✓";
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      padding: 3px 9px;
+      border-radius: 99px;
+      background: #25b99a;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+    }
     .package-card[data-theme="teal"] { --pkg-accent:#06c9b5; --pkg-accent2:#04a898; --pkg-wash:#f2fffc; }
     .package-card[data-theme="blue"] { --pkg-accent:#0561f4; --pkg-accent2:#1e6aff; --pkg-wash:#f4f8ff; }
     .package-card[data-theme="amber"] { --pkg-accent:#e0980a; --pkg-accent2:#ffbe3d; --pkg-wash:#fffaf0; }

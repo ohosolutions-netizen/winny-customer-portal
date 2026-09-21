@@ -100,9 +100,10 @@ function CountrySelector({ goal }) {
 // Reproduces renderProductTileCard() (source 14132-14153).
 function ProductTileCard({ pkg }) {
   const sel = state.pendingPackageId === pkg.id;
+  const inBasket = (applicationData.deal.serviceBasket || []).some((item) => item.pkgId === pkg.id);
   const descLines = getProductDescriptionBullets(pkg).slice(0, 8);
   return (
-    <button className={`package-card ${sel ? "selected" : ""}`} type="button" data-theme={getProductCardTheme(pkg)} onClick={() => selectPendingPackage(pkg.id)}>
+    <button className={`package-card ${sel ? "selected" : inBasket ? "in-basket" : ""}`} type="button" data-theme={getProductCardTheme(pkg)} onClick={() => selectPendingPackage(pkg.id)}>
       <div className="pkg-badge">{getProductCardBadge(pkg)}</div>
       <div className="pkg-icon-chip">{getProductCardIcon(pkg)}</div>
       <div className="pkg-card-name">{pkg.name}</div>
