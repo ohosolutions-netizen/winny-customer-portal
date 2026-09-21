@@ -1,0 +1,137 @@
+import React, { useState } from "react";
+import { sendAgreementOtp, verifyAgreementOtp } from "../../api/deal.js";
+import { toast } from "../../lib/ui.js";
+
+export default function AgreementCard({ traveller, onSigned }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [signed, setSigned] = useState(!!traveller.agreementSigned);
+  const [signedAt, setSignedAt] = useState(traveller.agreementSignedAt || "");
+  const [error, setError] = useState("");
+
+  const email = traveller.email || "";
+  const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Primary Applicant";
+
+  if (signed) {
+    return (
+      <div className="agreement-card is-signed">
+        <span className="agreement-signed-check">&#10003;</span>
+        <div>
+          <strong>{name} — agreement signed</strong>
+          <small>
+            Verified digitally via OTP
+            {signedAt ? ` · ${new Date(signedAt).toLocaleString("en-IN")}` : ""}
+          </small>
+        </div>
+      </div>
+    );
+  }
+
+  if (!traveller.crmId) {
+    return (
+      <div className="agreement-card notice amber">
+        <strong>Sync required before signing</strong>
+        <span>Traveller CRM ID not found. Go back to Services and re-sync application details, then return here.</span>
+      </div>
+    );
+  }
+
+  async function handleSend() {
+    setError("");
+    setSending(true);
+    try {
+      await sendAgreementOtp(traveller.crmId, email);
+      setSent(true);
+      setOtp("");
+      toast(`OTP sent to ${email}`);
+    } catch (err) {
+      setError(err.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleVerify() {
+    if (otp.length !== 6) {
+      setError("Enter the 6-digit OTP sent to your email.");
+      return;
+    }
+    setError("");
+    setVerifying(true);
+    try {
+      const result = await verifyAgreementOtp(traveller.crmId, email, otp);
+      let parsedAt = "";
+      try { parsedAt = JSON.parse(result.CRM_Response || "{}").signedAt || ""; } catch (e) {}
+      traveller.agreementSigned = true;
+      traveller.agreementSignedAt = parsedAt || new Date().toISOString();
+      setSigned(true);
+      setSignedAt(traveller.agreementSignedAt);
+      toast(`Agreement signed by ${name} ✓`);
+      if (onSigned) onSigned();
+    } catch (err) {
+      setError(err.message || "OTP verification failed. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  return (
+    <div className="agreement-card">
+      <div className="agreement-card-head">
+        <div>
+          <strong>{name}</strong>
+          <small>OTP will be sent to <em>{email || "— no email on file —"}</em></small>
+        </div>
+      </div>
+
+      {error ? <div className="notice red agreement-card-error">{error}</div> : null}
+
+      {!sent ? (
+        <button
+          className="btn primary"
+          type="button"
+          onClick={handleSend}
+          disabled={sending || !email}
+        >
+          {sending ? "Sending OTP…" : "Send OTP to email"}
+        </button>
+      ) : (
+        <div className="agreement-otp-entry">
+          <label className="field">
+            <span>Enter the 6-digit OTP</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              autoComplete="one-time-code"
+              className="otp-input"
+            />
+          </label>
+          <div className="agreement-otp-actions">
+            <button
+              className="btn primary"
+              type="button"
+              onClick={handleVerify}
+              disabled={verifying || otp.length !== 6}
+            >
+              {verifying ? "Verifying…" : "Verify & Sign"}
+            </button>
+            <button
+              className="btn secondary"
+              type="button"
+              onClick={handleSend}
+              disabled={sending}
+            >
+              {sending ? "Sending…" : "Resend OTP"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

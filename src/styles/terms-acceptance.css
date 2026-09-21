@@ -64,6 +64,26 @@
 .terms-acceptance-fields .field small { color: var(--muted); display: block; font-size: 10px; margin-top: 5px; }
 .terms-accept-check { grid-column: 1 / -1; margin-top: 2px; }
 .terms-accept-check.disabled { cursor: not-allowed; opacity: .58; }
+.agreement-signing-section { padding: 0 16px 16px; }
+.agreement-signing-heading { margin-bottom: 10px; }
+.agreement-otp-waiting { margin: 0; }
+.agreement-card { background: #fff; border: 1.5px solid #dce5f4; border-radius: 12px; padding: 16px; }
+.agreement-card.notice.amber { border-color: #f5b942; }
+.agreement-card.is-signed { align-items: center; background: #e4f9f2; border-color: #25b99a; display: flex; gap: 12px; }
+.agreement-signed-check { align-items: center; background: #25b99a; border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 30px; font-size: 16px; font-weight: 900; height: 30px; justify-content: center; }
+.agreement-card.is-signed strong { color: #007d65; display: block; font-size: 13px; }
+.agreement-card.is-signed small { color: #4a9e8f; display: block; font-size: 11px; margin-top: 2px; }
+.agreement-card-head { margin-bottom: 12px; }
+.agreement-card-head strong { color: var(--navy); display: block; font-size: 13px; }
+.agreement-card-head small { color: var(--muted); display: block; font-size: 11px; margin-top: 3px; }
+.agreement-card-head em { color: #0869d7; font-style: normal; }
+.agreement-card-error { margin-bottom: 12px; }
+.agreement-otp-entry { display: grid; gap: 12px; }
+.agreement-otp-entry .field { margin: 0; }
+.agreement-otp-entry .field > span { color: var(--navy); display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; }
+.otp-input { background: #fff; border: 1.5px solid var(--line); border-radius: 10px; box-sizing: border-box; color: var(--navy); font: 600 22px/1 monospace; letter-spacing: 8px; min-height: 48px; padding: 10px 14px; text-align: center; width: 100%; }
+.otp-input:focus { border-color: #0869d7; outline: none; }
+.agreement-otp-actions { display: flex; gap: 10px; }
 @media (max-width: 760px) {
   .terms-acceptance-fields { grid-template-columns: 1fr; }
   .terms-overview { grid-template-columns: 1fr; }

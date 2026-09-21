@@ -1,7 +1,9 @@
 import React, { useEffect } from "react";
 import { applicationData } from "../../store/runtime.js";
 import { formatCurrency } from "../../lib/utils.js";
+import { requestRender } from "../../lib/ui.js";
 import { setUSAAddons } from "../../core/deal.js";
+import { saveDraft } from "../../core/drafts.js";
 import {
   getTermsAcceptance,
   getTermsRequirements,
@@ -10,6 +12,7 @@ import {
   setTermsSignature
 } from "../../core/terms.js";
 import { fetchAgreement } from "../../api/deal.js";
+import AgreementCard from "./AgreementCard.jsx";
 
 function isUSACountry(country) {
   return /united states|^usa$|^us$/i.test(String(country || "").trim());
@@ -240,6 +243,46 @@ export default function TermsPane() {
                   );
                 })}
               </div>
+
+              {(() => {
+                const primaryApplicant = applicationData.deal.travellers.find(
+                  (t) => (t.familyId || "family-1") === family.id && t.type === "Primary Applicant"
+                );
+                if (!primaryApplicant) return null;
+
+                const allFamilyTermsComplete = family.requirements.every((req) => {
+                  const rec = getTermsAcceptance(req);
+                  return rec.acceptorId && rec.accepted && String(rec.signature || "").trim();
+                });
+
+                return (
+                  <div className="agreement-signing-section">
+                    <div className="terms-action-heading agreement-signing-heading">
+                      <span>Step 4</span>
+                      <div>
+                        <strong>Digital Agreement Signature</strong>
+                        <small>
+                          {primaryApplicant.firstName || "Primary applicant"} verifies via OTP to digitally sign the agreement
+                          {family.requirements[0]?.travellers?.some((t) => t.type === "Child") || family.requirements[0]?.travellers?.some((t) => t.type === "Dependent")
+                            ? " (covers all family members including minors)"
+                            : ""}
+                          .
+                        </small>
+                      </div>
+                    </div>
+                    {!allFamilyTermsComplete ? (
+                      <div className="notice amber agreement-otp-waiting">
+                        Complete the country agreement(s) above before the digital signature step.
+                      </div>
+                    ) : (
+                      <AgreementCard
+                        traveller={primaryApplicant}
+                        onSigned={() => { saveDraft(false); requestRender(); }}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
             </section>
           ))}
         </div>

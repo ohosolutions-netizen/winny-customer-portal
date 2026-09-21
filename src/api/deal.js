@@ -129,6 +129,12 @@ let zPayInstance = null;
       if (step === 4) {
         const termsError = validateTermsAcceptances();
         if (termsError) return fail(termsError);
+        const primaryApplicants = applicationData.deal.travellers.filter((t) => t.type === "Primary Applicant");
+        const unsignedLeads = primaryApplicants.filter((t) => !t.agreementSigned);
+        if (unsignedLeads.length > 0) {
+          const names = unsignedLeads.map((t) => `${t.firstName || ""} ${t.lastName || ""}`.trim()).filter(Boolean).join(", ");
+          return fail(`OTP agreement not yet signed by: ${names}. Complete the OTP verification on the Terms page before proceeding.`);
+        }
       }
       return true;
     }
@@ -773,8 +779,38 @@ if (
       return creatorRecordId;
     }
 
+async function sendAgreementOtp(travellerCrmId, email) {
+  applicationData.deal.travellerCrmId = travellerCrmId;
+  applicationData.deal.email = email;
+  try {
+    const creatorRecordId = await submitPortalCrmRequest("Send Agreement OTP");
+    const result = await pollCreatorRecord(creatorRecordId, 15, 2000);
+    if (result.Status === "Failed") throw new Error(result.Error_Message || "Failed to send OTP.");
+    return result;
+  } finally {
+    delete applicationData.deal.travellerCrmId;
+    delete applicationData.deal.email;
+  }
+}
+
+async function verifyAgreementOtp(travellerCrmId, email, otp) {
+  applicationData.deal.travellerCrmId = travellerCrmId;
+  applicationData.deal.email = email;
+  applicationData.deal.otp = otp;
+  try {
+    const creatorRecordId = await submitPortalCrmRequest("Verify Agreement OTP");
+    const result = await pollCreatorRecord(creatorRecordId, 15, 2000);
+    if (result.Status === "Failed") throw new Error(result.Error_Message || "OTP verification failed.");
+    return result;
+  } finally {
+    delete applicationData.deal.travellerCrmId;
+    delete applicationData.deal.email;
+    delete applicationData.deal.otp;
+  }
+}
+
 export {
   goDealSubStep, validateDealSubStep, openZPayWidget, showPaymentConfirmedScreen,
   goToQuestionnaire, fetchAgreement, completePayment, createZohoPaymentLink,
-  saveDealDetails, saveDealData
+  saveDealDetails, saveDealData, sendAgreementOtp, verifyAgreementOtp
 };
