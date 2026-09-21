@@ -78,6 +78,28 @@ export default function TermsPane() {
     family.requirements.push(requirement);
   });
 
+  // Also include families that have a Primary Applicant but no country requirements
+  // (they skip Steps 1–3 and go straight to Step 4 — digital signature only).
+  const familiesWithReqIds = new Set(families.map((f) => f.id));
+  const allTravellers = applicationData.deal.travellers || [];
+  const familyOrder = [];
+  const familyLabelMap = {};
+  allTravellers.forEach((t) => {
+    const fid = t.familyId || "family-1";
+    if (!familyLabelMap[fid]) {
+      familyLabelMap[fid] = `Family ${familyOrder.length + 1}`;
+      familyOrder.push(fid);
+    }
+  });
+  familyOrder.forEach((fid) => {
+    if (!familiesWithReqIds.has(fid)) {
+      const hasPrimary = allTravellers.some((t) => (t.familyId || "family-1") === fid && t.type === "Primary Applicant");
+      if (hasPrimary) {
+        families.push({ id: fid, label: familyLabelMap[fid], requirements: [] });
+      }
+    }
+  });
+
   return (
     <section className="wizard-panel terms-panel">
       <div className="panel-head">

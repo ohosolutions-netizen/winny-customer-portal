@@ -17,7 +17,7 @@ import {
   getCustomerName, getSelectedServiceNames, syncPaymentBreakdown, getPaymentMode
 } from "../core/derive.js";
 import { ensurePrimaryTravellerFromCustomer, applyTravellerCrmIds } from "../core/deal.js";
-import { isAdultTraveller, validateTermsAcceptances, getTermsRequirements } from "../core/terms.js";
+import { isAdultTraveller, validateTermsAcceptances } from "../core/terms.js";
 import { saveDraft } from "../core/drafts.js";
 import { showWizard, showStep } from "../core/navigation.js";
 import { submitPortalCrmRequest, pollCreatorRecord, findTravellersForDeal, reconcileTravellerCrmRows } from "./portal.js";
@@ -129,10 +129,7 @@ let zPayInstance = null;
       if (step === 4) {
         const termsError = validateTermsAcceptances();
         if (termsError) return fail(termsError);
-        const familiesWithRequirements = new Set(getTermsRequirements().map((r) => r.familyId));
-        const primaryApplicants = applicationData.deal.travellers.filter(
-          (t) => t.type === "Primary Applicant" && familiesWithRequirements.has(t.familyId || "family-1")
-        );
+        const primaryApplicants = applicationData.deal.travellers.filter((t) => t.type === "Primary Applicant");
         const unsignedLeads = primaryApplicants.filter((t) => !t.agreementSigned);
         if (unsignedLeads.length > 0) {
           const names = unsignedLeads.map((t) => `${t.firstName || ""} ${t.lastName || ""}`.trim()).filter(Boolean).join(", ");
