@@ -9,7 +9,11 @@ import {
   getTermsRequirements,
   setTermsAccepted,
   setTermsAcceptor,
-  setTermsSignature
+  setTermsSignature,
+  isAdultTraveller,
+  getSignatureOnlyFamilies,
+  GENERIC_AGREEMENT_COUNTRY,
+  termsAcceptanceKey,
 } from "../../core/terms.js";
 import { fetchAgreement } from "../../api/deal.js";
 import AgreementCard from "./AgreementCard.jsx";
@@ -78,27 +82,28 @@ export default function TermsPane() {
     family.requirements.push(requirement);
   });
 
-  // Also include families that have a Primary Applicant but no country requirements
-  // (they skip Steps 1–3 and go straight to Step 4 — digital signature only).
-  const familiesWithReqIds = new Set(families.map((f) => f.id));
+  // Also include families with a Primary Applicant but no country requirements.
+  // Give them a synthetic "Service Agreement" requirement so Steps 1–3 are visible.
   const allTravellers = applicationData.deal.travellers || [];
-  const familyOrder = [];
-  const familyLabelMap = {};
-  allTravellers.forEach((t) => {
-    const fid = t.familyId || "family-1";
-    if (!familyLabelMap[fid]) {
-      familyLabelMap[fid] = `Family ${familyOrder.length + 1}`;
-      familyOrder.push(fid);
-    }
-  });
-  familyOrder.forEach((fid) => {
-    if (!familiesWithReqIds.has(fid)) {
-      const hasPrimary = allTravellers.some((t) => (t.familyId || "family-1") === fid && t.type === "Primary Applicant");
-      if (hasPrimary) {
-        families.push({ id: fid, label: familyLabelMap[fid], requirements: [] });
-      }
-    }
-  });
+  for (const sigFamily of getSignatureOnlyFamilies()) {
+    const members = allTravellers.filter((t) => (t.familyId || "family-1") === sigFamily.id);
+    const eligibleAdults = members
+      .filter((t) => isAdultTraveller(t))
+      .map((t) => ({ id: t.id, name: `${t.firstName || ""} ${t.lastName || ""}`.trim() || t.type, type: t.type }));
+    families.push({
+      id: sigFamily.id,
+      label: sigFamily.label,
+      requirements: [{
+        key: termsAcceptanceKey(sigFamily.id, GENERIC_AGREEMENT_COUNTRY),
+        familyId: sigFamily.id,
+        familyLabel: sigFamily.label,
+        country: GENERIC_AGREEMENT_COUNTRY,
+        travellers: members,
+        eligibleAdults,
+        _isGeneric: true,
+      }],
+    });
+  }
 
   return (
     <section className="wizard-panel terms-panel">
@@ -167,15 +172,23 @@ export default function TermsPane() {
                   <h4>{family.label}</h4>
                 </div>
                 <span className="terms-family-count">
-                  {family.requirements.length} {family.requirements.length === 1 ? "country" : "countries"}
+                  {family.requirements.every((r) => r._isGeneric)
+                    ? "Service Agreement"
+                    : `${family.requirements.length} ${family.requirements.length === 1 ? "country" : "countries"}`}
                 </span>
               </div>
 
               <div className="terms-country-list">
                 {family.requirements.map((requirement) => {
                   const record = getTermsAcceptance(requirement);
-                  const document = agreementDetails(requirement.country, hasUSADate, hasPremium);
-                  const agreementHtml = agreementForCountry(agreementMap, requirement.country, requirements.length);
+                  const isGeneric = !!requirement._isGeneric;
+                  const document = isGeneric
+                    ? { label: "Service Agreement" }
+                    : agreementDetails(requirement.country, hasUSADate, hasPremium);
+                  const agreementHtml = isGeneric
+                    ? (applicationData.deal.agreementHtml || "")
+                    : agreementForCountry(agreementMap, requirement.country, requirements.length);
+                  const displayCountry = isGeneric ? "Service Agreement" : requirement.country;
                   const complete = !!(record.acceptorId && record.accepted && String(record.signature || "").trim());
                   const applicantNames = requirement.travellers
                     .map((traveller) => `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim())
@@ -186,8 +199,8 @@ export default function TermsPane() {
                     <article className={`terms-country-card${complete ? " is-complete" : ""}`} key={requirement.key}>
                       <div className="terms-country-head">
                         <div>
-                          <span className="terms-country-kicker">Country-specific agreement</span>
-                          <h5>{requirement.country}</h5>
+                          <span className="terms-country-kicker">{isGeneric ? "Service agreement" : "Country-specific agreement"}</span>
+                          <h5>{displayCountry}</h5>
                           <small>{document.label}</small>
                           {applicantNames ? <small className="terms-applicants">Applicants: {applicantNames}</small> : null}
                         </div>
@@ -198,7 +211,7 @@ export default function TermsPane() {
 
                       <div className="terms-document">
                         <div className="terms-document-head">
-                          <span><b>Step 1</b> Read {requirement.country} agreement</span>
+                          <span><b>Step 1</b> Read {displayCountry} agreement</span>
                           <small>{agreementHtml ? "✓ Agreement loaded" : "Preparing agreement…"}</small>
                         </div>
                         {agreementHtml ? (
@@ -234,7 +247,7 @@ export default function TermsPane() {
                                 <option value={adult.id} key={adult.id}>{adult.name} — {adult.type}</option>
                               ))}
                             </select>
-                            <small>An adult in {family.label} accepts this agreement for all family members applying to {requirement.country}.</small>
+                            <small>An adult in {family.label} accepts this agreement for all family members{isGeneric ? "" : ` applying to ${requirement.country}`}.</small>
                           </label>
 
                           <label className="field">
@@ -256,7 +269,7 @@ export default function TermsPane() {
                               onChange={(event) => setTermsAccepted(requirement, event.target.checked)}
                             />
                             <span>
-                              I, <strong>{record.acceptorName || "the selected adult"}</strong>, have read and accept the <strong>{requirement.country} agreement</strong> for <strong>{family.label}</strong>.
+                              I, <strong>{record.acceptorName || "the selected adult"}</strong>, have read and accept the <strong>{displayCountry} agreement</strong> for <strong>{family.label}</strong>.
                             </span>
                           </label>
                         </div>

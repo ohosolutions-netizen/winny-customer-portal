@@ -138,6 +138,37 @@ export function setTermsAccepted(requirement, accepted) {
   commitTermsChange();
 }
 
+export const GENERIC_AGREEMENT_COUNTRY = "__service_agreement__";
+
+export function getSignatureOnlyFamilies() {
+  const realFamilyIds = new Set(getTermsRequirements().map((r) => r.familyId));
+  const familyMap = new Map();
+  const familyOrder = [];
+  (applicationData.deal.travellers || []).forEach((t) => {
+    const fid = t.familyId || DEFAULT_FAMILY_ID;
+    if (!familyMap.has(fid)) {
+      familyMap.set(fid, { id: fid, label: `Family ${familyOrder.length + 1}`, members: [] });
+      familyOrder.push(fid);
+    }
+    familyMap.get(fid).members.push(t);
+  });
+  return familyOrder
+    .filter((fid) => !realFamilyIds.has(fid))
+    .map((fid) => familyMap.get(fid))
+    .filter((f) => f.members.some((t) => t.type === "Primary Applicant"));
+}
+
+export function validateSignatureOnlyAcceptances() {
+  for (const family of getSignatureOnlyFamilies()) {
+    const key = termsAcceptanceKey(family.id, GENERIC_AGREEMENT_COUNTRY);
+    const rec = (applicationData.deal.termsAcceptances || {})[key] || {};
+    if (!rec.acceptorId) return `Select an adult terms acceptor for ${family.label} — Service Agreement.`;
+    if (!String(rec.signature || "").trim()) return `Enter the signature for ${family.label} — Service Agreement.`;
+    if (!rec.accepted) return `Accept the Service Agreement for ${family.label}.`;
+  }
+  return "";
+}
+
 export function validateTermsAcceptances() {
   const requirements = getTermsRequirements();
   if (!requirements.length) return "Assign at least one traveller to each selected country before accepting the terms.";
