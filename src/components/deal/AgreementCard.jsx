@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { sendAgreementOtp, verifyAgreementOtp, saveDealData } from "../../api/deal.js";
+import { sendAgreementOtp, verifyAgreementOtp, saveDealData, sendAgreementEmail } from "../../api/deal.js";
+import { applicationData } from "../../store/runtime.js";
 import { toast, requestRender } from "../../lib/ui.js";
 
 export default function AgreementCard({ traveller, onSigned }) {
@@ -91,6 +92,21 @@ export default function AgreementCard({ traveller, onSigned }) {
       setSignedAt(traveller.agreementSignedAt);
       toast(`Agreement signed by ${name} ✓`);
       if (onSigned) onSigned();
+
+      // Fire-and-forget — send agreement copy to customer email
+      const c = applicationData.customer || {};
+      const d = applicationData.deal || {};
+      const byCountry = d.agreementHtmlByCountry || {};
+      const allHtml = d.agreementHtml || Object.values(byCountry).join("") || "";
+      sendAgreementEmail({
+        email,
+        customerName: `${c.firstName || ""} ${c.lastName || ""}`.trim() || name,
+        applicationId: applicationData.applicationId || "",
+        signedByName: name,
+        signedAt: traveller.agreementSignedAt,
+        country: Object.keys(byCountry).join(", ") || d.destination || "",
+        agreementHtml: allHtml,
+      });
     } catch (err) {
       setError(err.message || "OTP verification failed. Please try again.");
     } finally {

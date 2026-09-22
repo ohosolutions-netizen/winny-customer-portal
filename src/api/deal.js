@@ -815,8 +815,32 @@ async function verifyAgreementOtp(travellerCrmId, email, otp) {
   }
 }
 
+async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, agreementHtml }) {
+  applicationData.deal.agreementEmailTo        = email;
+  applicationData.deal.agreementEmailName      = customerName;
+  applicationData.deal.agreementEmailAppId     = applicationId;
+  applicationData.deal.agreementEmailSignedBy  = signedByName;
+  applicationData.deal.agreementEmailSignedAt  = signedAt;
+  applicationData.deal.agreementEmailCountry   = country;
+  applicationData.deal.agreementEmailHtml      = agreementHtml;
+  try {
+    const creatorRecordId = await submitPortalCrmRequest("Send Agreement Email");
+    await pollCreatorRecord(creatorRecordId, 10, 2000);
+  } catch (err) {
+    console.warn("[Winny] Agreement email failed (non-blocking):", err);
+  } finally {
+    delete applicationData.deal.agreementEmailTo;
+    delete applicationData.deal.agreementEmailName;
+    delete applicationData.deal.agreementEmailAppId;
+    delete applicationData.deal.agreementEmailSignedBy;
+    delete applicationData.deal.agreementEmailSignedAt;
+    delete applicationData.deal.agreementEmailCountry;
+    delete applicationData.deal.agreementEmailHtml;
+  }
+}
+
 export {
   goDealSubStep, validateDealSubStep, openZPayWidget, showPaymentConfirmedScreen,
   goToQuestionnaire, fetchAgreement, completePayment, createZohoPaymentLink,
-  saveDealDetails, saveDealData, sendAgreementOtp, verifyAgreementOtp
+  saveDealDetails, saveDealData, sendAgreementOtp, verifyAgreementOtp, sendAgreementEmail
 };
