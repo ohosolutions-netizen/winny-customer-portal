@@ -46,12 +46,16 @@ let zPayInstance = null;
    * The second condition supports older drafts that may already be
    * on the Terms step without having been synchronized.
    */
+  const isPaid = isFullyPaidStatus(applicationData.payment.status);
   const shouldSyncApplicationDetails =
-    (targetStep === 4 && state.dealSubStep < 4) ||
+    !isPaid &&
     (
-      targetStep === 5 &&
-      state.dealSubStep < 5 &&
-      !applicationData.crmSync.applicationDetailsSynced
+      (targetStep === 4 && state.dealSubStep < 4) ||
+      (
+        targetStep === 5 &&
+        state.dealSubStep < 5 &&
+        !applicationData.crmSync.applicationDetailsSynced
+      )
     );
 
   if (shouldSyncApplicationDetails) {
