@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { sendAgreementOtp, verifyAgreementOtp } from "../../api/deal.js";
-import { toast } from "../../lib/ui.js";
+import { sendAgreementOtp, verifyAgreementOtp, saveDealData } from "../../api/deal.js";
+import { toast, requestRender } from "../../lib/ui.js";
 
 export default function AgreementCard({ traveller, onSigned }) {
   const [sending, setSending] = useState(false);
@@ -10,6 +10,8 @@ export default function AgreementCard({ traveller, onSigned }) {
   const [signed, setSigned] = useState(!!traveller.agreementSigned);
   const [signedAt, setSignedAt] = useState(traveller.agreementSignedAt || "");
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
 
   const email = traveller.email || "";
   const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Primary Applicant";
@@ -29,11 +31,30 @@ export default function AgreementCard({ traveller, onSigned }) {
     );
   }
 
+  async function handleResync() {
+    setSyncing(true);
+    setSyncError("");
+    try {
+      await saveDealData({ syncOnly: true });
+      requestRender();
+    } catch (err) {
+      setSyncError(err.message || "Sync failed. Please try again.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   if (!traveller.crmId) {
     return (
-      <div className="agreement-card notice amber">
-        <strong>Sync required before signing</strong>
-        <span>Traveller CRM ID not found. Go back to Services and re-sync application details, then return here.</span>
+      <div className="agreement-card">
+        <div className="notice amber" style={{ marginBottom: 12 }}>
+          <strong>CRM sync needed</strong>
+          <span>Traveller ID not yet linked. Click the button below to sync with CRM — this usually takes a few seconds.</span>
+        </div>
+        {syncError ? <div className="notice red" style={{ marginBottom: 12 }}>{syncError}</div> : null}
+        <button className="btn secondary" type="button" onClick={handleResync} disabled={syncing}>
+          {syncing ? "Syncing with CRM…" : "Re-sync now"}
+        </button>
       </div>
     );
   }
