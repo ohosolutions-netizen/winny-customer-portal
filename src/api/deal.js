@@ -816,28 +816,34 @@ async function verifyAgreementOtp(travellerCrmId, email, otp) {
 }
 
 async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, crmId, crmDealId, hasUSA, hasDate, hasPremium }) {
+  const recordData = {
+    Customer_Email:   email,
+    Customer_Name:    customerName,
+    Application_Id:   applicationId,
+    Signed_By:        signedByName,
+    Signed_At:        signedAt,
+    Country:          country,
+    CRM_Contact_Id:   crmId || "",
+    CRM_Deal_Id:      crmDealId || "",
+    Has_USA:          hasUSA ? "true" : "false",
+    Has_Date_Booking: hasDate ? "true" : "false",
+    Has_Premium:      hasPremium ? "true" : "false",
+    Status:           "Pending",
+  };
   try {
-    if (!window.ZOHO?.CREATOR?.DATA?.addRecords) return;
-    await window.ZOHO.CREATOR.DATA.addRecords({
-      appName:  "winny-immigration",
-      formName: "Agreement_Email_Request",
-      data: {
-        data: {
-          Customer_Email:   email,
-          Customer_Name:    customerName,
-          Application_Id:   applicationId,
-          Signed_By:        signedByName,
-          Signed_At:        signedAt,
-          Country:          country,
-          CRM_Contact_Id:   crmId || "",
-          CRM_Deal_Id:      crmDealId || "",
-          Has_USA:          hasUSA ? "true" : "false",
-          Has_Date_Booking: hasDate ? "true" : "false",
-          Has_Premium:      hasPremium ? "true" : "false",
-          Status:           "Pending",
-        }
-      }
-    });
+    if (window.ZOHO?.CREATOR?.DATA?.addRecords) {
+      await ZOHO.CREATOR.DATA.addRecords({
+        app_name:  CONFIG.creator.appLinkName,
+        form_name: "Agreement_Email_Request",
+        payload:   { data: recordData },
+      });
+    } else if (window.ZOHO?.CREATOR?.API?.addRecord) {
+      await ZOHO.CREATOR.API.addRecord({
+        appName:  CONFIG.creator.appLinkName,
+        formName: "Agreement_Email_Request",
+        data:     { data: recordData },
+      });
+    }
   } catch (err) {
     console.warn("[Winny] Agreement email request failed (non-blocking):", err);
   }
