@@ -1317,9 +1317,12 @@ applicationData.stepStatus.dealCompleted =
           dob:          readZohoValue(row.Date_of_Birth) || "",
           relationship: readZohoValue(row.Traveller_Relation) || "",
           nationality:  readZohoValue(row.Nationality)  || "Indian",
-          email:        readZohoValue(row.Email)  || "",
-          mobile:       readZohoValue(row.Mobile) || "",
-          serviceType:  readZohoValue(row.Service_Type) || applicationData.deal.goal || ""
+          email:           readZohoValue(row.Email)  || "",
+          mobile:          readZohoValue(row.Mobile) || "",
+          serviceType:     readZohoValue(row.Service_Type) || applicationData.deal.goal || "",
+          agreementSigned: readZohoValue(row.Agreement_Signed) === true
+                        || String(readZohoValue(row.Agreement_Signed) || "").toLowerCase() === "true",
+          agreementSignedAt: readZohoValue(row.Agreement_Signed_At) || "",
         };
       });
     }
