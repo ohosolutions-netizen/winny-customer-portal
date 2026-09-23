@@ -587,10 +587,31 @@ function hydrateApplicationDetails(details) {
   }
 
   if (savedPayload.deal) {
+    // Snapshot agreement state before mergeDeep: it replaces arrays wholesale,
+    // so the older Creator savedPayload (no agreementSigned) would overwrite
+    // the locally-loaded agreementSigned:true from localStorage.
+    const signedSnapshot = new Map();
+    (applicationData.deal.travellers || []).forEach((t) => {
+      const key = String(t.crmId || t.id || "");
+      if (key && t.agreementSigned) {
+        signedSnapshot.set(key, { agreementSigned: true, agreementSignedAt: t.agreementSignedAt || "" });
+      }
+    });
+
     applicationData.deal = mergeDeep(
       applicationData.deal || {},
       savedPayload.deal
     );
+
+    // Restore agreement state that mergeDeep may have overwritten.
+    (applicationData.deal.travellers || []).forEach((t) => {
+      const key = String(t.crmId || t.id || "");
+      const snap = key ? signedSnapshot.get(key) : undefined;
+      if (snap) {
+        t.agreementSigned = true;
+        if (!t.agreementSignedAt) t.agreementSignedAt = snap.agreementSignedAt;
+      }
+    });
 
     const travellerFamilyGroups =
       applicationData.deal.travellerFamilyGroups &&
@@ -1295,12 +1316,28 @@ applicationData.stepStatus.dealCompleted =
     }
 
     function hydrateTravellersFromCrm(rows) {
+      // Preserve agreement state already loaded from localStorage (draft) so that
+      // a CRM field that hasn't propagated yet doesn't overwrite a known-signed state.
+      const localSigned = new Map();
+      (applicationData.deal.travellers || []).forEach((t) => {
+        if (t.crmId && t.agreementSigned) {
+          localSigned.set(String(t.crmId), {
+            agreementSigned: t.agreementSigned,
+            agreementSignedAt: t.agreementSignedAt || "",
+          });
+        }
+      });
+
       applicationData.deal.travellers = rows.map((row, index) => {
+        const crmId = String(row.id || row.ID || "");
+        const local = localSigned.get(crmId) || {};
         const name  = readZohoValue(row.Name) || readZohoValue(row.Full_Name) || "";
         const parts = name.split(" ");
+        const crmSigned = readZohoValue(row.Agreement_Signed) === true
+                       || String(readZohoValue(row.Agreement_Signed) || "").toLowerCase() === "true";
         return {
-          id:           `crm-traveller-${row.id||row.ID||index}`,
-          crmId:        row.id || row.ID || "",
+          id:           `crm-traveller-${crmId || index}`,
+          crmId,
           familyId:     readZohoValue(row.Family_Group) || "family-1",
           type:
   readZohoValue(row.Traveller_Type) === "Primary Applicant"
@@ -1320,9 +1357,8 @@ applicationData.stepStatus.dealCompleted =
           email:           readZohoValue(row.Email)  || "",
           mobile:          readZohoValue(row.Mobile) || "",
           serviceType:     readZohoValue(row.Service_Type) || applicationData.deal.goal || "",
-          agreementSigned: readZohoValue(row.Agreement_Signed) === true
-                        || String(readZohoValue(row.Agreement_Signed) || "").toLowerCase() === "true",
-          agreementSignedAt: readZohoValue(row.Agreement_Signed_At) || "",
+          agreementSigned: local.agreementSigned || crmSigned,
+          agreementSignedAt: local.agreementSignedAt || readZohoValue(row.Agreement_Signed_At) || "",
         };
       });
     }
