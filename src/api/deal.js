@@ -816,34 +816,30 @@ async function verifyAgreementOtp(travellerCrmId, email, otp) {
 }
 
 async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, crmId, crmDealId, hasUSA, hasDate, hasPremium }) {
-  applicationData.deal.agreementEmailTo         = email;
-  applicationData.deal.agreementEmailName       = customerName;
-  applicationData.deal.agreementEmailAppId      = applicationId;
-  applicationData.deal.agreementEmailSignedBy   = signedByName;
-  applicationData.deal.agreementEmailSignedAt   = signedAt;
-  applicationData.deal.agreementEmailCountry    = country;
-  applicationData.deal.agreementEmailCrmId      = crmId || "";
-  applicationData.deal.agreementEmailDealId     = crmDealId || "";
-  applicationData.deal.agreementEmailHasUsa     = hasUSA ? "true" : "false";
-  applicationData.deal.agreementEmailHasDate    = hasDate ? "true" : "false";
-  applicationData.deal.agreementEmailHasPremium = hasPremium ? "true" : "false";
   try {
-    const creatorRecordId = await submitPortalCrmRequest("Send Agreement Email");
-    await pollCreatorRecord(creatorRecordId, 10, 2000);
+    if (!window.ZOHO?.CREATOR?.DATA?.addRecords) return;
+    await window.ZOHO.CREATOR.DATA.addRecords({
+      appName:  "winny-immigration",
+      formName: "Agreement_Email_Request",
+      data: {
+        data: {
+          Customer_Email:   email,
+          Customer_Name:    customerName,
+          Application_Id:   applicationId,
+          Signed_By:        signedByName,
+          Signed_At:        signedAt,
+          Country:          country,
+          CRM_Contact_Id:   crmId || "",
+          CRM_Deal_Id:      crmDealId || "",
+          Has_USA:          hasUSA ? "true" : "false",
+          Has_Date_Booking: hasDate ? "true" : "false",
+          Has_Premium:      hasPremium ? "true" : "false",
+          Status:           "Pending",
+        }
+      }
+    });
   } catch (err) {
-    console.warn("[Winny] Agreement email failed (non-blocking):", err);
-  } finally {
-    delete applicationData.deal.agreementEmailTo;
-    delete applicationData.deal.agreementEmailName;
-    delete applicationData.deal.agreementEmailAppId;
-    delete applicationData.deal.agreementEmailSignedBy;
-    delete applicationData.deal.agreementEmailSignedAt;
-    delete applicationData.deal.agreementEmailCountry;
-    delete applicationData.deal.agreementEmailCrmId;
-    delete applicationData.deal.agreementEmailDealId;
-    delete applicationData.deal.agreementEmailHasUsa;
-    delete applicationData.deal.agreementEmailHasDate;
-    delete applicationData.deal.agreementEmailHasPremium;
+    console.warn("[Winny] Agreement email request failed (non-blocking):", err);
   }
 }
 
