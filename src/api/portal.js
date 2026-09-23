@@ -1149,6 +1149,8 @@ const stale =
         const localEmail = String(traveller.email || "").trim().toLowerCase();
         const localName = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim().toLowerCase();
         const localDob = String(traveller.dob || "").trim();
+        const localFamilyGroup = String(traveller.familyId || traveller.Family_Group || "").trim();
+        const localType = String(traveller.type || "").trim().toLowerCase();
 
         const matchingRow = rows.find((row) => {
           const crmId = String(row.id || row.ID || "");
@@ -1162,7 +1164,13 @@ const stale =
           const crmDob = String(readZohoValue(row.Date_of_Birth) || "").trim();
 
           if (localEmail && crmEmail && localEmail === crmEmail) return true;
-          return Boolean(localName && crmName === localName && (!localDob || !crmDob || localDob === crmDob));
+          if (localName && crmName === localName && (!localDob || !crmDob || localDob === crmDob)) return true;
+          // Fallback: match by Family_Group + Traveller_Type for travellers without email/name
+          const crmFamilyGroup = String(readZohoValue(row.Family_Group) || "").trim();
+          const crmType = String(readZohoValue(row.Traveller_Type) || "").trim().toLowerCase();
+          if (localFamilyGroup && crmFamilyGroup && localFamilyGroup === crmFamilyGroup &&
+              localType && crmType && localType === crmType) return true;
+          return false;
         });
 
         if (!matchingRow) return;
