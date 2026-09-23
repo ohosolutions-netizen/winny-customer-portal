@@ -587,15 +587,19 @@ function hydrateApplicationDetails(details) {
   }
 
   if (savedPayload.deal) {
-    // Snapshot agreement state before mergeDeep: it replaces arrays wholesale,
-    // so the older Creator savedPayload (no agreementSigned) would overwrite
-    // the locally-loaded agreementSigned:true from localStorage.
-    const signedSnapshot = new Map();
+    // Snapshot per-traveller fields that mergeDeep would lose: it replaces arrays
+    // wholesale, so the older Creator savedPayload (saved at Payment Complete, before
+    // subsequent syncs) overwrites crmId values and agreementSigned state.
+    // Key by local id AND crmId so we can match after the array is replaced.
+    const travellerSnapshot = new Map(); // local id → { crmId, agreementSigned, agreementSignedAt }
     (applicationData.deal.travellers || []).forEach((t) => {
-      const key = String(t.crmId || t.id || "");
-      if (key && t.agreementSigned) {
-        signedSnapshot.set(key, { agreementSigned: true, agreementSignedAt: t.agreementSignedAt || "" });
-      }
+      const entry = {
+        crmId: t.crmId || "",
+        agreementSigned: t.agreementSigned || false,
+        agreementSignedAt: t.agreementSignedAt || "",
+      };
+      if (t.id) travellerSnapshot.set(String(t.id), entry);
+      if (t.crmId) travellerSnapshot.set(String(t.crmId), entry);
     });
 
     applicationData.deal = mergeDeep(
@@ -603,11 +607,15 @@ function hydrateApplicationDetails(details) {
       savedPayload.deal
     );
 
-    // Restore agreement state that mergeDeep may have overwritten.
+    // Restore crmId and agreement state that mergeDeep may have overwritten.
     (applicationData.deal.travellers || []).forEach((t) => {
-      const key = String(t.crmId || t.id || "");
-      const snap = key ? signedSnapshot.get(key) : undefined;
-      if (snap) {
+      const snap = travellerSnapshot.get(String(t.id || "")) ||
+                   travellerSnapshot.get(String(t.crmId || ""));
+      if (!snap) return;
+      // Restore crmId — prevents Deluge from creating duplicate CRM records
+      if (!t.crmId && snap.crmId) t.crmId = snap.crmId;
+      // Restore agreement signed state
+      if (snap.agreementSigned) {
         t.agreementSigned = true;
         if (!t.agreementSignedAt) t.agreementSignedAt = snap.agreementSignedAt;
       }
