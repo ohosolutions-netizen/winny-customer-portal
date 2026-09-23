@@ -830,19 +830,26 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
     Has_Premium:      hasPremium ? "true" : "false",
     Status:           "Pending",
   };
+  const hasV2 = !!window.ZOHO?.CREATOR?.DATA?.addRecords;
+  const hasV1 = !!window.ZOHO?.CREATOR?.API?.addRecord;
+  console.log("[Winny:AgreementEmail] SDK available — v2:", hasV2, "v1:", hasV1, "data:", recordData);
   try {
-    if (window.ZOHO?.CREATOR?.DATA?.addRecords) {
-      await ZOHO.CREATOR.DATA.addRecords({
+    if (hasV2) {
+      const res = await ZOHO.CREATOR.DATA.addRecords({
         app_name:  CONFIG.creator.appLinkName,
         form_name: "Agreement_Email_Request",
         payload:   { data: recordData },
       });
-    } else if (window.ZOHO?.CREATOR?.API?.addRecord) {
-      await ZOHO.CREATOR.API.addRecord({
+      console.log("[Winny:AgreementEmail] addRecords response:", res);
+    } else if (hasV1) {
+      const res = await ZOHO.CREATOR.API.addRecord({
         appName:  CONFIG.creator.appLinkName,
         formName: "Agreement_Email_Request",
         data:     { data: recordData },
       });
+      console.log("[Winny:AgreementEmail] addRecord (v1) response:", res);
+    } else {
+      console.warn("[Winny:AgreementEmail] No ZOHO Creator SDK available — skipping");
     }
   } catch (err) {
     console.warn("[Winny] Agreement email request failed (non-blocking):", err);
