@@ -815,14 +815,18 @@ async function verifyAgreementOtp(travellerCrmId, email, otp) {
   }
 }
 
-async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, agreementHtml }) {
-  applicationData.deal.agreementEmailTo        = email;
-  applicationData.deal.agreementEmailName      = customerName;
-  applicationData.deal.agreementEmailAppId     = applicationId;
-  applicationData.deal.agreementEmailSignedBy  = signedByName;
-  applicationData.deal.agreementEmailSignedAt  = signedAt;
-  applicationData.deal.agreementEmailCountry   = country;
-  applicationData.deal.agreementEmailHtml      = agreementHtml;
+async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, crmId, crmDealId, hasUSA, hasDate, hasPremium }) {
+  applicationData.deal.agreementEmailTo         = email;
+  applicationData.deal.agreementEmailName       = customerName;
+  applicationData.deal.agreementEmailAppId      = applicationId;
+  applicationData.deal.agreementEmailSignedBy   = signedByName;
+  applicationData.deal.agreementEmailSignedAt   = signedAt;
+  applicationData.deal.agreementEmailCountry    = country;
+  applicationData.deal.agreementEmailCrmId      = crmId || "";
+  applicationData.deal.agreementEmailDealId     = crmDealId || "";
+  applicationData.deal.agreementEmailHasUsa     = hasUSA ? "true" : "false";
+  applicationData.deal.agreementEmailHasDate    = hasDate ? "true" : "false";
+  applicationData.deal.agreementEmailHasPremium = hasPremium ? "true" : "false";
   try {
     const creatorRecordId = await submitPortalCrmRequest("Send Agreement Email");
     await pollCreatorRecord(creatorRecordId, 10, 2000);
@@ -835,7 +839,11 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
     delete applicationData.deal.agreementEmailSignedBy;
     delete applicationData.deal.agreementEmailSignedAt;
     delete applicationData.deal.agreementEmailCountry;
-    delete applicationData.deal.agreementEmailHtml;
+    delete applicationData.deal.agreementEmailCrmId;
+    delete applicationData.deal.agreementEmailDealId;
+    delete applicationData.deal.agreementEmailHasUsa;
+    delete applicationData.deal.agreementEmailHasDate;
+    delete applicationData.deal.agreementEmailHasPremium;
   }
 }
 

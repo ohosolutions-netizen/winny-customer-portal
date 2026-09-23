@@ -97,15 +97,20 @@ export default function AgreementCard({ traveller, onSigned }) {
       const c = applicationData.customer || {};
       const d = applicationData.deal || {};
       const byCountry = d.agreementHtmlByCountry || {};
-      const allHtml = d.agreementHtml || Object.values(byCountry).join("") || "";
+      const countries = Object.keys(byCountry).join(", ") || d.destination || "";
+      const isUSA = /united states|^usa$/i.test(countries);
       sendAgreementEmail({
         email,
         customerName: `${c.firstName || ""} ${c.lastName || ""}`.trim() || name,
         applicationId: applicationData.applicationId || "",
         signedByName: name,
         signedAt: traveller.agreementSignedAt,
-        country: Object.keys(byCountry).join(", ") || d.destination || "",
-        agreementHtml: allHtml,
+        country: countries,
+        crmId: traveller.crmId || "",
+        crmDealId: d.crmDealId || "",
+        hasUSA: isUSA,
+        hasDate: !!d.usaDateBooking,
+        hasPremium: !!d.premiumVisaInterview,
       });
     } catch (err) {
       setError(err.message || "OTP verification failed. Please try again.");
