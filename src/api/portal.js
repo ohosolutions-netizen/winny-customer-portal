@@ -932,13 +932,15 @@ if (applicationDetails) {
 
         // When payment is newly confirmed via CRM (agent marked as Paid),
         // push the full deal payload so payer/billing fields reach CRM.
+        // Use syncOnly so Deluge updates the existing Deal rather than creating one.
         const nowPaid = isFullyPaidStatus(applicationData.payment.status);
         const wasPaid = isFullyPaidStatus(previousStatus);
         if (nowPaid && !wasPaid && applicationData.deal.crmDealId) {
           try {
             const { saveDealData } = await import("./deal.js");
-            await saveDealData({ includeTravellers: false });
+            await saveDealData({ syncOnly: true });
           } catch (syncErr) {
+            // Deluge rejects sync on already-paid deals — that's acceptable here.
             console.warn("[Winny] Post-confirmation deal sync failed:", syncErr);
           }
         }
