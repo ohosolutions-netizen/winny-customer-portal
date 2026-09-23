@@ -52,9 +52,14 @@ export default function PaymentPane() {
   const taxes = Number(applicationData.payment.taxes || 0);
 
   const primaryApplicant = travellers.find((t) => t.type === "Primary Applicant") || travellers[0];
-  const customerName = primaryApplicant
+  const primaryName = primaryApplicant
     ? `${primaryApplicant.firstName || ""} ${primaryApplicant.lastName || ""}`.trim() || "Applicant"
     : "Applicant";
+  const externalPayer = applicationData.deal.externalPayer || {};
+  const customerName =
+    applicationData.deal.payerMode === "someone-else" && externalPayer.invoiceInPayerName && externalPayer.name
+      ? externalPayer.name.trim()
+      : primaryName;
   const refNumber = applicationData.deal.applicationNumber || applicationData.deal.crmDealId || "—";
 
   return (

@@ -104,6 +104,22 @@ export default function PayerModeSelector() {
               </select>
             </label>
           </div>
+
+          {payer.name && payer.name.trim() ? (
+            <label className="check-row" style={{ marginTop: 10, alignItems: "flex-start" }}>
+              <input
+                type="checkbox"
+                checked={!!payer.invoiceInPayerName}
+                onChange={(e) => setExternalPayerField("invoiceInPayerName", e.target.checked)}
+              />
+              <span>
+                <strong>Issue invoice in payer's name</strong>
+                <small style={{ display: "block", color: "var(--muted, #888)", marginTop: 2 }}>
+                  The invoice will be addressed to <em>{payer.name.trim()}</em> instead of the primary applicant.
+                </small>
+              </span>
+            </label>
+          ) : null}
         </div>
       )}
 
