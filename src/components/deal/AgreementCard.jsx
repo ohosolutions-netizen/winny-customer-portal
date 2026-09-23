@@ -118,8 +118,8 @@ export default function AgreementCard({ traveller, onSigned }) {
       setError("");
       setNoPortalSending(true);
       try {
-        await sendAgreementOtp(traveller.crmId, email);
-        sendAgreementEmail(buildAgreementEmailArgs()); // fire-and-forget — sends PDF alongside OTP
+        // Single combined email: agreement PDF + OTP in one go (Deluge generates + stores OTP)
+        await sendAgreementEmail(buildAgreementEmailArgs({ sendOtp: true }));
         setNoPortalSent(true);
         setNoPortalOtp("");
         toast(`Agreement + OTP sent to ${email}`);
@@ -266,13 +266,13 @@ export default function AgreementCard({ traveller, onSigned }) {
     setError("");
     setSending(true);
     try {
-      await sendAgreementOtp(traveller.crmId, email);
-      sendAgreementEmail(buildAgreementEmailArgs()); // fire-and-forget agreement copy
+      // Single combined email: agreement PDF + OTP (Deluge generates + stores OTP)
+      await sendAgreementEmail(buildAgreementEmailArgs({ sendOtp: true }));
       setSent(true);
       setOtp("");
-      toast(`OTP + agreement copy sent to ${email}`);
+      toast(`Agreement + OTP sent to ${email}`);
     } catch (err) {
-      setError(err.message || "Failed to send OTP. Please try again.");
+      setError(err.message || "Failed to send. Please try again.");
     } finally {
       setSending(false);
     }

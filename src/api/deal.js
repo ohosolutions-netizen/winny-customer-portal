@@ -815,7 +815,7 @@ async function verifyAgreementOtp(travellerCrmId, email, otp) {
   }
 }
 
-async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, crmId, crmDealId, hasUSA, hasDate, hasPremium }) {
+async function sendAgreementEmail({ email, customerName, applicationId, signedByName, signedAt, country, crmId, crmDealId, hasUSA, hasDate, hasPremium, sendOtp = false }) {
   const recordData = {
     Customer_Email:   email,
     Customer_Name:    customerName,
@@ -828,6 +828,7 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
     Has_USA:          hasUSA ? "true" : "false",
     Has_Date_Booking: hasDate ? "true" : "false",
     Has_Premium:      hasPremium ? "true" : "false",
+    Send_OTP:         sendOtp ? "true" : "false",
     Status:           "Pending",
   };
   const hasV2 = !!window.ZOHO?.CREATOR?.DATA?.addRecords;
