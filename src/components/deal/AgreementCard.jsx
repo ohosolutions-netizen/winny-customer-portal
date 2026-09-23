@@ -14,8 +14,10 @@ export default function AgreementCard({ traveller, onSigned }) {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
   const [hasPortalAccess, setHasPortalAccess] = useState(traveller.portalAccess !== false);
-  const [emailSending, setEmailSending] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [noPortalSent, setNoPortalSent] = useState(false);
+  const [noPortalOtp, setNoPortalOtp] = useState("");
+  const [noPortalVerifying, setNoPortalVerifying] = useState(false);
+  const [noPortalSending, setNoPortalSending] = useState(false);
 
   const email = traveller.email || "";
   const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Primary Applicant";
@@ -106,28 +108,49 @@ export default function AgreementCard({ traveller, onSigned }) {
     </label>
   );
 
-  // ── No portal access: send agreement email directly ──────────────────────
+  // ── No portal access: OTP-gated agreement email flow ───────────────────
   if (!hasPortalAccess) {
-    async function handleSendAgreementEmail() {
+    async function handleSendNoPortal() {
       if (!email) {
         setError("No email address on file for this traveller.");
         return;
       }
       setError("");
-      setEmailSending(true);
+      setNoPortalSending(true);
       try {
-        await sendAgreementEmail(buildAgreementEmailArgs());
-        setEmailSent(true);
+        await sendAgreementOtp(traveller.crmId, email);
+        sendAgreementEmail(buildAgreementEmailArgs()); // fire-and-forget — sends PDF alongside OTP
+        setNoPortalSent(true);
+        setNoPortalOtp("");
+        toast(`Agreement + OTP sent to ${email}`);
+      } catch (err) {
+        setError(err.message || "Failed to send. Please try again.");
+      } finally {
+        setNoPortalSending(false);
+      }
+    }
+
+    async function handleVerifyNoPortal() {
+      if (noPortalOtp.length !== 6) {
+        setError("Enter the 6-digit OTP the traveller shared with you.");
+        return;
+      }
+      setError("");
+      setNoPortalVerifying(true);
+      try {
+        const result = await verifyAgreementOtp(traveller.crmId, email, noPortalOtp);
+        let parsedAt = "";
+        try { parsedAt = JSON.parse(result.CRM_Response || "{}").signedAt || ""; } catch (e) {}
         traveller.agreementSigned = true;
-        traveller.agreementSignedAt = new Date().toISOString();
+        traveller.agreementSignedAt = parsedAt || new Date().toISOString();
         setSigned(true);
         setSignedAt(traveller.agreementSignedAt);
-        toast(`Agreement emailed to ${email}`);
+        toast(`Agreement consent confirmed for ${name} ✓`);
         if (onSigned) onSigned();
       } catch (err) {
-        setError(err.message || "Failed to send agreement email. Please try again.");
+        setError(err.message || "OTP verification failed. Please try again.");
       } finally {
-        setEmailSending(false);
+        setNoPortalVerifying(false);
       }
     }
 
@@ -137,18 +160,62 @@ export default function AgreementCard({ traveller, onSigned }) {
         <div className="agreement-card-head">
           <div>
             <strong>{name}</strong>
-            <small>Agreement will be emailed as PDF to <em>{email || "— no email on file —"}</em></small>
+            <small>
+              Agreement PDF + OTP will be sent to <em>{email || "— no email on file —"}</em>.
+              Ask the traveller to share the OTP after reading.
+            </small>
           </div>
         </div>
+
         {error ? <div className="notice red agreement-card-error">{error}</div> : null}
-        <button
-          className="btn primary"
-          type="button"
-          onClick={handleSendAgreementEmail}
-          disabled={emailSending || !email}
-        >
-          {emailSending ? "Sending Agreement…" : "Send Agreement by Email"}
-        </button>
+
+        {!noPortalSent ? (
+          <button
+            className="btn primary"
+            type="button"
+            onClick={handleSendNoPortal}
+            disabled={noPortalSending || !email}
+          >
+            {noPortalSending ? "Sending…" : "Send Agreement + OTP by Email"}
+          </button>
+        ) : (
+          <div className="agreement-otp-entry">
+            <div className="notice amber" style={{ marginBottom: 10 }}>
+              Agreement + OTP sent to <strong>{email}</strong>. Once the traveller reads and shares the OTP, enter it below.
+            </div>
+            <label className="field">
+              <span>Enter OTP shared by traveller</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={noPortalOtp}
+                onChange={(e) => setNoPortalOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                autoComplete="one-time-code"
+                className="otp-input"
+              />
+            </label>
+            <div className="agreement-otp-actions">
+              <button
+                className="btn primary"
+                type="button"
+                onClick={handleVerifyNoPortal}
+                disabled={noPortalVerifying || noPortalOtp.length !== 6}
+              >
+                {noPortalVerifying ? "Verifying…" : "Confirm Consent"}
+              </button>
+              <button
+                className="btn secondary"
+                type="button"
+                onClick={handleSendNoPortal}
+                disabled={noPortalSending}
+              >
+                {noPortalSending ? "Sending…" : "Resend"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
