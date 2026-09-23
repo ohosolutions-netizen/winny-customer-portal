@@ -921,6 +921,20 @@ if (applicationDetails) {
         }
         applicationData.crmSync.lastSyncAt = new Date().toISOString();
         saveDraft(false);
+
+        // When payment is newly confirmed via CRM (agent marked as Paid),
+        // push the full deal payload so payer/billing fields reach CRM.
+        const nowPaid = isFullyPaidStatus(applicationData.payment.status);
+        const wasPaid = isFullyPaidStatus(previousStatus);
+        if (nowPaid && !wasPaid && applicationData.deal.crmDealId) {
+          try {
+            const { saveDealData } = await import("./deal.js");
+            await saveDealData({ includeTravellers: false });
+          } catch (syncErr) {
+            console.warn("[Winny] Post-confirmation deal sync failed:", syncErr);
+          }
+        }
+
         requestRender();
         requestRender();
         requestRender();
