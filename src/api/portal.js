@@ -1118,7 +1118,7 @@ const stale =
       if (!dealId) return [];
       if (hasCreatorRestTransport()) {
         const attempts = [
-          () => crmRest("GET", `/${CONFIG.modules.deals}/${dealId}/${CONFIG.modules.travellers}?per_page=100`),
+          () => crmRest("GET", `/${CONFIG.modules.deals}/${dealId}/Traveller_Details?per_page=100`),
           () => crmRest("GET", `/${CONFIG.modules.travellers}/search?criteria=${encodeURIComponent(`(Deal_Name:equals:${dealId})`)}`)
         ];
         for (const attempt of attempts) {
