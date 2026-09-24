@@ -15,7 +15,7 @@ import {
   GENERIC_AGREEMENT_COUNTRY,
   termsAcceptanceKey,
 } from "../../core/terms.js";
-import { fetchAgreement } from "../../api/deal.js";
+import { fetchAgreement, saveDealData } from "../../api/deal.js";
 import AgreementCard from "./AgreementCard.jsx";
 
 function isUSACountry(country) {
@@ -71,6 +71,22 @@ export default function TermsPane() {
     // Agreement generation is synchronous; dependencies refresh country and USA variants.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countriesKey, hasUSADate, hasPremium]);
+
+  // Auto-sync once on mount if any primary applicant is missing their CRM ID.
+  // Fires a single saveDealData call so AgreementCards can show the sign button
+  // without the user needing to click "Re-sync now" manually.
+  useEffect(() => {
+    const primaryApplicants = (applicationData.deal.travellers || []).filter(
+      (t) => t.type === "Primary Applicant"
+    );
+    const anyMissingCrmId = primaryApplicants.some((t) => !t.crmId);
+    if (anyMissingCrmId && applicationData.deal.crmDealId) {
+      saveDealData({ syncOnly: true })
+        .then(() => requestRender())
+        .catch(() => {}); // AgreementCard shows the manual Re-sync button on failure
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const families = [];
   requirements.forEach((requirement) => {
