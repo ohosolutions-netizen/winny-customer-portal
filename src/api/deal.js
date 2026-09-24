@@ -705,7 +705,7 @@ if (isDealSaved()) {
     }
 
     async function saveDealData(options = {}) {
-  const { includeTravellers = true, syncOnly = false } = options;
+  const { includeTravellers = true, syncOnly = false, silent = false } = options;
 
   if (
     includeTravellers &&
@@ -735,11 +735,13 @@ if (
   requestType === "Sync Application Details"
 ) {
   try {
-    showLoader(
-      syncOnly
-        ? "CRM saving application details..."
-        : "CRM processing payment..."
-    );
+    if (!silent) {
+      showLoader(
+        syncOnly
+          ? "CRM saving application details..."
+          : "CRM processing payment..."
+      );
+    }
 
     const crmResult = await pollCreatorRecord(creatorRecordId);
 
@@ -776,6 +778,8 @@ if (
     if (syncOnly) {
       throw pollErr;
     }
+  } finally {
+    if (!silent) hideLoader();
   }
 }
 

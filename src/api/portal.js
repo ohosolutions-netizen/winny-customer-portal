@@ -938,7 +938,7 @@ if (applicationDetails) {
         if (nowPaid && !wasPaid && applicationData.deal.crmDealId) {
           try {
             const { saveDealData } = await import("./deal.js");
-            await saveDealData({ syncOnly: true });
+            await saveDealData({ syncOnly: true, silent: true });
           } catch (syncErr) {
             // Deluge rejects sync on already-paid deals — that's acceptable here.
             console.warn("[Winny] Post-confirmation deal sync failed:", syncErr);
