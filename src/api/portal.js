@@ -850,7 +850,7 @@ function parseApplicationsResponse(response) {
           const r = await crmRest(
   "GET",
   `/${CONFIG.modules.deals}/${dealId}?fields=${encodeURIComponent(
-    "id,Deal_Name,Stage,Amount,Contact_Name,Destination,Service_Type,Payment_Status,Application_Number,Amount_Receivable,Payment_Requested,Amount_Received,Balance_Amount,Created_Time"
+    "id,Deal_Name,Stage,Amount,Contact_Name,Destination,Service_Type,Payment_Status,Application_Number,Amount_Receivable,Payment_Requested,Amount_Received,Balance_Amount,Created_Time,Payer_Mode,Payer_Name,Payer_Email,Payer_Mobile,Payer_Relation,Invoice_in_Payer_Name,Service_Basket_JSON"
   )}`
 );
           return getResponseRows(r)[0] || null;
@@ -1311,6 +1311,29 @@ if (
 if (hasCrmNumber(crmRequestedRaw)) {
   applicationData.payment.payableNow =
     Number(crmRequestedRaw);
+}
+
+// Payer / billing fields
+const crmPayerMode = String(readZohoValue(deal.Payer_Mode) || "").trim();
+if (crmPayerMode) {
+  applicationData.deal.payerMode =
+    crmPayerMode.toLowerCase() === "primary" ? "primary" : "someone-else";
+}
+const crmPayerName     = readZohoValue(deal.Payer_Name);
+const crmPayerEmail    = readZohoValue(deal.Payer_Email);
+const crmPayerMobile   = readZohoValue(deal.Payer_Mobile);
+const crmPayerRelation = readZohoValue(deal.Payer_Relation);
+const crmInvoiceInPayerName = readZohoValue(deal.Invoice_in_Payer_Name);
+if (crmPayerName || crmPayerEmail || crmPayerMobile || crmPayerRelation) {
+  if (!applicationData.deal.externalPayer) applicationData.deal.externalPayer = {};
+  if (crmPayerName)     applicationData.deal.externalPayer.name     = String(crmPayerName);
+  if (crmPayerEmail)    applicationData.deal.externalPayer.email    = String(crmPayerEmail);
+  if (crmPayerMobile)   applicationData.deal.externalPayer.mobile   = String(crmPayerMobile);
+  if (crmPayerRelation) applicationData.deal.externalPayer.relation = String(crmPayerRelation);
+  if (crmInvoiceInPayerName !== null && crmInvoiceInPayerName !== undefined && crmInvoiceInPayerName !== "") {
+    applicationData.deal.externalPayer.invoiceInPayerName =
+      crmInvoiceInPayerName === true || String(crmInvoiceInPayerName).toLowerCase() === "true";
+  }
 }
 
 const crmServiceBasketRaw = readZohoValue(deal.Service_Basket_JSON);
