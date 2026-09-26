@@ -10,6 +10,7 @@ import {
 import { isPaymentConfirmed } from "../../core/deal.js";
 import { openZPayWidget } from "../../api/deal.js";
 import { refreshCurrentDealFromCrm } from "../../api/portal.js";
+import { state } from "../../store/runtime.js";
 import PayerModeSelector from "./PayerModeSelector.jsx";
 
 function buildInvoiceLines(serviceBasket, travellers) {
@@ -74,7 +75,7 @@ export default function PaymentPane() {
         <div><h3>Payment</h3><p>Review your order and pay securely via Zoho Payments.</p></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span className={`badge ${confirmed ? "done" : "pending"}`}>{applicationData.payment.status}</span>
-          {!confirmed ? <button className="btn ghost" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => refreshCurrentDealFromCrm(false)}>↺ Check status</button> : null}
+          <button className="btn ghost" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => { state.billingPushedForDealId = ""; refreshCurrentDealFromCrm(false); }}>↺ {confirmed ? "Sync billing" : "Check status"}</button>
         </div>
       </div>
       <div className="panel-body">
