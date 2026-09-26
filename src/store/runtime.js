@@ -44,6 +44,14 @@ balanceAmount: 0, crmBalanceAmount: null,
         paymentLinkId: "", paymentLinkUrl: "", paidAt: ""
       },
       questionnaire: {
+        // Part A — Common (answered once per case)
+        common: {
+          companyName:      "",   // corporate bookings only
+          gstNumber:        "",   // corporate bookings only
+          fillMode:         "",   // "self" | "agent"
+          consultantNotes:  "",
+          submitted:        false
+        },
         // Section 1 - Trip
         applyingCountries:   "",   // multiselect → Applying_for_Country
         purpose:             [],   // What_is_the_purpose_of_your_visit — multi-select, array of keyspurpose:             "",   // What_is_the_purpose_of_your_visit

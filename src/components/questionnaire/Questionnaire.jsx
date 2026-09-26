@@ -15,6 +15,8 @@ const Q_HANDLERS = [
   "qChiSel", "qHistSel", "qHistSetField", "qGoNext", "qGoPrev", "qSubmitFinal",
   // Multi-unit navigation
   "qStartUnit", "qBackToOverview",
+  // Part A — common questions
+  "qSetCommonField", "qSubmitCommon", "qGoToCommon",
 ];
 
 export default function Questionnaire() {

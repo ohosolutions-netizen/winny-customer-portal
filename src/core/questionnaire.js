@@ -189,9 +189,9 @@ function renderUnitOverviewHTML(units) {
         ${allDone ? `<span class="badge done">All submitted</span>` : ""}
       </div>
       <div class="panel-body">
-        <div class="qn qn-blue">&#x1F4CB;
-          Questionnaires are grouped by family. Complete one unit at a time — each
-          unit&rsquo;s answers are saved separately.
+        <div class="qn qn-blue" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>&#x1F4CB; Questionnaires are grouped by family. Complete one unit at a time — each unit&rsquo;s answers are saved separately.</span>
+          <button class="btn ghost" type="button" style="padding:4px 10px;font-size:12px;white-space:nowrap" onclick="qGoToCommon()">&#x2190; Edit common details</button>
         </div>
         <div class="q-units-list">${cards}</div>
         ${
@@ -256,8 +256,226 @@ function renderUnitOverviewHTML(units) {
   return age < 18;
 }
 
+// ── Part A: Common questions (answered once per case) ─────────────────────
+function renderCommonQuestionnaireHTML() {
+  const c = applicationData.questionnaire.common || {};
+  const deal = applicationData.deal;
+  const customer = applicationData.customer;
+  const isCorporate = String(deal.applicationType || "").toLowerCase() === "corporate";
+
+  const bookingTypeLabel = {
+    individual: "Individual",
+    family: "Family",
+    friends: "Friends / Group",
+    corporate: "Corporate",
+  }[String(deal.applicationType || "").toLowerCase()] || (deal.applicationType || "—");
+
+  const payerLabel = {
+    primary: "Primary applicant (I'll pay)",
+    "someone-else": "Someone else pays",
+    "per-group": "Each group pays separately",
+  }[deal.payerMode || "primary"] || deal.payerMode || "—";
+
+  const services = (deal.serviceBasket || []).map((s) => escapeHtml(s.name || "")).filter(Boolean);
+  const servicesHtml = services.length
+    ? services.map((s) => `<span class="cms-tag">${s}</span>`).join("")
+    : `<span style="color:var(--muted)">—</span>`;
+
+  const fullName = `${customer.firstName || ""} ${customer.lastName || ""}`.trim() || "—";
+  const destination = deal.destination || "—";
+  const dateFrom = deal.travelDateFrom ? deal.travelDateFrom : "";
+  const dateTo = deal.travelDateTo ? deal.travelDateTo : "";
+  const travelDatesDisplay = dateFrom || dateTo
+    ? `${dateFrom || "??"} → ${dateTo || "??"}`
+    : "—";
+
+  function fillModeOpt(val, label, desc) {
+    const sel = (c.fillMode || "") === val ? "sel" : "";
+    return `<div class="q-opt ${sel}" onclick="qSetCommonField('fillMode','${val}')" data-group="fillMode" data-val="${val}">
+      <div class="q-radio"></div>
+      <div class="q-opt-body"><div class="q-opt-title">${label}</div><div class="q-opt-desc">${desc}</div></div>
+    </div>`;
+  }
+
+  const corporateSection = isCorporate ? `
+    <div class="q-blk">
+      <div class="q-lbl">Company details <span class="q-req">Required</span></div>
+      <div class="q-field-row">
+        <div class="q-field">
+          <label>Company name</label>
+          <input type="text" placeholder="e.g. Acme Pvt Ltd"
+            value="${escapeHtml(c.companyName || "")}"
+            oninput="qSetCommonField('companyName',this.value)">
+        </div>
+        <div class="q-field">
+          <label>GST / Registration number</label>
+          <input type="text" placeholder="e.g. 27AAPFU0939F1ZV"
+            value="${escapeHtml(c.gstNumber || "")}"
+            oninput="qSetCommonField('gstNumber',this.value)">
+        </div>
+      </div>
+    </div>` : "";
+
+  return `
+    <section class="wizard-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Case Questionnaire</h3>
+          <p>Part A &mdash; Common details for this application (filled once).</p>
+        </div>
+        <span class="badge">Step 1 of 2</span>
+      </div>
+      <div class="panel-body">
+        <div class="qn qn-blue">&#x1F4CB;
+          These details apply to the whole case. Your information has been pre-filled
+          from Step 1 &mdash; verify and complete any remaining fields, then continue
+          to the individual questionnaires.
+        </div>
+
+        <div class="q-sec-card" style="margin-bottom:16px">
+          <div class="q-sec-hd"><div class="q-sec-hd-row">
+            <div class="q-sec-icon qsi-blue">&#x1F5C2;&#xFE0F;</div>
+            <div class="q-sec-info">
+              <div class="q-sec-title">Booking &amp; Your Details</div>
+              <div class="q-sec-sub">Pre-filled from your application — read only</div>
+            </div>
+          </div></div>
+          <div class="q-sec-body">
+            <div class="q-blk" style="margin-bottom:0;border:none">
+              <div class="q-field-row">
+                <div class="q-field">
+                  <label>Booking type</label>
+                  <input type="text" value="${escapeHtml(bookingTypeLabel)}" readonly>
+                </div>
+                <div class="q-field">
+                  <label>Full name</label>
+                  <input type="text" value="${escapeHtml(fullName)}" readonly>
+                </div>
+              </div>
+              <div class="q-field-row">
+                <div class="q-field">
+                  <label>Email address</label>
+                  <input type="email" value="${escapeHtml(customer.email || "")}" readonly>
+                </div>
+                <div class="q-field">
+                  <label>Mobile number</label>
+                  <input type="tel" value="${escapeHtml(customer.mobile || "")}" readonly>
+                </div>
+              </div>
+              <div class="q-field-row">
+                <div class="q-field">
+                  <label>Applying for country</label>
+                  <input type="text" value="${escapeHtml(destination)}" readonly>
+                </div>
+                <div class="q-field">
+                  <label>Approx. travel dates</label>
+                  <input type="text" value="${escapeHtml(travelDatesDisplay)}" readonly>
+                </div>
+              </div>
+              <div class="q-blk" style="margin-top:14px;margin-bottom:0;padding-bottom:0;border:none">
+                <div class="q-lbl" style="margin-bottom:8px">Services being booked</div>
+                <div class="cms-wrap"><div class="cms-trigger readonly" aria-disabled="true">${servicesHtml}</div></div>
+              </div>
+              <div class="q-field-row" style="margin-top:14px">
+                <div class="q-field">
+                  <label>Who is paying</label>
+                  <input type="text" value="${escapeHtml(payerLabel)}" readonly>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${corporateSection}
+
+        <div class="q-sec-card" style="margin-bottom:16px">
+          <div class="q-sec-hd"><div class="q-sec-hd-row">
+            <div class="q-sec-icon qsi-blue">&#x1F9E9;</div>
+            <div class="q-sec-info">
+              <div class="q-sec-title">Individual Questionnaires</div>
+              <div class="q-sec-sub">How will each traveller&rsquo;s questionnaire be answered?</div>
+            </div>
+          </div></div>
+          <div class="q-sec-body">
+            <div class="q-blk" style="margin-bottom:0;border:none">
+              <div class="q-lbl">Who will fill the individual questionnaire for each traveller? <span class="q-req">Required</span></div>
+              <div class="q-sub">A minor&rsquo;s questionnaire is always filled by their parent or guardian on their behalf.</div>
+              <div class="q-opts c2">
+                ${fillModeOpt("self","Travellers fill it themselves","Each traveller logs into their own portal and answers independently.")}
+                ${fillModeOpt("agent","I'll fill it on their behalf","You (the case creator) will answer for all travellers in this portal session.")}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="q-sec-card" style="margin-bottom:16px">
+          <div class="q-sec-hd"><div class="q-sec-hd-row">
+            <div class="q-sec-icon qsi-blue">&#x1F4AC;</div>
+            <div class="q-sec-info">
+              <div class="q-sec-title">Additional Information</div>
+              <div class="q-sec-sub">Optional note for your consultant</div>
+            </div>
+          </div></div>
+          <div class="q-sec-body">
+            <div class="q-blk" style="margin-bottom:0;border:none">
+              <div class="q-lbl">Is there anything else you&rsquo;d like your consultant to know?</div>
+              <div class="q-field-row single">
+                <div class="q-field full">
+                  <textarea rows="3" placeholder="Any special circumstances, previous application history, or notes for your consultant…"
+                    oninput="qSetCommonField('consultantNotes',this.value)"
+                    style="width:100%;resize:vertical">${escapeHtml(c.consultantNotes || "")}</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="q-sec-nav" style="justify-content:flex-end">
+          <button class="btn-qnext" onclick="qSubmitCommon()">
+            Continue to Individual Questionnaires &#x2192;
+          </button>
+        </div>
+      </div>
+    </section>`;
+}
+
+export function qSetCommonField(field, value) {
+  if (!applicationData.questionnaire.common) applicationData.questionnaire.common = {};
+  applicationData.questionnaire.common[field] = value;
+  markAutoSavePending();
+  rerenderQuestionnaire();
+}
+
+export function qSubmitCommon() {
+  const c = applicationData.questionnaire.common || {};
+  const isCorporate = String(applicationData.deal.applicationType || "").toLowerCase() === "corporate";
+  if (isCorporate && !c.companyName) {
+    toast("Please enter the company name before continuing.", "error");
+    return;
+  }
+  if (!c.fillMode) {
+    toast("Please select how traveller questionnaires will be filled.", "error");
+    return;
+  }
+  applicationData.questionnaire.common.submitted = true;
+  markAutoSavePending();
+  rerenderQuestionnaire();
+}
+
+export function qGoToCommon() {
+  if (applicationData.questionnaire.common) {
+    applicationData.questionnaire.common.submitted = false;
+  }
+  rerenderQuestionnaire();
+}
+
     // ── renderQuestionnaireHTML (source 2966-4040) — returns HTML ──
     function renderQuestionnaireHTML() {
+  // Show Part A (common questions) first unless already submitted
+  if (!applicationData.questionnaire.common?.submitted) {
+    return renderCommonQuestionnaireHTML();
+  }
+
   /*
    * A submitted questionnaire is permanently read-only for portal customers.
    * Do not render its editable controls again.
@@ -1996,4 +2214,6 @@ export {
   qHistSetField, qHandleDep, qGoNext, qGoPrev, qSubmitFinal, qIsBlank,
   qHasAnySelected, qQuestionnaireCountries, qIsCanadaSelected, qFirstTravelDate, qChildTravellers,
   qQuestionnaireSectionOrder, validateQuestionnaireSection, showQuestionnaireValidationSection,
+  // Part A — common questions
+  qSetCommonField, qSubmitCommon, qGoToCommon,
 };
