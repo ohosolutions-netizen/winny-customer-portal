@@ -1315,8 +1315,17 @@ if (hasCrmNumber(crmRequestedRaw)) {
 // Payer / billing fields
 const crmPayerMode = String(readZohoValue(deal.Payer_Mode) || "").trim();
 if (crmPayerMode) {
-  applicationData.deal.payerMode =
-    crmPayerMode.toLowerCase() === "primary" ? "primary" : "someone-else";
+  const incomingPayerMode = crmPayerMode.toLowerCase() === "primary" ? "primary" : "someone-else";
+  // Don't let a stale CRM "Primary" overwrite a locally-filled "someone-else" entry.
+  // CRM holds the last-pushed value; if the customer filled in payer details locally
+  // but hasn't synced yet, the local draft is the source of truth.
+  const localHasSomeoneElse =
+    applicationData.deal.payerMode === "someone-else" &&
+    applicationData.deal.externalPayer &&
+    (applicationData.deal.externalPayer.name || applicationData.deal.externalPayer.email);
+  if (!localHasSomeoneElse) {
+    applicationData.deal.payerMode = incomingPayerMode;
+  }
 }
 const crmPayerName     = readZohoValue(deal.Payer_Name);
 const crmPayerEmail    = readZohoValue(deal.Payer_Email);
