@@ -189,9 +189,12 @@ function renderUnitOverviewHTML(units) {
         ${allDone ? `<span class="badge done">All submitted</span>` : ""}
       </div>
       <div class="panel-body">
-        <div class="qn qn-blue" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <span>&#x1F4CB; Questionnaires are grouped by family. Complete one unit at a time — each unit&rsquo;s answers are saved separately.</span>
-          <button class="btn ghost" type="button" style="padding:4px 10px;font-size:12px;white-space:nowrap" onclick="qGoToCommon()">&#x2190; Edit common details</button>
+        <div class="qn qn-blue">&#x1F4CB;
+          Questionnaires are grouped by family. Complete one unit at a time — each
+          unit&rsquo;s answers are saved separately.
+        </div>
+        <div style="margin-bottom:12px;text-align:right">
+          <button class="btn ghost" type="button" style="padding:5px 12px;font-size:12px" onclick="qGoToCommon()">&#x2190; View / edit common details (Part A)</button>
         </div>
         <div class="q-units-list">${cards}</div>
         ${
