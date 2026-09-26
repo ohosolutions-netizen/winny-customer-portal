@@ -2219,6 +2219,4 @@ export {
   qHistSetField, qHandleDep, qGoNext, qGoPrev, qSubmitFinal, qIsBlank,
   qHasAnySelected, qQuestionnaireCountries, qIsCanadaSelected, qFirstTravelDate, qChildTravellers,
   qQuestionnaireSectionOrder, validateQuestionnaireSection, showQuestionnaireValidationSection,
-  // Part A — common questions
-  qSetCommonField, qSubmitCommon, qGoToCommon,
 };
