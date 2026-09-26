@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { applicationData } from "../../store/runtime.js";
 import { packageCatalog } from "../../config/config.js";
 import { formatCurrency } from "../../lib/utils.js";
@@ -37,10 +37,18 @@ function buildInvoiceLines(serviceBasket, travellers) {
 
 // Reproduces renderDealPane() sub-step 4 — Payment (source 2720-2797).
 export default function PaymentPane() {
+  const confirmed = isPaymentConfirmed();
+
+  useEffect(() => {
+    if (!confirmed) {
+      refreshCurrentDealFromCrm(false).then(requestRender).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const basketItems = applicationData.deal.serviceBasket || [];
   syncPaymentBreakdown();
   const payableAmount = getPayableAmount();
-  const confirmed = isPaymentConfirmed();
   const grand = Number(applicationData.payment.grandTotal || 0);
   const paid = Number(applicationData.payment.paidAmount || 0);
   const remainingMax = Math.max(grand - paid, 0);
