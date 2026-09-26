@@ -123,6 +123,7 @@ export const state = {
       pendingPackageId: null,    // package selected but not yet basketed
       pendingAssignedTo: [],     // traveller IDs assigned to pending package
       refreshingCurrentDeal: false,
+      billingPushedForDealId: "",
       documents: {
         items: [],               // [{id, name, requirement, status, reviewComments, travellerId, travellerName}]
         loading: false,
