@@ -40,9 +40,7 @@ export default function PaymentPane() {
   const confirmed = isPaymentConfirmed();
 
   useEffect(() => {
-    if (!confirmed) {
-      refreshCurrentDealFromCrm(false).then(requestRender).catch(() => {});
-    }
+    refreshCurrentDealFromCrm(false).then(requestRender).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
