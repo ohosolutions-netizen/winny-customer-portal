@@ -182,19 +182,16 @@ function renderUnitOverviewHTML(units) {
     <section class="wizard-panel">
       <div class="panel-head">
         <div>
-          <h3>Case Questionnaire</h3>
+          <h3>Case Questionnaire — Part B</h3>
           <p>This application has <strong>${units.length} questionnaire units</strong>.
              Each must be completed separately.</p>
         </div>
-        ${allDone ? `<span class="badge done">All submitted</span>` : ""}
+        <button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Part A: Common details</button>
       </div>
       <div class="panel-body">
         <div class="qn qn-blue">&#x1F4CB;
           Questionnaires are grouped by family. Complete one unit at a time — each
           unit&rsquo;s answers are saved separately.
-        </div>
-        <div style="margin-bottom:12px;text-align:right">
-          <button class="btn ghost" type="button" style="padding:5px 12px;font-size:12px" onclick="qGoToCommon()">&#x2190; View / edit common details (Part A)</button>
         </div>
         <div class="q-units-list">${cards}</div>
         ${
