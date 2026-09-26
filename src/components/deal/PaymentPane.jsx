@@ -8,7 +8,7 @@ import {
   setPaymentMode, updatePartialPayable,
 } from "../../core/derive.js";
 import { isPaymentConfirmed } from "../../core/deal.js";
-import { openZPayWidget } from "../../api/deal.js";
+import { openZPayWidget, saveDealData } from "../../api/deal.js";
 import { refreshCurrentDealFromCrm } from "../../api/portal.js";
 import { state } from "../../store/runtime.js";
 import PayerModeSelector from "./PayerModeSelector.jsx";
@@ -75,7 +75,15 @@ export default function PaymentPane() {
         <div><h3>Payment</h3><p>Review your order and pay securely via Zoho Payments.</p></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span className={`badge ${confirmed ? "done" : "pending"}`}>{applicationData.payment.status}</span>
-          <button className="btn ghost" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => { state.billingPushedForDealId = ""; refreshCurrentDealFromCrm(false); }}>↺ {confirmed ? "Sync billing" : "Check status"}</button>
+          <button className="btn ghost" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => {
+            if (confirmed) {
+              // Push current portal state → CRM without hydrating (avoids overwriting user edits)
+              state.billingPushedForDealId = "";
+              saveDealData({ syncOnly: true, silent: false });
+            } else {
+              refreshCurrentDealFromCrm(false);
+            }
+          }}>↺ {confirmed ? "Sync billing" : "Check status"}</button>
         </div>
       </div>
       <div className="panel-body">
