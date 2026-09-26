@@ -471,13 +471,8 @@ export function qGoToCommon() {
 
     // ── renderQuestionnaireHTML (source 2966-4040) — returns HTML ──
     function renderQuestionnaireHTML() {
-  // Show Part A (common questions) first unless:
-  // - it was submitted AND at least one individual unit has been started/completed
-  const commonSubmitted = !!applicationData.questionnaire.common?.submitted;
-  const anyUnitStarted = Object.keys(qState.unitCompletions).length > 0 ||
-    qState.currentSection > 0 ||
-    qState.completedSections.length > 0;
-  if (!commonSubmitted || (!anyUnitStarted && !applicationData.stepStatus.questionnaireCompleted)) {
+  // Show Part A (common questions) until explicitly submitted
+  if (!applicationData.questionnaire.common?.submitted) {
     return renderCommonQuestionnaireHTML();
   }
 
