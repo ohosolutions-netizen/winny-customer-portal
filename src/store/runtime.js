@@ -90,6 +90,7 @@ balanceAmount: 0, crmBalanceAmount: null,
   lastSyncAt: "",
 lastError: "",
 applicationDetailsSynced: false,
+applicationDetailsSyncInFlight: false,
 applicationIds: []
 },
       lastSavedAt: ""

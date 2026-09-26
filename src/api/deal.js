@@ -60,6 +60,7 @@ let zPayInstance = null;
 
   if (shouldSyncApplicationDetails) {
     showLoader("Saving travellers and services to CRM...");
+    applicationData.crmSync.applicationDetailsSyncInFlight = true;
 
     try {
       await saveDealData({
@@ -83,6 +84,7 @@ let zPayInstance = null;
 
       return;
     } finally {
+      applicationData.crmSync.applicationDetailsSyncInFlight = false;
       hideLoader();
     }
   }

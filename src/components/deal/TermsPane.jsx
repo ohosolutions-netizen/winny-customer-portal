@@ -80,7 +80,8 @@ export default function TermsPane() {
       (t) => t.type === "Primary Applicant"
     );
     const anyMissingCrmId = primaryApplicants.some((t) => !t.crmId);
-    if (anyMissingCrmId && applicationData.deal.crmDealId) {
+    if (anyMissingCrmId && applicationData.deal.crmDealId
+        && !applicationData.crmSync.applicationDetailsSyncInFlight) {
       saveDealData({ syncOnly: true, silent: true })
         .then(() => requestRender())
         .catch(() => {}); // AgreementCard shows the manual Re-sync button on failure
