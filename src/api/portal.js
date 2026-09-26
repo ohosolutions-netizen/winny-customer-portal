@@ -850,7 +850,7 @@ function parseApplicationsResponse(response) {
           const r = await crmRest(
   "GET",
   `/${CONFIG.modules.deals}/${dealId}?fields=${encodeURIComponent(
-    "id,Deal_Name,Stage,Amount,Contact_Name,Destination,Service_Type,Payment_Status,Application_Number,Amount_Receivable,Payment_Requested,Amount_Received,Balance_Amount,Created_Time,Payer_Mode,Payer_Name,Payer_Email,Payer_Mobile,Payer_Relation,Invoice_in_Payer_Name,Service_Basket_JSON"
+    "id,Deal_Name,Stage,Amount,Contact_Name,Destination,Service_Type,Payment_Status,Application_Number,Payment_Amount,Payment_Requested,Amount_Received,Balance_Amount,Created_Time,Payer_Mode,Payer_Name,Payer_Email,Payer_Mobile,Payer_Relation,Invoice_in_Payer_Name,Service_Basket_JSON"
   )}`
 );
           return getResponseRows(r)[0] || null;
@@ -1223,7 +1223,7 @@ const stale =
         applicationData.deal.goal = crmServiceType;
       }
 const crmReceivableRaw =
-  readZohoValue(deal.Amount_Receivable);
+  readZohoValue(deal.Payment_Amount);
 
 const crmAmountRaw =
   readZohoValue(deal.Amount);
