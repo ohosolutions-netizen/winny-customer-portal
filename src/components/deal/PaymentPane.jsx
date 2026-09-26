@@ -124,7 +124,7 @@ export default function PaymentPane() {
           </div>
         </div>
 
-        {!confirmed && <PayerModeSelector />}
+        <PayerModeSelector />
 
         {confirmed ? (
           <div className="notice teal">
