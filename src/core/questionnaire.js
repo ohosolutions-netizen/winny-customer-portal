@@ -314,14 +314,6 @@ function renderCommonQuestionnaireHTML() {
     ? `${dateFrom || "??"} → ${dateTo || "??"}`
     : "—";
 
-  function fillModeOpt(val, label, desc) {
-    const sel = (c.fillMode || "") === val ? "sel" : "";
-    return `<div class="q-opt ${sel}" onclick="qSetCommonField('fillMode','${val}')" data-group="fillMode" data-val="${val}">
-      <div class="q-radio"></div>
-      <div class="q-opt-body"><div class="q-opt-title">${label}</div><div class="q-opt-desc">${desc}</div></div>
-    </div>`;
-  }
-
   const corporateSection = isCorporate ? `
     <div class="q-blk">
       <div class="q-lbl">Company details <span class="q-req">Required</span></div>
@@ -415,26 +407,6 @@ function renderCommonQuestionnaireHTML() {
 
         <div class="q-sec-card" style="margin-bottom:16px">
           <div class="q-sec-hd"><div class="q-sec-hd-row">
-            <div class="q-sec-icon qsi-blue">&#x1F9E9;</div>
-            <div class="q-sec-info">
-              <div class="q-sec-title">Individual Questionnaires</div>
-              <div class="q-sec-sub">How will each traveller&rsquo;s questionnaire be answered?</div>
-            </div>
-          </div></div>
-          <div class="q-sec-body">
-            <div class="q-blk" style="margin-bottom:0;border:none">
-              <div class="q-lbl">Who will fill the individual questionnaire for each traveller? <span class="q-req">Required</span></div>
-              <div class="q-sub">A minor&rsquo;s questionnaire is always filled by their parent or guardian on their behalf.</div>
-              <div class="q-opts c2">
-                ${fillModeOpt("self","Travellers fill it themselves","Each traveller logs into their own portal and answers independently.")}
-                ${fillModeOpt("agent","I'll fill it on their behalf","You (the case creator) will answer for all travellers in this portal session.")}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="q-sec-card" style="margin-bottom:16px">
-          <div class="q-sec-hd"><div class="q-sec-hd-row">
             <div class="q-sec-icon qsi-blue">&#x1F4AC;</div>
             <div class="q-sec-info">
               <div class="q-sec-title">Additional Information</div>
@@ -478,15 +450,10 @@ export function qSubmitCommon() {
     toast("Please enter the company name before continuing.", "error");
     return;
   }
-  if (!c.fillMode) {
-    toast("Please select how traveller questionnaires will be filled.", "error");
-    return;
-  }
   applicationData.questionnaire.common.submitted = true;
-  // Seed per-traveller qFillMode from the common choice (only if not already set)
-  const defaultMode = c.fillMode === "self" ? "link" : "owner";
+  // Seed per-traveller qFillMode to "owner" if not already set (per-unit toggles in Part B handle overrides)
   (applicationData.deal.travellers || []).forEach((t) => {
-    if (!t.qFillMode) t.qFillMode = defaultMode;
+    if (!t.qFillMode) t.qFillMode = "owner";
   });
   markAutoSavePending();
   rerenderQuestionnaire();
