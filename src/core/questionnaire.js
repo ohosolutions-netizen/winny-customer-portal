@@ -158,6 +158,28 @@ function renderUnitOverviewHTML(units) {
         ? `<div class="q-unit-guardian">&#x1F9D2; Minor — guardian/parent fills on their behalf</div>`
         : "";
 
+      // Per-unit fill mode toggle (not shown for minor-only units)
+      const unitFillMode = u.travellers[0]?.qFillMode || "owner";
+      const fillModeToggle = u.minorOnly ? "" : `
+        <div class="q-unit-fillmode" style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+          <span style="font-size:12px;color:var(--muted);flex-shrink:0">Fill mode:</span>
+          <button
+            class="btn btn-sm${unitFillMode === "owner" ? " primary" : " ghost"}"
+            type="button"
+            style="font-size:12px;padding:4px 10px"
+            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','owner')"
+          >&#x270F;&#xFE0F; Owner fills</button>
+          <button
+            class="btn btn-sm${unitFillMode === "link" ? " primary" : " ghost"}"
+            type="button"
+            style="font-size:12px;padding:4px 10px"
+            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','link')"
+          >&#x1F517; Send link</button>
+          ${unitFillMode === "link"
+            ? `<span style="font-size:11px;color:var(--muted);margin-left:4px">Traveller fills privately</span>`
+            : `<span style="font-size:11px;color:var(--muted);margin-left:4px">You fill on their behalf</span>`}
+        </div>`;
+
       return `
         <div class="q-unit-card${done ? " q-unit-card--done" : ""}${u.minorOnly ? " q-unit-card--minor" : ""}">
           <div class="q-unit-card-body">
@@ -169,11 +191,14 @@ function renderUnitOverviewHTML(units) {
             </div>
             ${statusBadge}
           </div>
-          <button
-            class="btn${done ? "" : " primary"}"
-            type="button"
-            onclick="qStartUnit(${u.index})"
-          >${btnLabel} &#x2192;</button>
+          ${fillModeToggle}
+          <div style="margin-top:10px">
+            <button
+              class="btn${done ? "" : " primary"}"
+              type="button"
+              onclick="qStartUnit(${u.index})"
+            >${btnLabel} &#x2192;</button>
+          </div>
         </div>`;
     })
     .join("");
@@ -458,6 +483,11 @@ export function qSubmitCommon() {
     return;
   }
   applicationData.questionnaire.common.submitted = true;
+  // Seed per-traveller qFillMode from the common choice (only if not already set)
+  const defaultMode = c.fillMode === "self" ? "link" : "owner";
+  (applicationData.deal.travellers || []).forEach((t) => {
+    if (!t.qFillMode) t.qFillMode = defaultMode;
+  });
   markAutoSavePending();
   rerenderQuestionnaire();
 }
@@ -466,6 +496,17 @@ export function qGoToCommon() {
   if (applicationData.questionnaire.common) {
     applicationData.questionnaire.common.submitted = false;
   }
+  rerenderQuestionnaire();
+}
+
+export function qSetUnitFillMode(familyId, mode) {
+  const travellers = applicationData.deal.travellers || [];
+  travellers.forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) {
+      t.qFillMode = mode;
+    }
+  });
+  markAutoSavePending();
   rerenderQuestionnaire();
 }
 
