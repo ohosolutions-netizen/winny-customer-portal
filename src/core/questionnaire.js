@@ -139,6 +139,71 @@ export function qBackToOverview() {
   rerenderQuestionnaire();
 }
 
+// ── Progress dashboard table ───────────────────────────────────────────────
+function renderQuestionnaireDashboard(units) {
+  const doneCount = units.filter((u) => qState.unitCompletions[u.familyId]).length;
+
+  const rows = units.map((u) => {
+    const done = qState.unitCompletions[u.familyId];
+    const unitFillMode = u.travellers[0]?.qFillMode || "owner";
+
+    const memberNames = u.travellers
+      .map((t) => `${t.firstName || ""} ${t.lastName || ""}`.trim())
+      .filter(Boolean)
+      .join(", ");
+
+    const statusCell = done
+      ? `<span class="badge done" style="font-size:11px">&#x2713; Submitted</span>`
+      : `<span class="badge" style="font-size:11px;opacity:.75">Pending</span>`;
+
+    const fillModeCell = u.minorOnly
+      ? `<span style="font-size:11px;color:var(--muted)">&#x1F9D2; Guardian fills</span>`
+      : unitFillMode === "link"
+        ? `<span class="badge" style="font-size:11px;background:#fff8e1;color:#b45309;border:1px solid #fde68a">&#x1F517; Send link</span>`
+        : `<span class="badge" style="font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">&#x270F;&#xFE0F; Owner fills</span>`;
+
+    const actionCell = done
+      ? `<button class="btn ghost" type="button" style="font-size:12px;padding:4px 10px" onclick="qStartUnit(${u.index})">View &#x2192;</button>`
+      : `<button class="btn primary" type="button" style="font-size:12px;padding:4px 10px" onclick="qStartUnit(${u.index})">Start &#x2192;</button>`;
+
+    return `<tr style="border-bottom:1px solid var(--line)">
+      <td style="padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${escapeHtml((u.label[0] || "Q").toUpperCase())}</div>
+          <div>
+            <div style="font-weight:700;font-size:13px">${escapeHtml(u.label)}</div>
+            <div style="font-size:11px;color:var(--muted)">${escapeHtml(memberNames) || "—"}</div>
+          </div>
+        </div>
+      </td>
+      <td style="padding:10px 12px">${fillModeCell}</td>
+      <td style="padding:10px 12px">${statusCell}</td>
+      <td style="padding:10px 12px;text-align:right">${actionCell}</td>
+    </tr>`;
+  }).join("");
+
+  return `
+    <div style="border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:20px">
+      <div style="background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:800;font-size:13px">Application overview</span>
+        <span style="font-size:12px;opacity:.7">${doneCount} / ${units.length} units completed</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid var(--line)">
+              <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Unit / Travellers</th>
+              <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Fill Mode</th>
+              <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Status</th>
+              <th style="padding:8px 12px"></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
 // ── Unit overview panel ────────────────────────────────────────────────────
 function renderUnitOverviewHTML(units) {
   const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
@@ -214,10 +279,7 @@ function renderUnitOverviewHTML(units) {
         <button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Part A: Common details</button>
       </div>
       <div class="panel-body">
-        <div class="qn qn-blue">&#x1F4CB;
-          Questionnaires are grouped by family. Complete one unit at a time — each
-          unit&rsquo;s answers are saved separately.
-        </div>
+        ${renderQuestionnaireDashboard(units)}
         <div class="q-units-list">${cards}</div>
         ${
           allDone
