@@ -153,35 +153,94 @@ function renderUnitOverviewHTML(units) {
       .filter(Boolean)
       .join(", ");
 
+    // Per-unit link state (read from first traveller in unit)
+    const unitToken    = u.travellers[0]?.qToken || "";
+    const unitLinkSent = u.travellers.some((t) => t.qLinkSent);
+    const fid = escapeHtml(u.familyId);
+
     // Status indicator — left accent bar colour + badge
-    const rowBg   = done ? "background:#f0fdf4" : "";
-    const accentColor = done ? "var(--teal)" : "var(--line)";
+    const linkWaiting = !done && unitFillMode === "link" && unitLinkSent;
+    const rowBg = done ? "background:#f0fdf4" : linkWaiting ? "background:#fffbeb" : "";
+    const accentColor = done ? "var(--teal)" : linkWaiting ? "#f59e0b" : "var(--line)";
     const statusBadge = done
       ? `<span class="badge done" style="font-size:11px;white-space:nowrap">&#x2713; Submitted</span>`
-      : `<span class="badge" style="font-size:11px;white-space:nowrap;opacity:.7">Pending</span>`;
+      : linkWaiting
+        ? `<span class="badge" style="font-size:11px;white-space:nowrap;background:#fff8e1;color:#b45309;border:1px solid #fde68a">&#x23F3; Awaiting traveller</span>`
+        : `<span class="badge" style="font-size:11px;white-space:nowrap;opacity:.7">Pending</span>`;
 
-    // Fill mode section — toggle for normal units, fixed label for minor-only
+    // Fill mode toggle (not shown for minor-only units)
+    const fillModeToggle = u.minorOnly ? "" : `
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--muted);flex-shrink:0">Who fills:</span>
+        <button
+          class="btn${unitFillMode === "owner" ? " primary" : " ghost"}"
+          type="button" style="font-size:12px;padding:3px 10px"
+          onclick="qSetUnitFillMode('${fid}','owner')"
+        >&#x270F;&#xFE0F; I fill it</button>
+        <button
+          class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
+          type="button" style="font-size:12px;padding:3px 10px"
+          onclick="qSetUnitFillMode('${fid}','link')"
+        >&#x1F517; Send link to traveller</button>
+      </div>`;
+
+    // Link section — shown below the toggle when mode is "link"
+    let linkSection = "";
+    if (!u.minorOnly && unitFillMode === "link") {
+      if (!unitToken) {
+        linkSection = `
+          <div style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1.5px solid var(--line);border-radius:8px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Generate a private link for the traveller</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+              The traveller opens this link and fills their questionnaire privately — you won&rsquo;t see their answers until submitted.
+            </div>
+            <button class="btn primary" type="button" style="font-size:13px" onclick="qGenerateLink('${fid}')">
+              &#x1F511; Generate link
+            </button>
+          </div>`;
+      } else if (!unitLinkSent) {
+        const linkUrl = escapeHtml(qBuildLink(unitToken));
+        linkSection = `
+          <div style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1.5px dashed #60a5fa;border-radius:8px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#1e40af">&#x1F517; Private link ready — share it with the traveller</div>
+            <div style="font-family:monospace;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;word-break:break-all;color:var(--navy);margin-bottom:10px">${linkUrl}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary" type="button" style="font-size:13px" onclick="qCopyLink('${fid}')">
+                &#x1F4CB; Copy link
+              </button>
+              <button class="btn ghost" type="button" style="font-size:12px" onclick="qResetLink('${fid}')">
+                &#x21BA; Regenerate
+              </button>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px">Copy and send this link via WhatsApp, email, or SMS. Once sent, click &ldquo;Copy link&rdquo; to mark it as shared.</div>
+          </div>`;
+      } else {
+        const linkUrl = escapeHtml(qBuildLink(unitToken));
+        linkSection = `
+          <div style="margin-top:10px;padding:12px 14px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:#92400e">&#x23F3; Waiting for traveller to complete their questionnaire</div>
+            <div style="font-family:monospace;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:7px 10px;word-break:break-all;color:var(--muted);margin:8px 0">${linkUrl}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn ghost" type="button" style="font-size:12px" onclick="qCopyLink('${fid}')">
+                &#x1F4CB; Copy link again
+              </button>
+              <button class="btn ghost" type="button" style="font-size:12px;color:var(--red)" onclick="qResetLink('${fid}')">
+                &#x21BA; Reset &amp; regenerate
+              </button>
+            </div>
+          </div>`;
+      }
+    }
+
     const fillModeSection = u.minorOnly
       ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">&#x1F9D2; Guardian / parent fills on behalf of the minor</div>`
-      : `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
-          <span style="font-size:12px;color:var(--muted);flex-shrink:0">Who fills:</span>
-          <button
-            class="btn${unitFillMode === "owner" ? " primary" : " ghost"}"
-            type="button"
-            style="font-size:12px;padding:3px 10px"
-            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','owner')"
-          >&#x270F;&#xFE0F; I fill it</button>
-          <button
-            class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
-            type="button"
-            style="font-size:12px;padding:3px 10px"
-            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','link')"
-          >&#x1F517; Send link to traveller</button>
-        </div>`;
+      : fillModeToggle + linkSection;
 
     const actionBtn = done
       ? `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Edit answers &#x2192;</button>`
-      : `<button class="btn primary" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Fill questionnaire &#x2192;</button>`;
+      : unitFillMode === "link"
+        ? ""
+        : `<button class="btn primary" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Fill questionnaire &#x2192;</button>`;
 
     return `
       <div style="display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;${rowBg}">
@@ -477,6 +536,79 @@ export function qSetUnitFillMode(familyId, mode) {
   travellers.forEach((t) => {
     if ((t.familyId || "family-1") === familyId) {
       t.qFillMode = mode;
+    }
+  });
+  markAutoSavePending();
+  rerenderQuestionnaire();
+}
+
+// ── Send-link helpers ──────────────────────────────────────────────────────
+function qGenToken() {
+  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+}
+
+export function qBuildLink(token) {
+  const base = (typeof window !== "undefined" ? window.location.origin : "https://winny-customer-portal.vercel.app");
+  return `${base}/?fill=${token}`;
+}
+
+export function qGenerateLink(familyId) {
+  const token = qGenToken();
+  (applicationData.deal.travellers || []).forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) {
+      t.qToken = token;
+      t.qLinkSent = false;
+    }
+  });
+  markAutoSavePending();
+  rerenderQuestionnaire();
+}
+
+export function qCopyLink(familyId) {
+  const traveller = (applicationData.deal.travellers || []).find(
+    (t) => (t.familyId || "family-1") === familyId && t.qToken
+  );
+  if (!traveller) return;
+  const url = qBuildLink(traveller.qToken);
+
+  // Mark all unit travellers as link-sent
+  (applicationData.deal.travellers || []).forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) t.qLinkSent = true;
+  });
+  markAutoSavePending();
+
+  // Clipboard write with textarea fallback for cross-origin iframes
+  const doFallback = () => {
+    try {
+      const el = document.createElement("textarea");
+      el.value = url;
+      el.style.cssText = "position:fixed;top:-9999px;left:-9999px";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      toast("Link copied to clipboard.", "ok");
+    } catch (_) {
+      toast("Could not copy automatically — select and copy the link manually.", "warn");
+    }
+    rerenderQuestionnaire();
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast("Link copied to clipboard.", "ok");
+      rerenderQuestionnaire();
+    }).catch(doFallback);
+  } else {
+    doFallback();
+  }
+}
+
+export function qResetLink(familyId) {
+  (applicationData.deal.travellers || []).forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) {
+      t.qToken = "";
+      t.qLinkSent = false;
     }
   });
   markAutoSavePending();
