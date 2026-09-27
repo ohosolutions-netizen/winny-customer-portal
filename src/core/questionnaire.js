@@ -139,8 +139,9 @@ export function qBackToOverview() {
   rerenderQuestionnaire();
 }
 
-// ── Progress dashboard table ───────────────────────────────────────────────
-function renderQuestionnaireDashboard(units) {
+// ── Unit overview panel ────────────────────────────────────────────────────
+function renderUnitOverviewHTML(units) {
+  const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
   const doneCount = units.filter((u) => qState.unitCompletions[u.familyId]).length;
 
   const rows = units.map((u) => {
@@ -152,144 +153,87 @@ function renderQuestionnaireDashboard(units) {
       .filter(Boolean)
       .join(", ");
 
-    const statusCell = done
-      ? `<span class="badge done" style="font-size:11px">&#x2713; Submitted</span>`
-      : `<span class="badge" style="font-size:11px;opacity:.75">Pending</span>`;
+    // Status indicator — left accent bar colour + badge
+    const rowBg   = done ? "background:#f0fdf4" : "";
+    const accentColor = done ? "var(--teal)" : "var(--line)";
+    const statusBadge = done
+      ? `<span class="badge done" style="font-size:11px;white-space:nowrap">&#x2713; Submitted</span>`
+      : `<span class="badge" style="font-size:11px;white-space:nowrap;opacity:.7">Pending</span>`;
 
-    const fillModeCell = u.minorOnly
-      ? `<span style="font-size:11px;color:var(--muted)">&#x1F9D2; Guardian fills</span>`
-      : unitFillMode === "link"
-        ? `<span class="badge" style="font-size:11px;background:#fff8e1;color:#b45309;border:1px solid #fde68a">&#x1F517; Send link</span>`
-        : `<span class="badge" style="font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">&#x270F;&#xFE0F; Owner fills</span>`;
+    // Fill mode section — toggle for normal units, fixed label for minor-only
+    const fillModeSection = u.minorOnly
+      ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">&#x1F9D2; Guardian / parent fills on behalf of the minor</div>`
+      : `<div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--muted);flex-shrink:0">Who fills:</span>
+          <button
+            class="btn${unitFillMode === "owner" ? " primary" : " ghost"}"
+            type="button"
+            style="font-size:12px;padding:3px 10px"
+            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','owner')"
+          >&#x270F;&#xFE0F; I fill it</button>
+          <button
+            class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
+            type="button"
+            style="font-size:12px;padding:3px 10px"
+            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','link')"
+          >&#x1F517; Send link to traveller</button>
+        </div>`;
 
-    const actionCell = done
-      ? `<button class="btn ghost" type="button" style="font-size:12px;padding:4px 10px" onclick="qStartUnit(${u.index})">View &#x2192;</button>`
-      : `<button class="btn primary" type="button" style="font-size:12px;padding:4px 10px" onclick="qStartUnit(${u.index})">Start &#x2192;</button>`;
+    const actionBtn = done
+      ? `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Edit answers &#x2192;</button>`
+      : `<button class="btn primary" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Fill questionnaire &#x2192;</button>`;
 
-    return `<tr style="border-bottom:1px solid var(--line)">
-      <td style="padding:10px 12px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${escapeHtml((u.label[0] || "Q").toUpperCase())}</div>
-          <div>
-            <div style="font-weight:700;font-size:13px">${escapeHtml(u.label)}</div>
-            <div style="font-size:11px;color:var(--muted)">${escapeHtml(memberNames) || "—"}</div>
+    return `
+      <div style="display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;${rowBg}">
+        <div style="width:4px;flex-shrink:0;background:${accentColor}"></div>
+        <div style="flex:1;padding:14px 16px;min-width:0">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0">
+              <div style="width:36px;height:36px;border-radius:50%;background:${done ? "var(--teal)" : "#e2e8f0"};color:${done ? "#fff" : "var(--navy)"};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">${escapeHtml((u.label[0] || "Q").toUpperCase())}</div>
+              <div style="min-width:0">
+                <div style="font-weight:700;font-size:14px;color:var(--navy)">${escapeHtml(u.label)}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(memberNames) || "—"}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+              ${statusBadge}
+              ${actionBtn}
+            </div>
           </div>
+          ${fillModeSection}
         </div>
-      </td>
-      <td style="padding:10px 12px">${fillModeCell}</td>
-      <td style="padding:10px 12px">${statusCell}</td>
-      <td style="padding:10px 12px;text-align:right">${actionCell}</td>
-    </tr>`;
+      </div>`;
   }).join("");
 
-  return `
-    <div style="border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:20px">
-      <div style="background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
-        <span style="font-weight:800;font-size:13px">Application overview</span>
-        <span style="font-size:12px;opacity:.7">${doneCount} / ${units.length} units completed</span>
+  const progressBar = units.length > 1 ? `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <div style="flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${Math.round((doneCount / units.length) * 100)}%;background:var(--teal);border-radius:3px;transition:width .3s"></div>
       </div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <thead>
-            <tr style="background:#f8fafc;border-bottom:2px solid var(--line)">
-              <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Unit / Travellers</th>
-              <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Fill Mode</th>
-              <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Status</th>
-              <th style="padding:8px 12px"></th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-// ── Unit overview panel ────────────────────────────────────────────────────
-function renderUnitOverviewHTML(units) {
-  const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
-
-  const cards = units
-    .map((u) => {
-      const done = qState.unitCompletions[u.familyId];
-      const memberNames = u.travellers
-        .map((t) => `${t.firstName || ""} ${t.lastName || ""}`.trim())
-        .filter(Boolean)
-        .join(", ");
-      const statusBadge = done
-        ? `<span class="badge done">&#x2713; Submitted</span>`
-        : `<span class="badge">Not started</span>`;
-      const btnLabel = done ? "View answers" : "Start questionnaire";
-      const guardianNote = u.minorOnly
-        ? `<div class="q-unit-guardian">&#x1F9D2; Minor — guardian/parent fills on their behalf</div>`
-        : "";
-
-      // Per-unit fill mode toggle (not shown for minor-only units)
-      const unitFillMode = u.travellers[0]?.qFillMode || "owner";
-      const fillModeToggle = u.minorOnly ? "" : `
-        <div class="q-unit-fillmode" style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
-          <span style="font-size:12px;color:var(--muted);flex-shrink:0">Fill mode:</span>
-          <button
-            class="btn btn-sm${unitFillMode === "owner" ? " primary" : " ghost"}"
-            type="button"
-            style="font-size:12px;padding:4px 10px"
-            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','owner')"
-          >&#x270F;&#xFE0F; Owner fills</button>
-          <button
-            class="btn btn-sm${unitFillMode === "link" ? " primary" : " ghost"}"
-            type="button"
-            style="font-size:12px;padding:4px 10px"
-            onclick="qSetUnitFillMode('${escapeHtml(u.familyId)}','link')"
-          >&#x1F517; Send link</button>
-          ${unitFillMode === "link"
-            ? `<span style="font-size:11px;color:var(--muted);margin-left:4px">Traveller fills privately</span>`
-            : `<span style="font-size:11px;color:var(--muted);margin-left:4px">You fill on their behalf</span>`}
-        </div>`;
-
-      return `
-        <div class="q-unit-card${done ? " q-unit-card--done" : ""}${u.minorOnly ? " q-unit-card--minor" : ""}">
-          <div class="q-unit-card-body">
-            <div class="q-unit-av">${escapeHtml(u.label[0] || "Q")}</div>
-            <div class="q-unit-info">
-              <div class="q-unit-name">${escapeHtml(u.label)}</div>
-              <div class="q-unit-members">${escapeHtml(memberNames)}</div>
-              ${guardianNote}
-            </div>
-            ${statusBadge}
-          </div>
-          ${fillModeToggle}
-          <div style="margin-top:10px">
-            <button
-              class="btn${done ? "" : " primary"}"
-              type="button"
-              onclick="qStartUnit(${u.index})"
-            >${btnLabel} &#x2192;</button>
-          </div>
-        </div>`;
-    })
-    .join("");
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0">${doneCount} of ${units.length} completed</span>
+    </div>` : "";
 
   return `
     <section class="wizard-panel">
       <div class="panel-head">
         <div>
-          <h3>Case Questionnaire — Part B</h3>
-          <p>This application has <strong>${units.length} questionnaire units</strong>.
-             Each must be completed separately.</p>
+          <h3>Visa Questionnaire</h3>
+          <p>${units.length === 1
+            ? "Complete the questionnaire for this application."
+            : `Fill in the questionnaire for each group below. You can do them in any order.`}</p>
         </div>
-        <button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Part A: Common details</button>
+        <button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Case details</button>
       </div>
       <div class="panel-body">
-        ${renderQuestionnaireDashboard(units)}
-        <div class="q-units-list">${cards}</div>
-        ${
-          allDone
-            ? `<div style="margin-top:18px">
-                 <button class="btn primary" type="button" data-step-nav="3">
-                   Continue to Document Checklist &#x2192;
-                 </button>
-               </div>`
-            : ""
-        }
+        ${progressBar}
+        ${rows}
+        ${allDone
+          ? `<div style="margin-top:6px">
+               <button class="btn primary" type="button" data-step-nav="3">
+                 Continue to Document Checklist &#x2192;
+               </button>
+             </div>`
+          : ""}
       </div>
     </section>`;
 }
