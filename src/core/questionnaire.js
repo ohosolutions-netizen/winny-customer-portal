@@ -742,12 +742,14 @@ const sections = [
   "sec-trip",
   ...(hasInviterPurpose ? ["sec-inviter"] : []),
   "sec-finance",
+  "sec-occupation",
+  "sec-assets",
   "sec-ties",
   ...(hasChildren ? ["sec-children"] : []),
   "sec-history"
 ];
       const totalSec = sections.length;
-      const sectionLabels = {"sec-trip":"Your Trip","sec-inviter":"Inviter","sec-finance":"Finances","sec-ties":"Ties to India","sec-children":"Children","sec-history":"Travel History"};
+      const sectionLabels = {"sec-trip":"Your Trip","sec-inviter":"Inviter / Host","sec-finance":"Finances","sec-occupation":"Occupation","sec-assets":"Assets & Investments","sec-ties":"Home Country Ties","sec-children":"Children","sec-history":"Travel History"};
 
       function qOptR(group, val, title, desc="") {
         const cur = applicationData.questionnaire[group] || "";
@@ -1087,323 +1089,232 @@ const sections = [
             </div>`
   : "";
 
-      // Section 3 — Finances (per adult)
+      // Section 3 — Finances / Occupation / Assets (split into 3 sections per DOCX)
      const primaryFinanceTravellers =
   primaryTraveller?.id ? [primaryTraveller] : [];
 
-const finBlocks = primaryFinanceTravellers.map(t => {
-        const fin = (applicationData.questionnaire.finance || {})[t.id] || {};
-const financeAnswers = fin.multiAnswers || {};
+// ── Helper: shared per-traveller derived values ────────────────────────────
+function buildFinDerived(t) {
+  const fin = (applicationData.questionnaire.finance || {})[t.id] || {};
+  const financeAnswers = fin.multiAnswers || {};
+  return {
+    fin,
+    financeAnswers,
+    isBusiness: Boolean(financeAnswers["occ-business"]),
+    isOtherOccupation: Boolean(financeAnswers["occ-other"]),
+    shouldShowItr: ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(financeAnswers[k])),
+    hasOtherAsset: Boolean(financeAnswers["asset-other"]),
+    hasOtherInvestment: Boolean(financeAnswers["inv-other"]),
+  };
+}
 
-const isBusiness =
-  Boolean(financeAnswers["occ-business"]);
+// ── sec-finance: Funding & liquid funds only ───────────────────────────────
+const finFundingBlocks = primaryFinanceTravellers.map(t => {
+  const { fin } = buildFinDerived(t);
+  return `<div class="person-block">
+    <div class="person-block-hd">
+      <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
+      <div class="pb-info"><div class="pb-name">${escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim())}</div>
+      <div class="pb-role">${escapeHtml(travellerLabel(t))}</div></div>
+    </div>
+    <div class="q-blk">
+      <div class="q-lbl">How will ${escapeHtml(t.firstName||"this applicant")} fund this trip? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+      <div class="q-opts c2">
+        ${qFinFundingOpt(t.id,"self","Self-funded","Paying from own income and savings")}
+        ${qFinFundingOpt(t.id,"inviter","Inviter will fund","Host covers travel expenses")}
+        ${qFinFundingOpt(t.id,"sponsor","Sponsor / Third party will pay","")}
+      </div>
+      <div class="q-dep ${(Array.isArray(fin.funding) ? fin.funding : [fin.funding]).includes("sponsor")?"show":""}" id="dep-${t.id}-sponsor">
+        <div class="q-sub">Who is the financial sponsor? <span class="q-req">Required</span></div>
+        <div class="q-opts">
+          ${qFinOptR(t.id,"sponsorType","parent","Parent (Father / Mother)","")}
+          ${qFinOptR(t.id,"sponsorType","spouse","Spouse (Husband / Wife)","")}
+          ${qFinOptR(t.id,"sponsorType","sibling","Sibling (Brother / Sister)","")}
+          ${qFinOptR(t.id,"sponsorType","extended","Extended Relative (Uncle, Aunt, Cousin)","")}
+          ${qFinOptR(t.id,"sponsorType","employer","Current Employer","")}
+          ${qFinOptR(t.id,"sponsorType","event","Event Organizers","")}
+        </div>
+      </div>
+    </div>
+    <div class="q-blk" style="margin-bottom:0;padding-bottom:0;border:none">
+      <div class="q-lbl">How much liquid funds are available to support this trip? <span class="q-req">Required</span></div>
+      <div class="q-opts c2">
+        ${qFinOptR(t.id,"fundsRange","4-7l","₹4 – 7 Lakh","")}
+        ${qFinOptR(t.id,"fundsRange","7-10l","₹7 – 10 Lakh","")}
+        ${qFinOptR(t.id,"fundsRange","10-15l","₹10 – 15 Lakh","")}
+        ${qFinOptR(t.id,"fundsRange","15-20l","₹15 – 20 Lakh","")}
+        ${qFinOptR(t.id,"fundsRange","20l-plus","₹20 Lakh+","")}
+      </div>
+    </div>
+  </div>`;
+}).join("");
 
-const isOtherOccupation =
-  Boolean(financeAnswers["occ-other"]);
+// ── sec-occupation: Occupation & ITR ──────────────────────────────────────
+const finOccBlocks = primaryFinanceTravellers.map(t => {
+  const { fin, financeAnswers, isBusiness, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
+  return `<div class="person-block">
+    <div class="person-block-hd">
+      <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
+      <div class="pb-info"><div class="pb-name">${escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim())}</div>
+      <div class="pb-role">${escapeHtml(travellerLabel(t))}</div></div>
+    </div>
+    <div class="q-blk">
+      <div class="q-lbl">What is ${escapeHtml(t.firstName||"their")} current occupation? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+      <div class="q-opts c2">
+        ${qFinOptM(t.id,"occ-employed","Employed (Job)")}
+        ${qFinOptM(t.id,"occ-freelancer","Self-Employed / Freelancer")}
+        ${qFinOptM(t.id,"occ-business","Business Owner")}
+        ${qFinOptM(t.id,"occ-homemaker","Homemaker")}
+        ${qFinOptM(t.id,"occ-pensioner","Retired with Pension")}
+        ${qFinOptM(t.id,"occ-retired-nopension","Retired without Pension")}
+        ${qFinOptM(t.id,"occ-student","Student")}
+        ${qFinOptM(t.id,"occ-unemployed","Unemployed")}
+        ${qFinOptM(t.id,"occ-other","Other")}
+      </div>
+      <div class="q-dep ${isBusiness?"show":""}" id="dep-${t.id}-biz">
+        <div class="q-sub">What type of business? <span class="q-req">Required</span></div>
+        <div class="q-opts">
+          ${qFinOptR(t.id,"bizType","sole","Sole Proprietorship","Shop, agency, or single-owner")}
+          ${qFinOptR(t.id,"bizType","partnership","Partnership Firm","")}
+          ${qFinOptR(t.id,"bizType","pvtltd","Public, Private, or an LLP","Registered company")}
+        </div>
+      </div>
+    </div>
+    <div class="q-blk" id="dep-${t.id}-occ-other" style="${isOtherOccupation ? "" : "display:none"}">
+      <div class="q-lbl">Please provide more information about ${escapeHtml(t.firstName||"their")} occupation <span class="q-req">Required</span></div>
+      <div class="q-field-row single"><div class="q-field">
+        <textarea rows="2" placeholder="e.g. job title, business type, day-to-day work"
+          oninput="qFinSetField('${t.id}','moreInfo',this.value)">${escapeHtml(fin.moreInfo||"")}</textarea>
+      </div></div>
+    </div>
+    <div class="q-blk" id="dep-${t.id}-itr" style="${shouldShowItr ? "" : "display:none"}">
+      <div class="q-lbl">Do ${escapeHtml(t.firstName||"their")} ITRs from the last 2 years reflect their current occupation? <span class="q-req">Required</span></div>
+      <div class="q-opts c2">
+        ${qFinOptR(t.id,"itr","yes","Yes — ITR reflects current occupation","")}
+        ${qFinOptR(t.id,"itr","notsure","Not sure","")}
+        ${qFinOptR(t.id,"itr","no","No — ITR shows different occupation","e.g. recently changed jobs")}
+        ${qFinOptR(t.id,"itr","nofile","Does not file an ITR","")}
+      </div>
+    </div>
+  </div>`;
+}).join("");
 
-const shouldShowItr = [
-  "occ-employed",
-  "occ-freelancer",
-  "occ-pensioner",
-  "occ-business"
-].some((key) => Boolean(financeAnswers[key]));
-
-const hasOtherAsset =
-  Boolean(financeAnswers["asset-other"]);
-
-const hasOtherInvestment =
-  Boolean(financeAnswers["inv-other"]);
-        return `<div class="person-block">
-          <div class="person-block-hd">
-            <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
-            <div class="pb-info"><div class="pb-name">${escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim())}</div>
-            <div class="pb-role">${escapeHtml(travellerLabel(t))}</div></div>
-          </div>
-          <div class="q-blk">
-  <div class="q-lbl">
-    How will ${escapeHtml(t.firstName||"this applicant")} fund this trip?
-    <span class="q-req">Required</span>
-    <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span>
-  </div>
-  <div class="q-opts c2">
-    ${qFinFundingOpt(t.id,"self","Self-funded","Paying from own income and savings")}
-    ${qFinFundingOpt(t.id,"inviter","Inviter will fund","Host covers travel expenses")}
-    ${qFinFundingOpt(t.id,"sponsor","Sponsor / Third party will pay","")}
-  </div>
-  <div class="q-dep ${(Array.isArray(fin.funding) ? fin.funding : [fin.funding]).includes("sponsor")?"show":""}" id="dep-${t.id}-sponsor">
-              <div class="q-sub">Who is the financial sponsor? <span class="q-req">Required</span></div>
-              <div class="q-opts">
-                ${qFinOptR(t.id,"sponsorType","parent","Parent (Father / Mother)","")}
-                ${qFinOptR(t.id,"sponsorType","spouse","Spouse (Husband / Wife)","")}
-                ${qFinOptR(t.id,"sponsorType","sibling","Sibling (Brother / Sister)","")}
-                ${qFinOptR(t.id,"sponsorType","extended","Extended Relative (Uncle, Aunt, Cousin)","")}
-                ${qFinOptR(t.id,"sponsorType","employer","Current Employer","")}
-                ${qFinOptR(t.id,"sponsorType","event","Event Organizers","")}
-              </div>
-            </div>
-          </div>
-          <div class="q-blk">
-            <div class="q-lbl">How much liquid funds are available to support this trip? <span class="q-req">Required</span></div>
-            <div class="q-opts c2">
-              ${qFinOptR(t.id,"fundsRange","4-7l","₹4 – 7 Lakh","")}
-              ${qFinOptR(t.id,"fundsRange","7-10l","₹7 – 10 Lakh","")}
-              ${qFinOptR(t.id,"fundsRange","10-15l","₹10 – 15 Lakh","")}
-              ${qFinOptR(t.id,"fundsRange","15-20l","₹15 – 20 Lakh","")}
-              ${qFinOptR(t.id,"fundsRange","20l-plus","₹20 Lakh+","")}
-            </div>
-          </div>
-          <div class="q-blk">
-            <div class="q-lbl">What is ${escapeHtml(t.firstName||"their")} current occupation? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
-            <div class="q-opts c2">
-              ${qFinOptM(t.id,"occ-employed","Employed (Job)")}
-              ${qFinOptM(t.id,"occ-freelancer","Self-Employed / Freelancer")}
-              ${qFinOptM(t.id,"occ-business","Business Owner")}
-              ${qFinOptM(t.id,"occ-homemaker","Homemaker")}
-              ${qFinOptM(t.id,"occ-pensioner","Retired with Pension")}
-              ${qFinOptM(t.id,"occ-retired-nopension","Retired without Pension")}
-              ${qFinOptM(t.id,"occ-student","Student")}
-              ${qFinOptM(t.id,"occ-unemployed","Unemployed")}
-              ${qFinOptM(t.id,"occ-other","Other")}
-            </div>
-            <div class="q-dep ${isBusiness?"show":""}" id="dep-${t.id}-biz">
-              <div class="q-sub">What type of business? <span class="q-req">Required</span></div>
-              <div class="q-opts">
-                ${qFinOptR(t.id,"bizType","sole","Sole Proprietorship","Shop, agency, or single-owner")}
-                ${qFinOptR(t.id,"bizType","partnership","Partnership Firm","")}
-                ${qFinOptR(t.id,"bizType","pvtltd","Public, Private, or an LLP","Registered company")}
-              </div>
-            </div>
-          </div>
-          <div
-  class="q-blk"
-  id="dep-${t.id}-occ-other"
-  style="${isOtherOccupation ? "" : "display:none"}"
->
-  <div class="q-lbl">Please provide more information about ${escapeHtml(t.firstName||"their")} occupation <span class="q-req">Required</span></div>
-            <div class="q-field-row single"><div class="q-field">
-              <textarea rows="2" placeholder="e.g. job title, business type, day-to-day work"
-                oninput="qFinSetField('${t.id}','moreInfo',this.value)">${escapeHtml(fin.moreInfo||"")}</textarea>
-            </div></div>
-          </div>
-          <div
-  class="q-blk"
-  id="dep-${t.id}-itr"
-  style="${shouldShowItr ? "" : "display:none"}"
->
-  <div class="q-lbl">Do ${escapeHtml(t.firstName||"their")} ITRs from the last 2 years reflect their current occupation? <span class="q-req">Required</span></div>
-            <div class="q-opts c2">
-              ${qFinOptR(t.id,"itr","yes","Yes — ITR reflects current occupation","")}
-              ${qFinOptR(t.id,"itr","notsure","Not sure","")}
-              ${qFinOptR(t.id,"itr","no","No — ITR shows different occupation","e.g. recently changed jobs")}
-              ${qFinOptR(t.id,"itr","nofile","Does not file an ITR","")}
-            </div>
-          </div>
-          <div class="q-blk">
-            <div class="q-lbl">What types of property does ${escapeHtml(t.firstName||"this applicant")} own in India? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
-            <div class="q-opts c2">
-              ${qFinOptM(t.id,"asset-house","House")}
-              ${qFinOptM(t.id,"asset-shop","Shop")}
-              ${qFinOptM(t.id,"asset-office","Office")}
-              ${qFinOptM(t.id,"asset-building","Building")}
-              ${qFinOptM(t.id,"asset-flat","Apartment")}
-              ${qFinOptM(t.id,"asset-factory","Factory")}
-              ${qFinOptM(t.id,"asset-shed","Shed")}
-              ${qFinOptM(t.id,"asset-warehouse","Warehouse")}
-              ${qFinOptM(t.id,"asset-plot","Plot")}
-              ${qFinOptM(t.id,"asset-land","Land")}
-              ${qFinOptM(t.id,"asset-none","None")}
-              ${qFinOptM(t.id,"asset-other","Other")}
-            </div>
-            <div
-  class="q-field-row single"
-  id="dep-${t.id}-asset-other"
-  style="margin-top:10px;${hasOtherAsset ? "" : "display:none"}"
->
-  <div class="q-field"><label>Please describe the other property type <span class="q-req">Required</span></label>
-                <input type="text" placeholder="Describe any property type not listed above"
-                  value="${escapeHtml(fin.otherAssetDesc||"")}"
-                  oninput="qFinSetField('${t.id}','otherAssetDesc',this.value)"></div>
-            </div>
-          </div>
-          <div class="q-blk" style="margin-bottom:0;padding-bottom:0;border:none">
-            <div class="q-lbl">What liquid investments does ${escapeHtml(t.firstName||"this applicant")} hold? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
-            <div class="q-opts c2">
-              ${qFinOptM(t.id,"inv-stocks","Stock Market")}
-              ${qFinOptM(t.id,"inv-bank","Bank Savings")}
-              ${qFinOptM(t.id,"inv-fd","Fixed Deposits (FD)")}
-              ${qFinOptM(t.id,"inv-mf","Mutual Funds")}
-              ${qFinOptM(t.id,"inv-ppf","PPF (Public Provident Fund)")}
-              ${qFinOptM(t.id,"inv-epf","EPF (Employee Provident Fund)")}
-              ${qFinOptM(t.id,"inv-bonds","Bonds")}
-              ${qFinOptM(t.id,"inv-gold","Gold")}
-              ${qFinOptM(t.id,"inv-postal","Postal Certificate / Savings")}
-              ${qFinOptM(t.id,"inv-none","I do not have any investments")}
-              ${qFinOptM(t.id,"inv-other","Other")}
-            </div>
-            <div
-  class="q-field-row single"
-  id="dep-${t.id}-inv-other"
-  style="margin-top:10px;${hasOtherInvestment ? "" : "display:none"}"
->
-  <div class="q-field"><label>Please describe the other investment type <span class="q-req">Required</span></label>
-                <input type="text" placeholder="Describe any investment type not listed above"
-                  value="${escapeHtml(fin.otherInvestment||"")}"
-                  oninput="qFinSetField('${t.id}','otherInvestment',this.value)"></div>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
-
-      const spouseTravForFin =
-  allTravellers.find(t => t.type === "Spouse");
-
-const spouseExtra = spouseTravForFin
+// Spouse occupation block (shown in sec-occupation)
+const spouseTravForFin = allTravellers.find(t => t.type === "Spouse");
+const spouseOccExtra = spouseTravForFin
   ? (() => {
       const spouseId = spouseTravForFin.id;
-
-      const sfin =
-        (applicationData.questionnaire.finance || {})[spouseId] || {};
-
+      const sfin = (applicationData.questionnaire.finance || {})[spouseId] || {};
       const spouseAnswers = sfin.multiAnswers || {};
-
-      const spouseIsBusiness =
-        Boolean(spouseAnswers["occ-business"]);
-
-      const spouseIsOtherOccupation =
-        Boolean(spouseAnswers["occ-other"]);
-
-      const shouldShowSpouseItr = [
-  "occ-employed",
-  "occ-freelancer",
-  "occ-pensioner",
-  "occ-business",
-  "occ-other"
-].some((key) => Boolean(spouseAnswers[key]));
-
-      return `
-        <div class="person-block">
-          <div class="person-block-hd">
-            <div class="pb-av pb-av-sp">
-              ${escapeHtml(initials(spouseTravForFin))}
-            </div>
-
-            <div class="pb-info">
-              <div class="pb-name">
-                ${escapeHtml(
-                  `${spouseTravForFin.firstName || ""} ${
-                    spouseTravForFin.lastName || ""
-                  }`.trim()
-                )}
-              </div>
-              <div class="pb-role">Spouse occupation and income</div>
-            </div>
+      const spouseIsBusiness = Boolean(spouseAnswers["occ-business"]);
+      const spouseIsOtherOccupation = Boolean(spouseAnswers["occ-other"]);
+      const shouldShowSpouseItr = ["occ-employed","occ-freelancer","occ-pensioner","occ-business","occ-other"].some(k => Boolean(spouseAnswers[k]));
+      return `<div class="person-block">
+        <div class="person-block-hd">
+          <div class="pb-av pb-av-sp">${escapeHtml(initials(spouseTravForFin))}</div>
+          <div class="pb-info">
+            <div class="pb-name">${escapeHtml(`${spouseTravForFin.firstName||""} ${spouseTravForFin.lastName||""}`.trim())}</div>
+            <div class="pb-role">Spouse occupation and income</div>
           </div>
-
-          <div class="q-blk">
-            <div class="q-lbl">
-              Please select employment/source of income of
-              ${escapeHtml(spouseTravForFin.firstName || "your spouse")}
-              <span class="q-req">Required</span>
-              <span style="font-size:12px;font-weight:400;color:var(--muted)">
-                (select all that apply)
-              </span>
-            </div>
-
-            <div class="q-opts c2">
-              ${qFinOptM(spouseId, "occ-employed", "Employed (Job)")}
-              ${qFinOptM(spouseId, "occ-freelancer", "Self-Employed / Freelancer")}
-              ${qFinOptM(spouseId, "occ-business", "Business Owner")}
-              ${qFinOptM(spouseId, "occ-homemaker", "Homemaker")}
-              ${qFinOptM(spouseId, "occ-pensioner", "Retired with Pension")}
-              ${qFinOptM(spouseId, "occ-retired-nopension", "Retired without Pension")}
-              ${qFinOptM(spouseId, "occ-student", "Student")}
-              ${qFinOptM(spouseId, "occ-other", "Other")}
-            </div>
+        </div>
+        <div class="q-blk">
+          <div class="q-lbl">Please select employment / source of income of ${escapeHtml(spouseTravForFin.firstName||"your spouse")} <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+          <div class="q-opts c2">
+            ${qFinOptM(spouseId,"occ-employed","Employed (Job)")}
+            ${qFinOptM(spouseId,"occ-freelancer","Self-Employed / Freelancer")}
+            ${qFinOptM(spouseId,"occ-business","Business Owner")}
+            ${qFinOptM(spouseId,"occ-homemaker","Homemaker")}
+            ${qFinOptM(spouseId,"occ-pensioner","Retired with Pension")}
+            ${qFinOptM(spouseId,"occ-retired-nopension","Retired without Pension")}
+            ${qFinOptM(spouseId,"occ-student","Student")}
+            ${qFinOptM(spouseId,"occ-other","Other")}
           </div>
-
-          <div
-            class="q-blk"
-            id="dep-${spouseId}-biz"
-            style="${spouseIsBusiness ? "" : "display:none"}"
-          >
-            <div class="q-lbl">
-              Please select your spouse's business ownership type <span class="q-req">Required</span>
-            </div>
-
-            <div class="q-opts">
-              ${qFinOptR(
-                spouseId,
-                "spouseBizType",
-                "sole",
-                "Sole owner",
-                ""
-              )}
-              ${qFinOptR(
-                spouseId,
-                "spouseBizType",
-                "partnership",
-                "Partnership",
-                ""
-              )}
-              ${qFinOptR(
-                spouseId,
-                "spouseBizType",
-                "pvtllp",
-                "Public, private, or LLP",
-                ""
-              )}
-            </div>
+        </div>
+        <div class="q-blk" id="dep-${spouseId}-biz" style="${spouseIsBusiness ? "" : "display:none"}">
+          <div class="q-lbl">Please select your spouse's business ownership type <span class="q-req">Required</span></div>
+          <div class="q-opts">
+            ${qFinOptR(spouseId,"spouseBizType","sole","Sole owner","")}
+            ${qFinOptR(spouseId,"spouseBizType","partnership","Partnership","")}
+            ${qFinOptR(spouseId,"spouseBizType","pvtllp","Public, private, or LLP","")}
           </div>
-
-          <div
-            class="q-blk"
-            id="dep-${spouseId}-itr"
-            style="${shouldShowSpouseItr ? "" : "display:none"}"
-          >
-            <div class="q-lbl">
-              Do your spouse's ITRs from the last two years reflect their occupation? <span class="q-req">Required</span>
-            </div>
-
-            <div class="q-opts c2">
-              ${qFinOptR(spouseId, "itr", "yes", "Yes", "")}
-              ${qFinOptR(spouseId, "itr", "no", "No", "")}
-              ${qFinOptR(spouseId, "itr", "notsure", "Not sure", "")}
-              ${qFinOptR(
-                spouseId,
-                "itr",
-                "nofile",
-                "Does not file an ITR",
-                ""
-              )}
-            </div>
+        </div>
+        <div class="q-blk" id="dep-${spouseId}-itr" style="${shouldShowSpouseItr ? "" : "display:none"}">
+          <div class="q-lbl">Do your spouse's ITRs from the last two years reflect their occupation? <span class="q-req">Required</span></div>
+          <div class="q-opts c2">
+            ${qFinOptR(spouseId,"itr","yes","Yes","")}
+            ${qFinOptR(spouseId,"itr","no","No","")}
+            ${qFinOptR(spouseId,"itr","notsure","Not sure","")}
+            ${qFinOptR(spouseId,"itr","nofile","Does not file an ITR","")}
           </div>
-
-          <div
-            class="q-blk"
-            id="dep-${spouseId}-occ-other"
-            style="${
-              spouseIsOtherOccupation ? "" : "display:none"
-            }"
-          >
-            <div class="q-lbl">
-              Please describe your spouse's other source of income or employment <span class="q-req">Required</span>
-            </div>
-
-            <div class="q-field-row single">
-              <div class="q-field">
-                <textarea
-                  rows="2"
-                  placeholder="Describe the other income or employment"
-                  oninput="qFinSetField('${spouseId}','otherIncomeDesc',this.value)"
-                >${escapeHtml(sfin.otherIncomeDesc || "")}</textarea>
-              </div>
-            </div>
-          </div>
-        </div>`;
+        </div>
+        <div class="q-blk" id="dep-${spouseId}-occ-other" style="${spouseIsOtherOccupation ? "" : "display:none"}">
+          <div class="q-lbl">Please describe your spouse's other source of income or employment <span class="q-req">Required</span></div>
+          <div class="q-field-row single"><div class="q-field">
+            <textarea rows="2" placeholder="Describe the other income or employment"
+              oninput="qFinSetField('${spouseId}','otherIncomeDesc',this.value)">${escapeHtml(sfin.otherIncomeDesc||"")}</textarea>
+          </div></div>
+        </div>
+      </div>`;
     })()
   : "";
 
-      const nextAfterFinance = sections.includes("sec-ties") ? "sec-ties" : "sec-history";
+// ── sec-assets: Property & investments ────────────────────────────────────
+const finAssetBlocks = primaryFinanceTravellers.map(t => {
+  const { fin, financeAnswers, hasOtherAsset, hasOtherInvestment } = buildFinDerived(t);
+  return `<div class="person-block">
+    <div class="person-block-hd">
+      <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
+      <div class="pb-info"><div class="pb-name">${escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim())}</div>
+      <div class="pb-role">${escapeHtml(travellerLabel(t))}</div></div>
+    </div>
+    <div class="q-blk">
+      <div class="q-lbl">What types of property does ${escapeHtml(t.firstName||"this applicant")} own in India? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+      <div class="q-opts c2">
+        ${qFinOptM(t.id,"asset-house","House")}
+        ${qFinOptM(t.id,"asset-shop","Shop")}
+        ${qFinOptM(t.id,"asset-office","Office")}
+        ${qFinOptM(t.id,"asset-building","Building")}
+        ${qFinOptM(t.id,"asset-flat","Apartment")}
+        ${qFinOptM(t.id,"asset-factory","Factory")}
+        ${qFinOptM(t.id,"asset-shed","Shed")}
+        ${qFinOptM(t.id,"asset-warehouse","Warehouse")}
+        ${qFinOptM(t.id,"asset-plot","Plot")}
+        ${qFinOptM(t.id,"asset-land","Land")}
+        ${qFinOptM(t.id,"asset-none","None")}
+        ${qFinOptM(t.id,"asset-other","Other")}
+      </div>
+      <div class="q-field-row single" id="dep-${t.id}-asset-other" style="margin-top:10px;${hasOtherAsset ? "" : "display:none"}">
+        <div class="q-field"><label>Please describe the other property type <span class="q-req">Required</span></label>
+          <input type="text" placeholder="Describe any property type not listed above"
+            value="${escapeHtml(fin.otherAssetDesc||"")}"
+            oninput="qFinSetField('${t.id}','otherAssetDesc',this.value)"></div>
+      </div>
+    </div>
+    <div class="q-blk" style="margin-bottom:0;padding-bottom:0;border:none">
+      <div class="q-lbl">What liquid investments does ${escapeHtml(t.firstName||"this applicant")} hold? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
+      <div class="q-opts c2">
+        ${qFinOptM(t.id,"inv-stocks","Stock Market")}
+        ${qFinOptM(t.id,"inv-bank","Bank Savings")}
+        ${qFinOptM(t.id,"inv-fd","Fixed Deposits (FD)")}
+        ${qFinOptM(t.id,"inv-mf","Mutual Funds")}
+        ${qFinOptM(t.id,"inv-ppf","PPF (Public Provident Fund)")}
+        ${qFinOptM(t.id,"inv-epf","EPF (Employee Provident Fund)")}
+        ${qFinOptM(t.id,"inv-bonds","Bonds")}
+        ${qFinOptM(t.id,"inv-gold","Gold")}
+        ${qFinOptM(t.id,"inv-postal","Postal Certificate / Savings")}
+        ${qFinOptM(t.id,"inv-none","I do not have any investments")}
+        ${qFinOptM(t.id,"inv-other","Other")}
+      </div>
+      <div class="q-field-row single" id="dep-${t.id}-inv-other" style="margin-top:10px;${hasOtherInvestment ? "" : "display:none"}">
+        <div class="q-field"><label>Please describe the other investment type <span class="q-req">Required</span></label>
+          <input type="text" placeholder="Describe any investment type not listed above"
+            value="${escapeHtml(fin.otherInvestment||"")}"
+            oninput="qFinSetField('${t.id}','otherInvestment',this.value)"></div>
+      </div>
+    </div>
+  </div>`;
+}).join("");
+
       const supportedQuestionnaireTravellers = [
   primaryTraveller,
   spouseTraveller,
@@ -1457,34 +1368,72 @@ const unmappedWarning = unmappedTravellers.length
       }.
     </div>`
   : "";
+      const secFinanceIdx  = sections.indexOf("sec-finance")  + 1;
+      const secOccIdx      = sections.indexOf("sec-occupation") + 1;
+      const secAssetsIdx   = sections.indexOf("sec-assets")    + 1;
+      const nextAfterAssets = sections.includes("sec-ties") ? "sec-ties" : "sec-history";
+
       const sec3 = `<div class="q-page ${curId==="sec-finance"?"active":""}" id="sec-finance">
         <div class="q-sec-card">
           <div class="q-sec-hd"><div class="q-sec-hd-row">
             <div class="q-sec-icon qsi-amber">&#x1F4B0;</div>
             <div class="q-sec-info">
-              <div class="q-sec-num">Section 3 of ${totalSec}</div>
-              <div class="q-sec-title">Finances &amp; Occupation</div>
-              <div class="q-sec-sub">Financial strength is one of the most important pillars of any visa application</div>
+              <div class="q-sec-num">Section ${secFinanceIdx} of ${totalSec}</div>
+              <div class="q-sec-title">Finances</div>
+              <div class="q-sec-sub">How will this trip be funded and how much money is available?</div>
             </div>
           </div></div>
           <div class="q-sec-body">
-            <div class="qn qn-teal">&#x2728; Answer for <strong>each person travelling</strong>. Every asset you declare counts in your favour.</div>
             ${unmappedWarning}
-            ${finBlocks}
-            ${spouseExtra}
+            ${finFundingBlocks}
           </div>
         </div>
         <div class="q-sec-nav">
-          <button
-  class="btn-qback"
-  onclick="qGoPrev(
-    'sec-finance',
-    '${hasInviterPurpose ? "sec-inviter" : "sec-trip"}'
-  )"
->
-  &#x2190; Back
-</button>
-          <button class="btn-qnext" onclick="qGoNext('sec-finance','${nextAfterFinance}')">Continue — Ties to India &#x2192;</button>
+          <button class="btn-qback" onclick="qGoPrev('sec-finance','${hasInviterPurpose ? "sec-inviter" : "sec-trip"}')">&#x2190; Back</button>
+          <button class="btn-qnext" onclick="qGoNext('sec-finance','sec-occupation')">Continue — Occupation &#x2192;</button>
+        </div>
+      </div>
+
+      <div class="q-page ${curId==="sec-occupation"?"active":""}" id="sec-occupation">
+        <div class="q-sec-card">
+          <div class="q-sec-hd"><div class="q-sec-hd-row">
+            <div class="q-sec-icon qsi-amber">&#x1F4BC;</div>
+            <div class="q-sec-info">
+              <div class="q-sec-num">Section ${secOccIdx} of ${totalSec}</div>
+              <div class="q-sec-title">Occupation</div>
+              <div class="q-sec-sub">What does each traveller currently do for work or study?</div>
+            </div>
+          </div></div>
+          <div class="q-sec-body">
+            <div class="qn qn-teal">&#x2728; Answer for <strong>each person travelling</strong>. Every occupation detail helps build a stronger case.</div>
+            ${finOccBlocks}
+            ${spouseOccExtra}
+          </div>
+        </div>
+        <div class="q-sec-nav">
+          <button class="btn-qback" onclick="qGoPrev('sec-occupation','sec-finance')">&#x2190; Back</button>
+          <button class="btn-qnext" onclick="qGoNext('sec-occupation','sec-assets')">Continue — Assets &amp; Investments &#x2192;</button>
+        </div>
+      </div>
+
+      <div class="q-page ${curId==="sec-assets"?"active":""}" id="sec-assets">
+        <div class="q-sec-card">
+          <div class="q-sec-hd"><div class="q-sec-hd-row">
+            <div class="q-sec-icon qsi-amber">&#x1F3E0;</div>
+            <div class="q-sec-info">
+              <div class="q-sec-num">Section ${secAssetsIdx} of ${totalSec}</div>
+              <div class="q-sec-title">Assets &amp; Investments</div>
+              <div class="q-sec-sub">Property and investments in India show strong roots and intent to return</div>
+            </div>
+          </div></div>
+          <div class="q-sec-body">
+            <div class="qn qn-teal">&#x1F3C6; Every asset you declare counts in your favour — declare everything honestly.</div>
+            ${finAssetBlocks}
+          </div>
+        </div>
+        <div class="q-sec-nav">
+          <button class="btn-qback" onclick="qGoPrev('sec-assets','sec-occupation')">&#x2190; Back</button>
+          <button class="btn-qnext" onclick="qGoNext('sec-assets','${nextAfterAssets}')">Continue — Home Country Ties &#x2192;</button>
         </div>
       </div>`;
 
@@ -1537,7 +1486,7 @@ const unmappedWarning = unmappedTravellers.length
           </div>
         </div>
         <div class="q-sec-nav">
-          <button class="btn-qback" onclick="qGoPrev('sec-ties','sec-finance')">&#x2190; Back</button>
+          <button class="btn-qback" onclick="qGoPrev('sec-ties','sec-assets')">&#x2190; Back</button>
           <button class="btn-qnext" onclick="qGoNext('sec-ties','${nextAfterTies}')">Continue &#x2192;</button>
         </div>
       </div>`;
