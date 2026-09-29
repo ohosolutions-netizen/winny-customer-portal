@@ -199,7 +199,7 @@ function renderUnitOverviewHTML(units) {
             </button>
           </div>`;
       } else if (!unitLinkSent) {
-        const linkUrl = escapeHtml(qBuildLink(unitToken));
+        const linkUrl = escapeHtml(qBuildLink(unitToken, u.primaryTraveller));
         linkSection = `
           <div style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1.5px dashed #60a5fa;border-radius:8px">
             <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#1e40af">&#x1F517; Private link ready — share it with the traveller</div>
@@ -215,7 +215,7 @@ function renderUnitOverviewHTML(units) {
             <div style="font-size:11px;color:var(--muted);margin-top:8px">Copy and send this link via WhatsApp, email, or SMS. Once sent, click &ldquo;Copy link&rdquo; to mark it as shared.</div>
           </div>`;
       } else {
-        const linkUrl = escapeHtml(qBuildLink(unitToken));
+        const linkUrl = escapeHtml(qBuildLink(unitToken, u.primaryTraveller));
         linkSection = `
           <div style="margin-top:10px;padding:12px 14px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:#92400e">&#x23F3; Waiting for traveller to complete their questionnaire</div>
@@ -547,9 +547,11 @@ function qGenToken() {
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 }
 
-export function qBuildLink(token) {
+export function qBuildLink(token, traveller) {
   const base = "https://creatorapp.zohopublic.in/hpatel_winnyedu/hiren-patel/form-perma/Visitor_Visa_Questionnaire_Sales1/DbxmEeJ6vGRwZ4hPGqgUYSwMqyfJAx5P7tG0rMuhKfrR1FKYFHMgqHjptzwzAqW0OfWyDjZVmhNzEUPw2x73Hb5faQszBmqfJ1m4";
-  const clientName = `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
+  const clientName = traveller
+    ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim()
+    : `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
   const crmId = applicationData.deal?.crmDealId || "";
   const params = new URLSearchParams({ Q_Token: token, CRM_ID: crmId, Client_Name: clientName });
   return `${base}?${params.toString()}`;
@@ -573,7 +575,7 @@ export function qCopyLink(familyId) {
     (t) => (t.familyId || "family-1") === familyId && t.qToken
   );
   if (!traveller) return;
-  const url = qBuildLink(traveller.qToken);
+  const url = qBuildLink(traveller.qToken, traveller);
 
   // Mark all unit travellers as link-sent
   (applicationData.deal.travellers || []).forEach((t) => {
