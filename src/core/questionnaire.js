@@ -200,27 +200,31 @@ function renderUnitOverviewHTML(units) {
           </div>`;
       } else if (!unitLinkSent) {
         const linkUrl = escapeHtml(qBuildLink(unitToken, u.primaryTraveller));
+        const tEmail = escapeHtml(u.primaryTraveller?.email || "");
         linkSection = `
           <div style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1.5px dashed #60a5fa;border-radius:8px">
             <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#1e40af">&#x1F517; Private link ready — share it with the traveller</div>
             <div style="font-family:monospace;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;word-break:break-all;color:var(--navy);margin-bottom:10px">${linkUrl}</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn primary" type="button" style="font-size:13px" onclick="qCopyLink('${fid}')">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              ${tEmail ? `<button class="btn primary" type="button" style="font-size:13px" onclick="qEmailLink('${fid}')">&#x2709;&#xFE0F; Send email to traveller</button>` : ""}
+              <button class="btn${tEmail ? " ghost" : " primary"}" type="button" style="font-size:13px" onclick="qCopyLink('${fid}')">
                 &#x1F4CB; Copy link
               </button>
               <button class="btn ghost" type="button" style="font-size:12px" onclick="qResetLink('${fid}')">
                 &#x21BA; Regenerate
               </button>
             </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:8px">Copy and send this link via WhatsApp, email, or SMS. Once sent, click &ldquo;Copy link&rdquo; to mark it as shared.</div>
+            ${tEmail ? `<div style="font-size:11px;color:var(--muted);margin-top:8px">Will send to: <strong>${tEmail}</strong></div>` : `<div style="font-size:11px;color:var(--muted);margin-top:8px">Copy and send this link via WhatsApp, email, or SMS.</div>`}
           </div>`;
       } else {
         const linkUrl = escapeHtml(qBuildLink(unitToken, u.primaryTraveller));
+        const tEmail = escapeHtml(u.primaryTraveller?.email || "");
         linkSection = `
           <div style="margin-top:10px;padding:12px 14px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px;color:#92400e">&#x23F3; Waiting for traveller to complete their questionnaire</div>
             <div style="font-family:monospace;font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:7px 10px;word-break:break-all;color:var(--muted);margin:8px 0">${linkUrl}</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${tEmail ? `<button class="btn ghost" type="button" style="font-size:12px" onclick="qEmailLink('${fid}')">&#x2709;&#xFE0F; Resend email</button>` : ""}
               <button class="btn ghost" type="button" style="font-size:12px" onclick="qCopyLink('${fid}')">
                 &#x1F4CB; Copy link again
               </button>
@@ -608,6 +612,42 @@ export function qCopyLink(familyId) {
   } else {
     doFallback();
   }
+}
+
+export function qEmailLink(familyId) {
+  const traveller = (applicationData.deal.travellers || []).find(
+    (t) => (t.familyId || "family-1") === familyId && t.qToken
+  );
+  if (!traveller) return;
+
+  const toEmail = traveller.email || applicationData.customer?.email || "";
+  if (!toEmail) {
+    toast("No email address found for this traveller.", "error");
+    return;
+  }
+
+  const url = qBuildLink(traveller.qToken, traveller);
+  const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Traveller";
+  const destination = applicationData.deal?.destination || "your visa";
+
+  const subject = encodeURIComponent(`Questionnaire for ${destination} — ${name}`);
+  const body = encodeURIComponent(
+    `Dear ${name},\n\n` +
+    `Please fill in your visa questionnaire using the private link below. This link is unique to you — please do not share it.\n\n` +
+    `${url}\n\n` +
+    `Once you open the link, complete all sections and submit. Your answers will be reviewed by your consultant.\n\n` +
+    `If you have any questions, please contact us.\n\n` +
+    `Thank you,\nWinny Global Team`
+  );
+
+  // Mark as sent
+  (applicationData.deal.travellers || []).forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) t.qLinkSent = true;
+  });
+  markAutoSavePending();
+  rerenderQuestionnaire();
+
+  window.open(`mailto:${encodeURIComponent(toEmail)}?subject=${subject}&body=${body}`, "_blank");
 }
 
 export function qResetLink(familyId) {
