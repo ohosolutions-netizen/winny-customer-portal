@@ -548,8 +548,11 @@ function qGenToken() {
 }
 
 export function qBuildLink(token) {
-  const base = (typeof window !== "undefined" ? window.location.origin : "https://winny-customer-portal.vercel.app");
-  return `${base}/?fill=${token}`;
+  const base = "https://creatorapp.zohopublic.in/hpatel_winnyedu/hiren-patel/form-perma/Visitor_Visa_Questionnaire_Sales1/DbxmEeJ6vGRwZ4hPGqgUYSwMqyfJAx5P7tG0rMuhKfrR1FKYFHMgqHjptzwzAqW0OfWyDjZVmhNzEUPw2x73Hb5faQszBmqfJ1m4";
+  const clientName = `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
+  const crmId = applicationData.deal?.crmDealId || "";
+  const params = new URLSearchParams({ Q_Token: token, CRM_ID: crmId, Client_Name: clientName });
+  return `${base}?${params.toString()}`;
 }
 
 export function qGenerateLink(familyId) {
@@ -558,6 +561,7 @@ export function qGenerateLink(familyId) {
     if ((t.familyId || "family-1") === familyId) {
       t.qToken = token;
       t.qLinkSent = false;
+      delete t.qCreatorRecordId;
     }
   });
   markAutoSavePending();

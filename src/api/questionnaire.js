@@ -342,6 +342,7 @@ const recordData = {
         // Identity
         Client_Name: `${applicationData.customer.firstName || ""} ${applicationData.customer.lastName || ""}`.trim(),
         CRM_ID:      applicationData.deal.crmDealId || "",
+        Q_Token:     (applicationData.deal.travellers || []).find(t => t.qToken)?.qToken || "",
 
         // Country + trip
         Applying_for_Country1: applyingCountries,
@@ -614,7 +615,7 @@ Provide_details_in_a_children_criminal_record:
       console.log("[Winny] Saving questionnaire to Creator:", CONFIG.creator.formLinkNames.questionnaire);
       console.log("[Winny] Full record data:", JSON.stringify(recordData));
 
-            // Try SDK v2 first, then SDK v1
+      // Try SDK v2 first, then SDK v1
       let lastSaveError = null;
       let transportFound = false;
 
