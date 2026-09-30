@@ -865,30 +865,40 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
 
 async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
   const recordData = {
-    To_Email:       toEmail,
+    To_Email:        toEmail,
     Traveller_Name1: travellerName,
-    Link_URL:       linkUrl,
+    Link_URL:        linkUrl,
   };
   const hasV2 = !!window.ZOHO?.CREATOR?.DATA?.addRecords;
   const hasV1 = !!window.ZOHO?.CREATOR?.API?.addRecord;
+  console.log("[Winny:QuestionnaireEmail] SDK available — v2:", hasV2, "v1:", hasV1, "data:", recordData);
   try {
     if (hasV2) {
-      await ZOHO.CREATOR.DATA.addRecords({
+      const res = await ZOHO.CREATOR.DATA.addRecords({
         app_name:  CONFIG.creator.appLinkName,
         form_name: "Questionnaire_Link_Email",
         payload:   { data: recordData },
       });
+      console.log("[Winny:QuestionnaireEmail] addRecords response:", JSON.stringify(res));
+      if (res?.code !== 3000) {
+        const errMsg = Array.isArray(res?.error) ? res.error.join(", ") : (res?.message || JSON.stringify(res));
+        throw new Error(`Creator error (${res?.code}): ${errMsg}`);
+      }
     } else if (hasV1) {
-      await ZOHO.CREATOR.API.addRecord({
+      const res = await ZOHO.CREATOR.API.addRecord({
         appName:  CONFIG.creator.appLinkName,
         formName: "Questionnaire_Link_Email",
         data:     { data: recordData },
       });
+      console.log("[Winny:QuestionnaireEmail] addRecord (v1) response:", JSON.stringify(res));
+      if (res?.code !== 3000) {
+        throw new Error(`Creator error (${res?.code}): ${JSON.stringify(res)}`);
+      }
     } else {
-      console.warn("[Winny:QuestionnaireEmail] No ZOHO Creator SDK available — skipping");
+      throw new Error("ZOHO Creator SDK not available");
     }
   } catch (err) {
-    console.warn("[Winny] Questionnaire email request failed (non-blocking):", err);
+    console.error("[Winny] Questionnaire email request failed:", err.message || err);
     throw err;
   }
 }
