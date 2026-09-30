@@ -863,8 +863,39 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
   }
 }
 
+async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
+  const recordData = {
+    To_Email:       toEmail,
+    Traveller_Name1: travellerName,
+    Link_URL:       linkUrl,
+  };
+  const hasV2 = !!window.ZOHO?.CREATOR?.DATA?.addRecords;
+  const hasV1 = !!window.ZOHO?.CREATOR?.API?.addRecord;
+  try {
+    if (hasV2) {
+      await ZOHO.CREATOR.DATA.addRecords({
+        app_name:  CONFIG.creator.appLinkName,
+        form_name: "Questionnaire_Link_Email",
+        payload:   { data: recordData },
+      });
+    } else if (hasV1) {
+      await ZOHO.CREATOR.API.addRecord({
+        appName:  CONFIG.creator.appLinkName,
+        formName: "Questionnaire_Link_Email",
+        data:     { data: recordData },
+      });
+    } else {
+      console.warn("[Winny:QuestionnaireEmail] No ZOHO Creator SDK available — skipping");
+    }
+  } catch (err) {
+    console.warn("[Winny] Questionnaire email request failed (non-blocking):", err);
+    throw err;
+  }
+}
+
 export {
   goDealSubStep, validateDealSubStep, openZPayWidget, showPaymentConfirmedScreen,
   goToQuestionnaire, fetchAgreement, completePayment, createZohoPaymentLink,
-  saveDealDetails, saveDealData, sendAgreementOtp, verifyAgreementOtp, sendAgreementEmail
+  saveDealDetails, saveDealData, sendAgreementOtp, verifyAgreementOtp, sendAgreementEmail,
+  sendQuestionnaireEmail
 };

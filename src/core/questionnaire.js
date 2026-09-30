@@ -13,6 +13,7 @@ import { applicationData, state } from "../store/runtime.js";
 import { escapeHtml, setByPath } from "../lib/utils.js";
 import { markAutoSavePending, toast } from "../lib/ui.js";
 import { saveDraft } from "./drafts.js";
+import { sendQuestionnaireEmail } from "../api/deal.js";
 import { submitQuestionnaire } from "../api/questionnaire.js";
 import { SCHENGEN_COUNTRIES } from "../config/config.js";
 import { isAdultTraveller } from "./terms.js";
@@ -614,7 +615,7 @@ export function qCopyLink(familyId) {
   }
 }
 
-export function qEmailLink(familyId) {
+export async function qEmailLink(familyId) {
   const traveller = (applicationData.deal.travellers || []).find(
     (t) => (t.familyId || "family-1") === familyId && t.qToken
   );
@@ -628,26 +629,20 @@ export function qEmailLink(familyId) {
 
   const url = qBuildLink(traveller.qToken, traveller);
   const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Traveller";
-  const destination = applicationData.deal?.destination || "your visa";
 
-  const subject = encodeURIComponent(`Questionnaire for ${destination} — ${name}`);
-  const body = encodeURIComponent(
-    `Dear ${name},\n\n` +
-    `Please fill in your visa questionnaire using the private link below. This link is unique to you — please do not share it.\n\n` +
-    `${url}\n\n` +
-    `Once you open the link, complete all sections and submit. Your answers will be reviewed by your consultant.\n\n` +
-    `If you have any questions, please contact us.\n\n` +
-    `Thank you,\nWinny Global Team`
-  );
-
-  // Mark as sent
-  (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) t.qLinkSent = true;
-  });
-  markAutoSavePending();
+  try {
+    toast("Sending email…", "info");
+    await sendQuestionnaireEmail(toEmail, name, url);
+    // Mark as sent
+    (applicationData.deal.travellers || []).forEach((t) => {
+      if ((t.familyId || "family-1") === familyId) t.qLinkSent = true;
+    });
+    markAutoSavePending();
+    toast(`Questionnaire link sent to ${toEmail}`, "ok");
+  } catch (_) {
+    toast("Failed to send email. Please copy the link and share manually.", "error");
+  }
   rerenderQuestionnaire();
-
-  window.open(`mailto:${encodeURIComponent(toEmail)}?subject=${subject}&body=${body}`, "_blank");
 }
 
 export function qResetLink(familyId) {
