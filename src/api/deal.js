@@ -864,10 +864,14 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
 }
 
 async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
+  // Extract just the Q_Token from the URL — Deluge rebuilds the full URL
+  let qToken = "";
+  try { qToken = new URL(linkUrl).searchParams.get("Q_Token") || ""; } catch (_) {}
+
   const recordData = {
     To_Email:        toEmail,
     Traveller_Name1: travellerName,
-    Link_URL:        linkUrl,
+    Q_Token:         qToken,
   };
   console.log("[Winny:QuestionnaireEmail] sending — data:", recordData);
   try {
