@@ -867,36 +867,46 @@ async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
   const recordData = {
     To_Email:        toEmail,
     Traveller_Name1: travellerName,
-    Link_URL:        { value: linkUrl, display_value: "Open Questionnaire" },
+    Link_URL:        linkUrl,
   };
-  const hasV2 = !!window.ZOHO?.CREATOR?.DATA?.addRecords;
-  const hasV1 = !!window.ZOHO?.CREATOR?.API?.addRecord;
-  console.log("[Winny:QuestionnaireEmail] SDK available — v2:", hasV2, "v1:", hasV1, "data:", recordData);
+  console.log("[Winny:QuestionnaireEmail] sending — data:", recordData);
   try {
-    if (hasV2) {
+    // Transport 1: SDK v2
+    if (window.ZOHO?.CREATOR?.DATA?.addRecords) {
       const res = await ZOHO.CREATOR.DATA.addRecords({
         app_name:  CONFIG.creator.appLinkName,
         form_name: "Questionnaire_Link_Email",
         payload:   { data: recordData },
       });
-      console.log("[Winny:QuestionnaireEmail] addRecords response:", JSON.stringify(res));
-      if (res?.code !== 3000) {
-        const errMsg = Array.isArray(res?.error) ? res.error.join(", ") : (res?.message || JSON.stringify(res));
-        throw new Error(`Creator error (${res?.code}): ${errMsg}`);
-      }
-    } else if (hasV1) {
+      console.log("[Winny:QuestionnaireEmail] T1 response:", JSON.stringify(res));
+      if (res?.code !== 3000) throw new Error(`Creator error (${res?.code}): ${res?.error || res?.message}`);
+      return;
+    }
+    // Transport 2: SDK v1
+    if (window.ZOHO?.CREATOR?.API?.addRecord) {
       const res = await ZOHO.CREATOR.API.addRecord({
         appName:  CONFIG.creator.appLinkName,
         formName: "Questionnaire_Link_Email",
         data:     { data: recordData },
       });
-      console.log("[Winny:QuestionnaireEmail] addRecord (v1) response:", JSON.stringify(res));
-      if (res?.code !== 3000) {
-        throw new Error(`Creator error (${res?.code}): ${JSON.stringify(res)}`);
-      }
-    } else {
-      throw new Error("ZOHO Creator SDK not available");
+      console.log("[Winny:QuestionnaireEmail] T2 response:", JSON.stringify(res));
+      if (res?.code !== 3000) throw new Error(`Creator error (${res?.code}): ${res?.message}`);
+      return;
     }
+    // Transport 3: invokeUrl REST (same transport submitPortalCrmRequest uses)
+    if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const res = await ZOHO.CREATOR.API.invokeUrl({
+        url:            `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/form/Questionnaire_Link_Email`,
+        type:           "POST",
+        connectionName: CONFIG.crmConnectionName,
+        headers:        { "Content-Type": "application/json" },
+        data:           JSON.stringify({ data: recordData }),
+      });
+      console.log("[Winny:QuestionnaireEmail] T3 response:", JSON.stringify(res));
+      if (res?.code !== 3000) throw new Error(`Creator error (${res?.code}): ${res?.message}`);
+      return;
+    }
+    throw new Error("ZOHO Creator SDK not available");
   } catch (err) {
     console.error("[Winny] Questionnaire email request failed:", err.message || err);
     throw err;
