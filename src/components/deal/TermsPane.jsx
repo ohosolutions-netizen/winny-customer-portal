@@ -306,10 +306,11 @@ export default function TermsPane() {
                 );
                 if (!primaryApplicant) return null;
 
-                const allFamilyTermsComplete = family.requirements.every((req) => {
+                const pendingRequirements = family.requirements.filter((req) => {
                   const rec = getTermsAcceptance(req);
-                  return rec.acceptorId && rec.accepted && String(rec.signature || "").trim();
+                  return !(rec.acceptorId && rec.accepted && String(rec.signature || "").trim());
                 });
+                const allFamilyTermsComplete = pendingRequirements.length === 0;
 
                 return (
                   <div className="agreement-signing-section">
@@ -328,7 +329,9 @@ export default function TermsPane() {
                     </div>
                     {!allFamilyTermsComplete ? (
                       <div className="notice amber agreement-otp-waiting">
-                        Complete the country agreement(s) above before the digital signature step.
+                        {pendingRequirements.length === 1
+                          ? `Complete the ${pendingRequirements[0]._isGeneric ? "Service Agreement" : pendingRequirements[0].country} agreement above before the digital signature step.`
+                          : `Complete all country agreements before the digital signature step. Still pending: ${pendingRequirements.map((r) => r._isGeneric ? "Service Agreement" : r.country).join(", ")}.`}
                       </div>
                     ) : (
                       <AgreementCard
