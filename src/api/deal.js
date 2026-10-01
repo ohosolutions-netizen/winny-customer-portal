@@ -864,10 +864,18 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
 }
 
 async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
+  // Strip Client_Name from the URL — URL field has a character limit; token + CRM_ID are sufficient
+  let shortUrl = linkUrl;
+  try {
+    const u = new URL(linkUrl);
+    u.searchParams.delete("Client_Name");
+    shortUrl = u.toString();
+  } catch (_) { /* keep original if URL parse fails */ }
+
   const recordData = {
     To_Email:        toEmail,
     Traveller_Name1: travellerName,
-    Link_URL:        linkUrl,
+    Link_URL:        shortUrl,
   };
   const hasV2 = !!window.ZOHO?.CREATOR?.DATA?.addRecords;
   const hasV1 = !!window.ZOHO?.CREATOR?.API?.addRecord;
