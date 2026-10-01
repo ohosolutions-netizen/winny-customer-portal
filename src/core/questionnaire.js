@@ -142,6 +142,10 @@ export function qBackToOverview() {
 
 // ── Unit overview panel ────────────────────────────────────────────────────
 function renderUnitOverviewHTML(units) {
+  // Restore unit completions from persisted submittedUnits (survives page reload)
+  const persistedUnits = applicationData.questionnaire.submittedUnits || {};
+  Object.keys(persistedUnits).forEach((fid) => { qState.unitCompletions[fid] = true; });
+
   const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
   const doneCount = units.filter((u) => qState.unitCompletions[u.familyId]).length;
 
@@ -2088,25 +2092,13 @@ markAutoSavePending();
 
       const units = deriveQuestionnaireUnits();
       const activeUnit = units[qState.activeUnitIndex] || units[0];
+      const familyId = (activeUnit && activeUnit.familyId) || "family-1";
 
-      if (units.length > 1) {
-        // Mark this unit as complete and save its shared data
-        if (activeUnit) {
-          qState.unitCompletions[activeUnit.familyId] = true;
-          qSaveUnitSharedData(activeUnit.familyId);
-        }
+      if (activeUnit) qSaveUnitSharedData(familyId);
 
-        const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
-        if (!allDone) {
-          // Return to the overview so the next unit can be started
-          qState.viewMode = "auto";
-          rerenderQuestionnaire();
-          return;
-        }
-        // All units complete — proceed to the single shared submit
-      }
-
-      submitQuestionnaire();
+      // Submit this unit's records immediately; submitQuestionnaire handles the
+      // "all units done → step complete" check internally.
+      submitQuestionnaire(familyId);
     }
 
     function qIsBlank(value) {
