@@ -156,6 +156,9 @@ async function saveQuestionnaire(familyId) {
   const fin  = q.finance || {};
   const hist = q.history || {};
   const ties = q.ties    || {};
+  const isCorporate = String(applicationData.deal.applicationType || "").toLowerCase() === "corporate";
+  const companyName = (q.common || {}).companyName || "";
+  const gstNumber   = (q.common || {}).gstNumber   || "";
 
   const selectedPurposeKeys = Array.isArray(q.purpose) ? q.purpose : [];
   const hasFamilyPurpose    = selectedPurposeKeys.includes("family");
@@ -218,6 +221,13 @@ async function saveQuestionnaire(familyId) {
       hasInviterPurpose ? (q.invitationLetter === "yes" ? "Yes" : "No") : "",
     Is_the_inviter_related_to_you_directly_or_through_your_spouse:
       hasFamilyPurpose ? (inviterRelationMap[q.inviterRelation] || "") : "",
+
+    // Corporate fields (empty string for non-corporate — Creator ignores blank values)
+    ...(isCorporate && companyName ? { Company_Name: companyName } : {}),
+    ...(isCorporate && gstNumber   ? {
+      GST_Registration_Number: gstNumber,
+      Description: `GST / Registration Number: ${gstNumber}`,
+    } : {}),
   };
 
   // ── Build one record per traveller in this unit ─────────────────────────
@@ -233,10 +243,12 @@ async function saveQuestionnaire(familyId) {
     const isPrimary = traveller.type === "Primary Applicant";
     const isSpouse  = traveller.type === "Spouse";
 
+    const knownTypes = new Set(["Primary Applicant", "Spouse", "Child", "Friend", "Colleague", "Parent", "Other"]);
     const travellerType =
       isPrimary ? "Primary Applicant" :
       isSpouse  ? "Spouse" :
-      isChild   ? "Child" : "Other";
+      isChild   ? "Child" :
+      (knownTypes.has(traveller.type) ? traveller.type : "Other");
 
     const travellerName = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim();
 

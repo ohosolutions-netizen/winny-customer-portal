@@ -2056,7 +2056,7 @@ markAutoSavePending();
       document.querySelectorAll(".q-page").forEach(p => p.classList.remove("active"));
       const next = document.getElementById(toId);
       if (next) next.classList.add("active");
-      const sections = ["sec-trip","sec-inviter","sec-finance","sec-ties","sec-children","sec-history"].filter(id => document.getElementById(id));
+      const sections = ["sec-trip","sec-inviter","sec-finance","sec-occupation","sec-assets","sec-ties","sec-children","sec-history"].filter(id => document.getElementById(id));
       qState.currentSection = sections.indexOf(toId);
       // update next pill
       const nextPill = document.getElementById(`qpill-${toId}`);
@@ -2081,7 +2081,7 @@ markAutoSavePending();
       document.querySelectorAll(".q-page").forEach(p => p.classList.remove("active"));
       const prev = document.getElementById(toId);
       if (prev) prev.classList.add("active");
-      const sections = ["sec-trip","sec-inviter","sec-finance","sec-ties","sec-children","sec-history"].filter(id => document.getElementById(id));
+      const sections = ["sec-trip","sec-inviter","sec-finance","sec-occupation","sec-assets","sec-ties","sec-children","sec-history"].filter(id => document.getElementById(id));
       qState.currentSection = sections.indexOf(toId);
       window.scrollTo(0, 0);
     }
@@ -2139,6 +2139,8 @@ markAutoSavePending();
         "sec-trip",
         ...(hasInviter ? ["sec-inviter"] : []),
         "sec-finance",
+        "sec-occupation",
+        "sec-assets",
         "sec-ties",
         ...(hasChildren ? ["sec-children"] : []),
         "sec-history"
@@ -2253,21 +2255,21 @@ markAutoSavePending();
       }
 
       if (sectionId === "sec-finance") {
+        // Only validate what is shown on the Finances page (funding + liquid funds)
         const selectedFunding = Array.isArray(primaryFin.funding) ? primaryFin.funding : (primaryFin.funding ? [primaryFin.funding] : []);
         if (!selectedFunding.length) return "Trip funding is mandatory.";
         if (selectedFunding.includes("sponsor") && qIsBlank(primaryFin.sponsorType)) return "Financial sponsor is mandatory.";
         if (qIsBlank(primaryFin.fundsRange)) return "Available liquid funds is mandatory.";
+        return "";
+      }
+
+      if (sectionId === "sec-occupation") {
+        // Validate what is shown on the Occupation page
         if (!qHasAnySelected(primaryAnswers, occupationKeys)) return "Current occupation is mandatory.";
         if (qHasExclusiveConflict(primaryAnswers, "occ-unemployed", activeOccupationKeys)) return "Unemployed cannot be selected together with another occupation.";
         if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizType)) return "Business ownership type is mandatory.";
         if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please describe the other occupation.";
         if (["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(key => primaryAnswers[key]) && qIsBlank(primaryFin.itr)) return "Please answer the ITR question.";
-        if (!qHasAnySelected(primaryAnswers, assetKeys)) return "Immovable property selection is mandatory.";
-        if (qHasExclusiveConflict(primaryAnswers, "asset-none", ownedAssetKeys)) return "None cannot be selected together with a property type.";
-        if (primaryAnswers["asset-other"] && qIsBlank(primaryFin.otherAssetDesc)) return "Please describe the other property type.";
-        if (!qHasAnySelected(primaryAnswers, investmentKeys)) return "Liquid investment selection is mandatory.";
-        if (qHasExclusiveConflict(primaryAnswers, "inv-none", heldInvestmentKeys)) return "No investments cannot be selected together with an investment type.";
-        if (primaryAnswers["inv-other"] && qIsBlank(primaryFin.otherInvestment)) return "Please describe the other investment type.";
 
         if (spouse) {
           if (!qHasAnySelected(spouseAnswers, occupationKeys)) return "Spouse employment/source of income is mandatory.";
@@ -2276,6 +2278,17 @@ markAutoSavePending();
           if (spouseAnswers["occ-other"] && qIsBlank(spouseFin.otherIncomeDesc)) return "Please describe the spouse's other source of income or employment.";
           if (["occ-employed","occ-freelancer","occ-pensioner","occ-business","occ-other"].some(key => spouseAnswers[key]) && qIsBlank(spouseFin.itr)) return "Please answer the spouse ITR question.";
         }
+        return "";
+      }
+
+      if (sectionId === "sec-assets") {
+        // Validate what is shown on the Assets & Investments page
+        if (!qHasAnySelected(primaryAnswers, assetKeys)) return "Immovable property selection is mandatory.";
+        if (qHasExclusiveConflict(primaryAnswers, "asset-none", ownedAssetKeys)) return "None cannot be selected together with a property type.";
+        if (primaryAnswers["asset-other"] && qIsBlank(primaryFin.otherAssetDesc)) return "Please describe the other property type.";
+        if (!qHasAnySelected(primaryAnswers, investmentKeys)) return "Liquid investment selection is mandatory.";
+        if (qHasExclusiveConflict(primaryAnswers, "inv-none", heldInvestmentKeys)) return "No investments cannot be selected together with an investment type.";
+        if (primaryAnswers["inv-other"] && qIsBlank(primaryFin.otherInvestment)) return "Please describe the other investment type.";
         return "";
       }
 

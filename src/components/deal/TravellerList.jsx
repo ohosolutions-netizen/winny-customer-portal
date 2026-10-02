@@ -12,15 +12,15 @@ function getTravellerTypeOptions(isGroupLead, appType) {
   if (appType === "corporate") {
     return isGroupLead
       ? ["Primary Applicant"]
-      : ["Additional Traveller", "Spouse", "Child", "Parent", "Other"];
+      : ["Colleague", "Spouse", "Child", "Parent", "Other"];
   }
   if (appType === "friends") {
     return isGroupLead
       ? ["Primary Applicant"]
-      : ["Spouse", "Child", "Parent", "Additional Traveller", "Other"];
+      : ["Friend", "Spouse", "Child", "Parent", "Other"];
   }
   // family/couple — all options
-  return ["Primary Applicant", "Spouse", "Child", "Parent", "Additional Traveller", "Other"];
+  return ["Primary Applicant", "Spouse", "Child", "Parent", "Other"];
 }
 
 export default function TravellerList() {

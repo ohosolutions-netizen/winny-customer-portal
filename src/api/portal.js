@@ -1210,6 +1210,13 @@ const stale =
         const appTypeMap = { "Individual": "individual", "Family/couple": "family", "Friends/Group": "friends", "Corporate": "corporate" };
         applicationData.deal.applicationType = appTypeMap[crmAppType] || applicationData.deal.applicationType;
       }
+      // Corporate: pre-fill company name from the CRM Account (company) linked to this deal
+      if (applicationData.deal.applicationType === "corporate") {
+        const crmAccountName = readZohoValue(deal.Account_Name);
+        if (crmAccountName && !applicationData.questionnaire.common.companyName) {
+          applicationData.questionnaire.common.companyName = String(crmAccountName);
+        }
+      }
       const crmDateFrom = readZohoValue(deal.Travel_Date_From);
       const crmDateTo   = readZohoValue(deal.Travel_Date_To);
       if (crmDateFrom) applicationData.deal.travelDateFrom = String(crmDateFrom);
