@@ -920,6 +920,22 @@ if (isChildTraveller) {
           }).join("")
         : `<div class="q-sub">No additional travellers were added in the application step.</div>`;
 
+      // Auto-seed per-country travel dates from the deal's overall trip dates if not already set
+      {
+        const dealFrom = applicationData.deal.travelDateFrom || "";
+        const dealTo   = applicationData.deal.travelDateTo   || "";
+        if (dealFrom || dealTo) {
+          if (!applicationData.questionnaire.travelDates) applicationData.questionnaire.travelDates = {};
+          countries.forEach(c => {
+            if (!applicationData.questionnaire.travelDates[c])
+              applicationData.questionnaire.travelDates[c] = {};
+            const td = applicationData.questionnaire.travelDates[c];
+            if (!td.entry && dealFrom) td.entry = dealFrom;
+            if (!td.exit  && dealTo)   td.exit  = dealTo;
+          });
+        }
+      }
+
       const countryRows = countries.length
         ? countries.map(c => {
             const td = (applicationData.questionnaire.travelDates || {})[c] || {};
