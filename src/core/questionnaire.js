@@ -584,7 +584,16 @@ export function qBuildLink(token, traveller) {
     ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim()
     : `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
   const crmId = applicationData.deal?.crmDealId || "";
-  const params = new URLSearchParams({ Q_Token: token, CRM_ID: crmId, Client_Name: clientName });
+  const travellerType = traveller?.type || "";
+  const countries = Array.isArray(traveller?.countries) ? traveller.countries.join(",") : "";
+  const params = new URLSearchParams({
+    Q_Token: token,
+    CRM_ID: crmId,
+    Client_Name: clientName,
+    Traveller_Name: clientName,
+    Traveller_Type: travellerType,
+    ...(countries ? { Applying_for_Country: countries } : {}),
+  });
   return `${base}?${params.toString()}`;
 }
 
