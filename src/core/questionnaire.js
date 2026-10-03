@@ -187,7 +187,7 @@ function renderUnitOverviewHTML(units) {
         <button
           class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
           type="button" style="font-size:12px;padding:3px 10px"
-          onclick="qSetUnitFillMode('${fid}','link')"
+          onclick="qSendLinkToTraveller('${fid}')"
         >&#x1F517; Send link to traveller</button>
       </div>`;
 
@@ -195,16 +195,8 @@ function renderUnitOverviewHTML(units) {
     let linkSection = "";
     if (!u.minorOnly && unitFillMode === "link") {
       if (!unitToken) {
-        linkSection = `
-          <div style="margin-top:10px;padding:12px 14px;background:#f8fafc;border:1.5px solid var(--line);border-radius:8px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Generate a private link for the traveller</div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
-              The traveller opens this link and fills their questionnaire privately — you won&rsquo;t see their answers until submitted.
-            </div>
-            <button class="btn primary" type="button" style="font-size:13px" onclick="qGenerateLink('${fid}')">
-              &#x1F511; Generate link
-            </button>
-          </div>`;
+        // Token is generated immediately by qSendLinkToTraveller — this state is transient
+        linkSection = "";
       } else if (!unitLinkSent) {
         const linkUrl = escapeHtml(qBuildLink(unitToken, u.primaryTraveller));
         const tEmail = escapeHtml(u.primaryTraveller?.email || "");
@@ -551,6 +543,34 @@ export function qSetUnitFillMode(familyId, mode) {
   });
   markAutoSavePending();
   rerenderQuestionnaire();
+}
+
+export async function qSendLinkToTraveller(familyId) {
+  const travellers = applicationData.deal.travellers || [];
+  // Set mode to "link"
+  travellers.forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) {
+      t.qFillMode = "link";
+    }
+  });
+  // Generate token immediately (skip the "Generate link" intermediate step)
+  const token = qGenToken();
+  travellers.forEach((t) => {
+    if ((t.familyId || "family-1") === familyId) {
+      t.qToken = token;
+      t.qLinkSent = false;
+      delete t.qCreatorRecordId;
+    }
+  });
+  markAutoSavePending();
+  rerenderQuestionnaire();
+  // Auto-send email if traveller has an email address
+  const primaryTraveller = travellers.find(
+    (t) => (t.familyId || "family-1") === familyId
+  );
+  if (primaryTraveller?.email) {
+    await qEmailLink(familyId);
+  }
 }
 
 // ── Send-link helpers ──────────────────────────────────────────────────────
