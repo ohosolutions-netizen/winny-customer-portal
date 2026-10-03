@@ -57,22 +57,24 @@ export function AuthorisationList() {
   if (!relevant.length) {
     return <div id="authorisationList"><div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "14px 0" }}>Assign the coordinator to at least one traveller above.</div></div>;
   }
+  const authorisedIds = Array.isArray(coord.authorisedIds) ? coord.authorisedIds : (coord.authorised ? relevant.map(t => t.id) : []);
   return (
     <div id="authorisationList">
       {relevant.map((t) => {
         const travName = `${t.firstName || ""} ${t.lastName || ""}`.trim() || t.type;
+        const isAuthorised = authorisedIds.includes(t.id);
         return (
-          <div className={`auth-block ${coord.authorised ? "ok" : ""}`} style={{ marginBottom: 10, padding: 14, border: "1.5px solid var(--line)", borderRadius: 12, background: coord.authorised ? "var(--soft-teal)" : "#fff" }} key={t.id}>
+          <div className={`auth-block ${isAuthorised ? "ok" : ""}`} style={{ marginBottom: 10, padding: 14, border: "1.5px solid var(--line)", borderRadius: 12, background: isAuthorised ? "var(--soft-teal)" : "#fff" }} key={t.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <span className="avatar" style={{ background: "var(--soft-blue)", color: "var(--blue)" }}>{(travName[0] || "T").toUpperCase()}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 800 }}>{travName}</div>
                 <div style={{ fontSize: 11, color: "var(--muted)" }}>Coordinator: {coord.name || "Coordinator"}</div>
               </div>
-              {coord.authorised ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--green)" }}>✓ Authorised</span> : null}
+              {isAuthorised ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--green)" }}>✓ Authorised</span> : null}
             </div>
             <label className="check-row" style={{ cursor: "pointer" }}>
-              <input type="checkbox" checked={coord.authorised} onChange={(e) => toggleCoordAuth(e.target.checked)} />
+              <input type="checkbox" checked={isAuthorised} onChange={(e) => toggleCoordAuth(t.id, e.target.checked)} />
               <span style={{ fontSize: 12.5, lineHeight: 1.55 }}>
                 I, <strong>{travName}</strong>, authorise <strong>{coord.name || "the coordinator"}</strong> to share information and coordinate with Winny Global on my behalf.
               </span>

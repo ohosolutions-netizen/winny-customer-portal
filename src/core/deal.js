@@ -289,10 +289,15 @@ import { isAdultTraveller } from "./terms.js";
       markAutoSavePending();
     }
 
-    function toggleCoordAuth(checked) {
+    function toggleCoordAuth(travellerId, checked) {
       const coord = applicationData.customer.coordinator;
       if (!coord) return;
-      coord.authorised = checked;
+      if (!Array.isArray(coord.authorisedIds)) coord.authorisedIds = [];
+      if (checked) {
+        if (!coord.authorisedIds.includes(travellerId)) coord.authorisedIds.push(travellerId);
+      } else {
+        coord.authorisedIds = coord.authorisedIds.filter(id => id !== travellerId);
+      }
       requestRender();
       markAutoSavePending();
     }
