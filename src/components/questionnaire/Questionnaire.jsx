@@ -12,7 +12,7 @@ import { showStep } from "../../core/navigation.js";
 const Q_HANDLERS = [
   "qSelOpt", "qTogOpt", "qTogMulti", "qSetField", "qSetTravelDate",
   "qFinSel", "qFinTogFunding", "qFinTogM", "qFinSetField", "qTieTogM",
-  "qChiSel", "qHistSel", "qHistSetField", "qGoNext", "qGoPrev", "qSubmitFinal",
+  "qChiSel", "qHistSel", "qHistSetField", "qGoNext", "qGoPrev", "qSubmitFinal", "qAdvanceTraveller",
   // Multi-unit navigation
   "qStartUnit", "qBackToOverview",
   // Part A — common questions

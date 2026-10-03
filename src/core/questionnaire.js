@@ -107,9 +107,10 @@ function qLoadUnitSharedData(familyId) {
     let qState = {
   currentSection:  0,
   completedSections: [],
-  activeUnitIndex: 0,    // which unit is currently being filled
-  unitCompletions: {},   // { familyId: true } — units whose questionnaire was submitted
-  viewMode: "auto",      // "auto" → overview for multi-unit, form for single-unit; "form" → force form
+  activeUnitIndex: 0,       // which unit is currently being filled
+  activeTravellerIndex: 0,  // which traveller within the unit is currently being answered
+  unitCompletions: {},      // { familyId: true } — units whose questionnaire was submitted
+  viewMode: "auto",         // "auto" → overview for multi-unit, form for single-unit; "form" → force form
 };
 
 // ── Unit navigation handlers ───────────────────────────────────────────────
@@ -122,6 +123,7 @@ export function qStartUnit(idx) {
   if (currentUnit && units.length > 1) qSaveUnitSharedData(currentUnit.familyId);
 
   qState.activeUnitIndex = idx;
+  qState.activeTravellerIndex = 0;
   qState.viewMode = "form";
   qState.currentSection = 0;
   qState.completedSections = [];
@@ -758,7 +760,16 @@ export function qResetLink(familyId) {
       if (!applicationData.questionnaire.maritalStatus && spouseTraveller) {
         applicationData.questionnaire.maritalStatus = "married";
       }
-      const hasChildren = children.length > 0;
+
+      // Per-traveller: clamp and derive the traveller currently being answered for
+      if (qState.activeTravellerIndex >= _activeUnitTravellers.length) qState.activeTravellerIndex = 0;
+      const activeTraveller = _activeUnitTravellers[qState.activeTravellerIndex] || primaryTraveller;
+      const isFirstTraveller = qState.activeTravellerIndex === 0;
+      const isChildTraveller = isQuestionnaireChild(activeTraveller);
+      const hasMoreTravellers = qState.activeTravellerIndex < _activeUnitTravellers.length - 1;
+      const nextTraveller = hasMoreTravellers ? _activeUnitTravellers[qState.activeTravellerIndex + 1] : null;
+      const activeTravellerName = `${activeTraveller.firstName||""} ${activeTraveller.lastName||""}`.trim() || "Traveller";
+
       const countries = (applicationData.questionnaire.applyingCountries || applicationData.deal.destination || "").split(",").map(s=>s.trim()).filter(Boolean);
       const isCanadaDest = countries.some(c => {
         const cl = c.toLowerCase();
@@ -777,16 +788,18 @@ const hasInviterPurpose = selectedPurposes.some((purpose) =>
 const needsFamilyInviterPerson =
   selectedPurposes.includes("family");
 
-const sections = [
-  "sec-trip",
-  ...(hasInviterPurpose ? ["sec-inviter"] : []),
-  "sec-finance",
-  "sec-occupation",
-  "sec-assets",
-  "sec-ties",
-  ...(hasChildren ? ["sec-children"] : []),
-  "sec-history"
-];
+let sections;
+if (isChildTraveller) {
+  sections = ["sec-children", "sec-history"];
+} else if (isFirstTraveller) {
+  sections = [
+    "sec-trip",
+    ...(hasInviterPurpose ? ["sec-inviter"] : []),
+    "sec-finance", "sec-occupation", "sec-assets", "sec-ties", "sec-history"
+  ];
+} else {
+  sections = ["sec-finance", "sec-occupation", "sec-assets", "sec-ties", "sec-history"];
+}
       const totalSec = sections.length;
       const sectionLabels = {"sec-trip":"Your Trip","sec-inviter":"Inviter / Host","sec-finance":"Finances","sec-occupation":"Occupation","sec-assets":"Assets & Investments","sec-ties":"Home Country Ties","sec-children":"Children","sec-history":"Travel History"};
 
@@ -1130,7 +1143,7 @@ const sections = [
 
       // Section 3 — Finances / Occupation / Assets (split into 3 sections per DOCX)
      const primaryFinanceTravellers =
-  primaryTraveller?.id ? [primaryTraveller] : [];
+  activeTraveller?.id ? [activeTraveller] : [];
 
 // ── Helper: shared per-traveller derived values ────────────────────────────
 function buildFinDerived(t) {
@@ -1238,64 +1251,7 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
   </div>`;
 }).join("");
 
-// Spouse occupation block (shown in sec-occupation)
-const spouseTravForFin = allTravellers.find(t => t.type === "Spouse");
-const spouseOccExtra = spouseTravForFin
-  ? (() => {
-      const spouseId = spouseTravForFin.id;
-      const sfin = (applicationData.questionnaire.finance || {})[spouseId] || {};
-      const spouseAnswers = sfin.multiAnswers || {};
-      const spouseIsBusiness = Boolean(spouseAnswers["occ-business"]);
-      const spouseIsOtherOccupation = Boolean(spouseAnswers["occ-other"]);
-      const shouldShowSpouseItr = ["occ-employed","occ-freelancer","occ-pensioner","occ-business","occ-other"].some(k => Boolean(spouseAnswers[k]));
-      return `<div class="person-block">
-        <div class="person-block-hd">
-          <div class="pb-av pb-av-sp">${escapeHtml(initials(spouseTravForFin))}</div>
-          <div class="pb-info">
-            <div class="pb-name">${escapeHtml(`${spouseTravForFin.firstName||""} ${spouseTravForFin.lastName||""}`.trim())}</div>
-            <div class="pb-role">Spouse occupation and income</div>
-          </div>
-        </div>
-        <div class="q-blk">
-          <div class="q-lbl">Please select employment / source of income of ${escapeHtml(spouseTravForFin.firstName||"your spouse")} <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
-          <div class="q-opts c2">
-            ${qFinOptM(spouseId,"occ-employed","Employed (Job)")}
-            ${qFinOptM(spouseId,"occ-freelancer","Self-Employed / Freelancer")}
-            ${qFinOptM(spouseId,"occ-business","Business Owner")}
-            ${qFinOptM(spouseId,"occ-homemaker","Homemaker")}
-            ${qFinOptM(spouseId,"occ-pensioner","Retired with Pension")}
-            ${qFinOptM(spouseId,"occ-retired-nopension","Retired without Pension")}
-            ${qFinOptM(spouseId,"occ-student","Student")}
-            ${qFinOptM(spouseId,"occ-other","Other")}
-          </div>
-        </div>
-        <div class="q-blk" id="dep-${spouseId}-biz" style="${spouseIsBusiness ? "" : "display:none"}">
-          <div class="q-lbl">Please select your spouse's business ownership type <span class="q-req">Required</span></div>
-          <div class="q-opts">
-            ${qFinOptR(spouseId,"spouseBizType","sole","Sole owner","")}
-            ${qFinOptR(spouseId,"spouseBizType","partnership","Partnership","")}
-            ${qFinOptR(spouseId,"spouseBizType","pvtllp","Public, private, or LLP","")}
-          </div>
-        </div>
-        <div class="q-blk" id="dep-${spouseId}-itr" style="${shouldShowSpouseItr ? "" : "display:none"}">
-          <div class="q-lbl">Do your spouse's ITRs from the last two years reflect their occupation? <span class="q-req">Required</span></div>
-          <div class="q-opts c2">
-            ${qFinOptR(spouseId,"itr","yes","Yes","")}
-            ${qFinOptR(spouseId,"itr","no","No","")}
-            ${qFinOptR(spouseId,"itr","notsure","Not sure","")}
-            ${qFinOptR(spouseId,"itr","nofile","Does not file an ITR","")}
-          </div>
-        </div>
-        <div class="q-blk" id="dep-${spouseId}-occ-other" style="${spouseIsOtherOccupation ? "" : "display:none"}">
-          <div class="q-lbl">Please describe your spouse's other source of income or employment <span class="q-req">Required</span></div>
-          <div class="q-field-row single"><div class="q-field">
-            <textarea rows="2" placeholder="Describe the other income or employment"
-              oninput="qFinSetField('${spouseId}','otherIncomeDesc',this.value)">${escapeHtml(sfin.otherIncomeDesc||"")}</textarea>
-          </div></div>
-        </div>
-      </div>`;
-    })()
-  : "";
+// Spouse occupation is now answered in their own per-traveller sec-occupation section.
 
 // ── sec-assets: Property & investments ────────────────────────────────────
 const finAssetBlocks = primaryFinanceTravellers.map(t => {
@@ -1354,59 +1310,6 @@ const finAssetBlocks = primaryFinanceTravellers.map(t => {
   </div>`;
 }).join("");
 
-      const supportedQuestionnaireTravellers = [
-  primaryTraveller,
-  spouseTraveller,
-  ...children.slice(0, 3)
-]
-  .filter((traveller) => traveller?.id)
-  .filter(
-    (traveller, index, list) =>
-      list.findIndex((item) => item.id === traveller.id) === index
-  );
-
-const supportedQuestionnaireTravellerIds = new Set(
-  supportedQuestionnaireTravellers.map((traveller) => traveller.id)
-);
-
-const unmappedTravellers = allTravellers.filter(
-  (traveller) =>
-    !supportedQuestionnaireTravellerIds.has(traveller.id)
-);
-
-const unmappedWarning = unmappedTravellers.length
-  ? `
-    <div class="qn qn-amber">
-      &#x26A0;&#xFE0F;
-      <strong>
-        ${escapeHtml(
-          unmappedTravellers
-            .map(
-              (traveller) =>
-                `${traveller.firstName || ""} ${
-                  traveller.lastName || ""
-                }`.trim() ||
-                traveller.type ||
-                "Additional traveller"
-            )
-            .join(", ")
-        )}
-      </strong>
-      ${
-        unmappedTravellers.length > 1
-          ? "remain application travellers"
-          : "remains an application traveller"
-      },
-      but the current Creator questionnaire has separate fields only for
-      the Primary Applicant, Spouse, and Child 1–3. Unsupported questionnaire
-      questions will therefore not be displayed for
-      ${
-        unmappedTravellers.length > 1
-          ? "these travellers"
-          : "this traveller"
-      }.
-    </div>`
-  : "";
       const secFinanceIdx  = sections.indexOf("sec-finance")  + 1;
       const secOccIdx      = sections.indexOf("sec-occupation") + 1;
       const secAssetsIdx   = sections.indexOf("sec-assets")    + 1;
@@ -1423,7 +1326,6 @@ const unmappedWarning = unmappedTravellers.length
             </div>
           </div></div>
           <div class="q-sec-body">
-            ${unmappedWarning}
             ${finFundingBlocks}
           </div>
         </div>
@@ -1444,9 +1346,7 @@ const unmappedWarning = unmappedTravellers.length
             </div>
           </div></div>
           <div class="q-sec-body">
-            <div class="qn qn-teal">&#x2728; Answer for <strong>each person travelling</strong>. Every occupation detail helps build a stronger case.</div>
             ${finOccBlocks}
-            ${spouseOccExtra}
           </div>
         </div>
         <div class="q-sec-nav">
@@ -1476,8 +1376,8 @@ const unmappedWarning = unmappedTravellers.length
         </div>
       </div>`;
 
-      // Section 4 — Ties to India
-      const tiesBlocks = pas.map(pa => {
+      // Section 4 — Ties to India (answered per-traveller)
+      const tiesBlocks = [activeTraveller].filter(t => t?.id).map(pa => {
         const ties = (applicationData.questionnaire.ties || {})[pa.id] || {};
         function tieOptM(key, title, desc="") {
           const on = (ties.multiAnswers || {})[key] ? "msel" : "";
@@ -1508,7 +1408,7 @@ const unmappedWarning = unmappedTravellers.length
         </div>`;
       }).join("");
 
-      const nextAfterTies = hasChildren ? "sec-children" : "sec-history";
+      const nextAfterTies = "sec-history";
       const sec4 = `<div class="q-page ${curId==="sec-ties"?"active":""}" id="sec-ties">
         <div class="q-sec-card">
           <div class="q-sec-hd"><div class="q-sec-hd-row">
@@ -1530,8 +1430,8 @@ const unmappedWarning = unmappedTravellers.length
         </div>
       </div>`;
 
-      // Section 5 — Children (up to 3 supported by the questionnaire form)
-      const childSlots = children.slice(0, 3);
+      // Section 5 — Children (one child at a time in per-traveller model)
+      const childSlots = isChildTraveller ? [activeTraveller] : [];
       const childBlocks = childSlots.map((ch,i) => {
         const chi = (applicationData.questionnaire.childrenInfo || {})[ch.id] || {};
         function chOptR(key, val, title) {
@@ -1558,30 +1458,29 @@ const unmappedWarning = unmappedTravellers.length
         </div>`;
       }).join("");
 
-      const sec5 = hasChildren ? `<div class="q-page ${curId==="sec-children"?"active":""}" id="sec-children">
+      const sec5 = isChildTraveller ? `<div class="q-page ${curId==="sec-children"?"active":""}" id="sec-children">
         <div class="q-sec-card">
           <div class="q-sec-hd"><div class="q-sec-hd-row">
             <div class="q-sec-icon qsi-teal">&#x1F476;</div>
             <div class="q-sec-info">
-              <div class="q-sec-num">Section 5 of ${totalSec}</div>
-              <div class="q-sec-title">Your Children</div>
-              <div class="q-sec-sub">A few details about the children travelling with you</div>
+              <div class="q-sec-num">Section 1 of ${totalSec}</div>
+              <div class="q-sec-title">About ${escapeHtml(activeTraveller.firstName || "Child")}</div>
+              <div class="q-sec-sub">A few details about this traveller</div>
             </div>
           </div>
-          <div class="q-prefill-badge">&#x2705; Names and ages pre-filled from your application</div></div>
+          <div class="q-prefill-badge">&#x2705; Name and age pre-filled from your application</div></div>
           <div class="q-sec-body">
-            ${children.length > 3 ? `<div class="qn qn-amber">&#x26A0;&#xFE0F; The questionnaire form supports up to 3 children per case. Only the first 3 are shown below — please contact your case officer about additional children.</div>` : ""}
             ${childBlocks}
           </div>
         </div>
         <div class="q-sec-nav">
-          <button class="btn-qback" onclick="qGoPrev('sec-children','sec-ties')">&#x2190; Back</button>
+          <button class="btn-qback" onclick="qGoPrev('sec-children','sec-history')">&#x2190; Back</button>
           <button class="btn-qnext" onclick="qGoNext('sec-children','sec-history')">Continue — Travel History &#x2192;</button>
         </div>
       </div>` : "";
 
-      // Section 6 — Travel History
-      const histBlocks = supportedQuestionnaireTravellers.map(t => {
+      // Section 6 — Travel History (per-traveller: only the active traveller)
+      const histBlocks = [activeTraveller].filter(t => t?.id).map(t => {
         const hist = (applicationData.questionnaire.history || {})[t.id] || {};
         const age = t.dob ? Math.floor((Date.now() - new Date(t.dob)) / (365.25*24*3600*1000)) : 99;
         const isAdult = t.type === "Child" ? false : age >= 18;
@@ -1660,7 +1559,13 @@ const unmappedWarning = unmappedTravellers.length
         </div>`;
       }).join("");
 
-      const prevSec = hasChildren ? "sec-children" : "sec-ties";
+      const prevSec = isChildTraveller ? "sec-children" : "sec-ties";
+      const nextTravellerName = nextTraveller
+        ? `${nextTraveller.firstName||""} ${nextTraveller.lastName||""}`.trim() || (nextTraveller.type || "Next Person")
+        : "";
+      const lastSectionButton = hasMoreTravellers
+        ? `<button class="btn-qnext" onclick="qAdvanceTraveller()">Continue — ${escapeHtml(nextTravellerName)} &#x2192;</button>`
+        : `<button class="btn-qnext submit-q" onclick="qSubmitFinal()">&#x2713; Submit my profile &#x2192;</button>`;
       const sec6 = `<div class="q-page ${curId==="sec-history"?"active":""}" id="sec-history">
         <div class="q-sec-card">
           <div class="q-sec-hd"><div class="q-sec-hd-row">
@@ -1678,7 +1583,7 @@ const unmappedWarning = unmappedTravellers.length
         </div>
         <div class="q-sec-nav">
           <button class="btn-qback" onclick="qGoPrev('sec-history','${prevSec}')">&#x2190; Back</button>
-          <button class="btn-qnext submit-q" onclick="qSubmitFinal()">&#x2713; Submit my profile &#x2192;</button>
+          ${lastSectionButton}
         </div>
       </div>`;
 
@@ -1692,6 +1597,11 @@ const unmappedWarning = unmappedTravellers.length
             ${_isMultiUnit ? `<button class="btn" type="button" onclick="qBackToOverview()">&#x2190; All Questionnaires</button>` : ""}
           </div>
           <div class="panel-body">
+            ${!isFirstTraveller ? `
+            <div class="notice blue" style="margin-bottom:16px">
+              <strong>&#x1F464; Answering for: ${escapeHtml(activeTravellerName)}</strong>
+              <span>${escapeHtml(activeTraveller.type || "Traveller")} &mdash; traveller ${qState.activeTravellerIndex + 1} of ${_activeUnitTravellers.length}</span>
+            </div>` : ""}
             ${_activeUnit && _activeUnit.minorOnly ? `
             <div class="notice amber" style="margin-bottom:16px">
               <strong>&#x1F9D2; Filling on behalf of a minor</strong>
@@ -2056,7 +1966,7 @@ markAutoSavePending();
       document.querySelectorAll(".q-page").forEach(p => p.classList.remove("active"));
       const next = document.getElementById(toId);
       if (next) next.classList.add("active");
-      const sections = ["sec-trip","sec-inviter","sec-finance","sec-occupation","sec-assets","sec-ties","sec-children","sec-history"].filter(id => document.getElementById(id));
+      const sections = qQuestionnaireSectionOrder().filter(id => document.getElementById(id));
       qState.currentSection = sections.indexOf(toId);
       // update next pill
       const nextPill = document.getElementById(`qpill-${toId}`);
@@ -2081,7 +1991,7 @@ markAutoSavePending();
       document.querySelectorAll(".q-page").forEach(p => p.classList.remove("active"));
       const prev = document.getElementById(toId);
       if (prev) prev.classList.add("active");
-      const sections = ["sec-trip","sec-inviter","sec-finance","sec-occupation","sec-assets","sec-ties","sec-children","sec-history"].filter(id => document.getElementById(id));
+      const sections = qQuestionnaireSectionOrder().filter(id => document.getElementById(id));
       qState.currentSection = sections.indexOf(toId);
       window.scrollTo(0, 0);
     }
@@ -2099,6 +2009,20 @@ markAutoSavePending();
       // Submit this unit's records immediately; submitQuestionnaire handles the
       // "all units done → step complete" check internally.
       submitQuestionnaire(familyId);
+    }
+
+    function qAdvanceTraveller() {
+      const sections = qQuestionnaireSectionOrder();
+      const lastSec = sections[sections.length - 1];
+      const error = validateQuestionnaireSection(lastSec);
+      if (error) { qState.validationSection = lastSec; toast(error); return; }
+      if (!qState.completedSections.includes(lastSec)) qState.completedSections.push(lastSec);
+      qState.activeTravellerIndex += 1;
+      qState.currentSection = 0;
+      qState.completedSections = [];
+      rerenderQuestionnaire();
+      window.scrollTo(0, 0);
+      saveDraft(false);
     }
 
     function qIsBlank(value) {
@@ -2133,18 +2057,22 @@ markAutoSavePending();
     function qQuestionnaireSectionOrder() {
       const q = applicationData.questionnaire || {};
       const purposes = Array.isArray(q.purpose) ? q.purpose : [];
-      const hasInviter = purposes.some(purpose => ["family", "friend", "family-func", "convocation", "business"].includes(purpose));
-      const hasChildren = qChildTravellers().length > 0;
-      return [
-        "sec-trip",
-        ...(hasInviter ? ["sec-inviter"] : []),
-        "sec-finance",
-        "sec-occupation",
-        "sec-assets",
-        "sec-ties",
-        ...(hasChildren ? ["sec-children"] : []),
-        "sec-history"
-      ];
+      const hasInviter = purposes.some(p => ["family","friend","family-func","convocation","business"].includes(p));
+      const units = deriveQuestionnaireUnits();
+      const activeUnit = units[qState.activeUnitIndex] || units[0];
+      const travellers = activeUnit ? activeUnit.travellers : (applicationData.deal.travellers || []);
+      const activeTrav = travellers[qState.activeTravellerIndex] || travellers[0];
+      const isFirst = qState.activeTravellerIndex === 0;
+      const isChild = activeTrav ? isQuestionnaireChild(activeTrav) : false;
+      if (isChild) return ["sec-children", "sec-history"];
+      if (isFirst) {
+        return [
+          "sec-trip",
+          ...(hasInviter ? ["sec-inviter"] : []),
+          "sec-finance", "sec-occupation", "sec-assets", "sec-ties", "sec-history"
+        ];
+      }
+      return ["sec-finance", "sec-occupation", "sec-assets", "sec-ties", "sec-history"];
     }
 
     function qSelectedKeys(multiAnswers, keys) {
@@ -2214,14 +2142,11 @@ markAutoSavePending();
       const primary = travellers.find(t => t.type === "Primary Applicant") || travellers[0];
       if (!primary) return "Add at least one traveller before submitting the questionnaire.";
 
-      const primaryFin = ((q.finance || {})[primary.id]) || {};
+      // Per-traveller: validate the active traveller's answers for personal sections
+      const activeTrav = travellers[qState.activeTravellerIndex] || primary;
+      const primaryFin = ((q.finance || {})[activeTrav.id]) || {};
       const primaryAnswers = primaryFin.multiAnswers || {};
-      const primaryHist = ((q.history || {})[primary.id]) || {};
-      const primaryTies = (((q.ties || {})[primary.id] || {}).multiAnswers) || {};
-      const spouse = travellers.find(t => t.type === "Spouse");
-      const spouseFin = spouse ? (((q.finance || {})[spouse.id]) || {}) : {};
-      const spouseAnswers = spouseFin.multiAnswers || {};
-      const children = qChildTravellers();
+      const primaryTies = (((q.ties || {})[activeTrav.id] || {}).multiAnswers) || {};
       const hasCanada = qIsCanadaSelected();
       const purposeArr = Array.isArray(q.purpose) ? q.purpose : [];
 
@@ -2264,25 +2189,16 @@ markAutoSavePending();
       }
 
       if (sectionId === "sec-occupation") {
-        // Validate what is shown on the Occupation page
-        if (!qHasAnySelected(primaryAnswers, occupationKeys)) return "Current occupation is mandatory.";
+        const tLabel = activeTrav.firstName || "This applicant";
+        if (!qHasAnySelected(primaryAnswers, occupationKeys)) return `${tLabel}'s current occupation is mandatory.`;
         if (qHasExclusiveConflict(primaryAnswers, "occ-unemployed", activeOccupationKeys)) return "Unemployed cannot be selected together with another occupation.";
         if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizType)) return "Business ownership type is mandatory.";
         if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please describe the other occupation.";
         if (["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(key => primaryAnswers[key]) && qIsBlank(primaryFin.itr)) return "Please answer the ITR question.";
-
-        if (spouse) {
-          if (!qHasAnySelected(spouseAnswers, occupationKeys)) return "Spouse employment/source of income is mandatory.";
-          if (qHasExclusiveConflict(spouseAnswers, "occ-unemployed", activeOccupationKeys)) return "Spouse unemployment cannot be selected together with another occupation.";
-          if (spouseAnswers["occ-business"] && qIsBlank(spouseFin.spouseBizType)) return "Spouse business ownership type is mandatory.";
-          if (spouseAnswers["occ-other"] && qIsBlank(spouseFin.otherIncomeDesc)) return "Please describe the spouse's other source of income or employment.";
-          if (["occ-employed","occ-freelancer","occ-pensioner","occ-business","occ-other"].some(key => spouseAnswers[key]) && qIsBlank(spouseFin.itr)) return "Please answer the spouse ITR question.";
-        }
         return "";
       }
 
       if (sectionId === "sec-assets") {
-        // Validate what is shown on the Assets & Investments page
         if (!qHasAnySelected(primaryAnswers, assetKeys)) return "Immovable property selection is mandatory.";
         if (qHasExclusiveConflict(primaryAnswers, "asset-none", ownedAssetKeys)) return "None cannot be selected together with a property type.";
         if (primaryAnswers["asset-other"] && qIsBlank(primaryFin.otherAssetDesc)) return "Please describe the other property type.";
@@ -2299,27 +2215,22 @@ markAutoSavePending();
       }
 
       if (sectionId === "sec-children") {
-        for (let i = 0; i < children.length; i++) {
-          const childInfo = ((q.childrenInfo || {})[children[i].id]) || {};
-          if (qIsBlank(childInfo.doing)) return `Child ${i + 1} current activity is mandatory.`;
-        }
+        const childInfo = ((q.childrenInfo || {})[activeTrav.id]) || {};
+        if (qIsBlank(childInfo.doing)) return `${activeTrav.firstName || "Child"}'s current activity is mandatory.`;
         return "";
       }
 
       if (sectionId === "sec-history") {
-        const supportedTravellers = [primary, spouse, ...children].filter(Boolean);
-        for (const traveller of supportedTravellers) {
-          const history = ((q.history || {})[traveller.id]) || {};
-          const label = traveller.id === primary.id ? "Primary applicant" : (traveller.type === "Spouse" ? "Spouse" : `${traveller.firstName || "Child"}`);
-          if (qIsBlank(history.prevTravel)) return `${label} international travel history is mandatory.`;
-          if (hasCanada && qIsBlank(history.usaVisa)) return `${label} USA visa answer is mandatory for Canada.`;
-          if (qIsBlank(history.refusal)) return `${label} previous visa refusal answer is mandatory.`;
-          if (history.refusal === "yes" && qIsBlank(history.refusalDetail)) return `${label} visa refusal details are mandatory.`;
-          if (qIsBlank(history.criminalRecord)) return `${label} criminal history answer is mandatory.`;
-          if (history.criminalRecord === "yes" && qIsBlank(history.criminalDetail)) return `${label} criminal history details are mandatory.`;
-          if (qIsBlank(history.border)) return `${label} entry refusal or immigration breach answer is mandatory.`;
-          if (history.border === "yes" && qIsBlank(history.borderDetail)) return `${label} immigration breach details are mandatory.`;
-        }
+        const history = ((q.history || {})[activeTrav.id]) || {};
+        const label = activeTrav.firstName || "This traveller";
+        if (qIsBlank(history.prevTravel)) return `${label}'s international travel history is mandatory.`;
+        if (hasCanada && qIsBlank(history.usaVisa)) return `${label}'s USA visa answer is mandatory for Canada.`;
+        if (qIsBlank(history.refusal)) return `${label}'s previous visa refusal answer is mandatory.`;
+        if (history.refusal === "yes" && qIsBlank(history.refusalDetail)) return `${label}'s visa refusal details are mandatory.`;
+        if (qIsBlank(history.criminalRecord)) return `${label}'s criminal history answer is mandatory.`;
+        if (history.criminalRecord === "yes" && qIsBlank(history.criminalDetail)) return `${label}'s criminal history details are mandatory.`;
+        if (qIsBlank(history.border)) return `${label}'s entry refusal or immigration breach answer is mandatory.`;
+        if (history.border === "yes" && qIsBlank(history.borderDetail)) return `${label}'s immigration breach details are mandatory.`;
       }
       return "";
     }
@@ -2337,12 +2248,22 @@ markAutoSavePending();
 
     // ── validateQuestionnaireForCreator (source 8953-9036) ──
     function validateQuestionnaireForCreator() {
-      for (const sectionId of qQuestionnaireSectionOrder()) {
-        const validationError = validateQuestionnaireSection(sectionId);
-        if (validationError) {
-          qState.validationSection = sectionId;
-          return validationError;
+      const units = deriveQuestionnaireUnits();
+      const activeUnit = units[qState.activeUnitIndex] || units[0];
+      const travellers = activeUnit ? activeUnit.travellers : (applicationData.deal.travellers || []);
+      const savedIndex = qState.activeTravellerIndex;
+      try {
+        for (let i = 0; i < travellers.length; i++) {
+          qState.activeTravellerIndex = i;
+          for (const sectionId of qQuestionnaireSectionOrder()) {
+            // Shared sections (trip/inviter) are only validated once (for first traveller)
+            if (i > 0 && (sectionId === "sec-trip" || sectionId === "sec-inviter")) continue;
+            const err = validateQuestionnaireSection(sectionId);
+            if (err) { qState.validationSection = sectionId; return err; }
+          }
         }
+      } finally {
+        qState.activeTravellerIndex = savedIndex;
       }
       qState.validationSection = null;
       return "";
@@ -2352,7 +2273,7 @@ export {
   qState, isQuestionnaireChild, renderQuestionnaireHTML, validateQuestionnaireForCreator,
   qSelOpt, qTogOpt, qTogMulti, qHandleMultiDep, qSetField, qSetTravelDate,
   qFinSel, qFinTogFunding, qFinTogM, qFinSetField, qTieTogM, qChiSel, qHistSel,
-  qHistSetField, qHandleDep, qGoNext, qGoPrev, qSubmitFinal, qIsBlank,
+  qHistSetField, qHandleDep, qGoNext, qGoPrev, qSubmitFinal, qAdvanceTraveller, qIsBlank,
   qHasAnySelected, qQuestionnaireCountries, qIsCanadaSelected, qFirstTravelDate, qChildTravellers,
   qQuestionnaireSectionOrder, validateQuestionnaireSection, showQuestionnaireValidationSection,
 };
