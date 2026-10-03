@@ -45,8 +45,19 @@ export default function DetailsPane() {
         <div className="panel-body">
           <div className="form-grid">
             <Field label="Intended Departure Date" path="deal.travelDateFrom" type="date" />
-            <Field label="Intended Return Date" path="deal.travelDateTo" type="date" />
+            <Field
+              label="Intended Return Date"
+              path="deal.travelDateTo"
+              type="date"
+              min={applicationData.deal.travelDateFrom || undefined}
+            />
           </div>
+          {applicationData.deal.travelDateFrom && applicationData.deal.travelDateTo &&
+            applicationData.deal.travelDateTo < applicationData.deal.travelDateFrom ? (
+            <p style={{ color: "var(--danger, #c0392b)", fontSize: 13, marginTop: 6 }}>
+              Return date cannot be before the departure date.
+            </p>
+          ) : null}
         </div>
       </section>
 
