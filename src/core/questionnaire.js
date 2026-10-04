@@ -609,8 +609,8 @@ export function qBuildLink(token, traveller) {
     ...(dateFrom ? { Approx_Travel_Start_Date: dateFrom } : {}),
     ...(dateTo   ? { Approx_Travel_End_Date:   dateTo   } : {}),
   });
-  // Append each country as a separate param — multi-select fields require repeated keys
-  countryList.forEach(c => params.append("Applying_for_Country1", c));
+  // Creator rejects repeated keys for multi-select — pass as comma-separated single param
+  if (countryList.length > 0) params.set("Applying_for_Country1", countryList.join(","));
   return `${base}?${params.toString()}`;
 }
 
