@@ -599,9 +599,8 @@ export function qBuildLink(token, traveller) {
     Q_Token: token,
     CRM_ID: crmId,
     Client_Name: clientName,
-    Traveller_Name: clientName,
     Traveller_Type: travellerType,
-    ...(countries ? { Applying_for_Country: countries } : {}),
+    ...(countries ? { Applying_for_Country1: countries } : {}),
     ...(dateFrom  ? { Approx_Travel_Start_Date: dateFrom } : {}),
     ...(dateTo    ? { Approx_Travel_End_Date:   dateTo   } : {}),
   });
