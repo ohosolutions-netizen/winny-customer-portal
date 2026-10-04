@@ -801,15 +801,21 @@ const questionnaireSubmitted =
     .toLowerCase() === "true";
 
 if (questionnaireSubmitted) {
-  applicationData.stepStatus.questionnaireCompleted = true;
   applicationData.stepStatus.anyQuestionnaireSubmitted = true;
 
-  applicationData.questionnaire.creatorRecordId =
-    String(
-      questionnaireStatus.recordId ||
-      questionnaireStatus.recordID ||
-      ""
-    );
+  // If per-unit tracking exists in the draft, use it to decide if ALL units are done.
+  // Without unit tracking (old data / first load) the CRM flag is treated as fully done.
+  const submittedUnits = applicationData.questionnaire.submittedUnits || {};
+  const hasUnitTracking = Object.keys(submittedUnits).length > 0;
+  const travellers = applicationData.deal.travellers || [];
+  const allDone = !hasUnitTracking ||
+    travellers.every(t => submittedUnits[t.id || t.familyId || "family-1"]);
+
+  if (allDone) {
+    applicationData.stepStatus.questionnaireCompleted = true;
+    applicationData.questionnaire.creatorRecordId =
+      String(questionnaireStatus.recordId || questionnaireStatus.recordID || "");
+  }
 }
 
 // Backward compat: if any units were submitted but the full questionnaire isn't done yet
