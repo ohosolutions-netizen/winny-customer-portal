@@ -585,7 +585,10 @@ export function qBuildLink(token, traveller) {
     : `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
   const crmId = applicationData.deal?.crmDealId || "";
   const travellerType = traveller?.type || "";
-  const countries = Array.isArray(traveller?.countries) ? traveller.countries.join(",") : "";
+  // Only first country — Zoho Creator URL params support only one value for select fields
+  const countries = Array.isArray(traveller?.countries) && traveller.countries.length
+    ? traveller.countries[0]
+    : (typeof traveller?.countries === "string" ? traveller.countries.split(",")[0].trim() : "");
   // Convert yyyy-mm-dd → dd-MMM-yyyy to match Zoho Creator date field format
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const fmtDate = (iso) => {
