@@ -865,18 +865,21 @@ async function sendAgreementEmail({ email, customerName, applicationId, signedBy
 
 async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
   // Extract all URL params — Deluge uses them to build the full pre-fill URL
-  let params = {};
-  try { new URL(linkUrl).searchParams.forEach((v, k) => { params[k] = v; }); } catch (_) {}
+  let sp, countryValues = [];
+  try {
+    sp = new URL(linkUrl).searchParams;
+    countryValues = sp.getAll("Applying_for_Country1");
+  } catch (_) { sp = new URLSearchParams(); }
 
   const recordData = {
     To_Email:        toEmail,
     Traveller_Name1: travellerName,
-    Q_Token:         params.Q_Token         || "",
-    CRM_ID:          params.CRM_ID          || "",
-    Traveller_Type:  params.Traveller_Type  || "",
-    Country:         params.Applying_for_Country || "",
-    Date_From:       params.Approx_Travel_Start_Date || "",
-    Date_To:         params.Approx_Travel_End_Date   || "",
+    Q_Token:         sp.get("Q_Token")                  || "",
+    CRM_ID:          sp.get("CRM_ID")                   || "",
+    Traveller_Type:  sp.get("Traveller_Type")            || "",
+    Country:         countryValues.join(","),
+    Date_From:       sp.get("Approx_Travel_Start_Date") || "",
+    Date_To:         sp.get("Approx_Travel_End_Date")   || "",
   };
   console.log("[Winny:QuestionnaireEmail] sending — data:", recordData);
   try {

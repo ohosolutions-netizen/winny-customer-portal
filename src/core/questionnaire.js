@@ -585,10 +585,12 @@ export function qBuildLink(token, traveller) {
     : `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
   const crmId = applicationData.deal?.crmDealId || "";
   const travellerType = traveller?.type || "";
-  // Only first country — Zoho Creator URL params support only one value for select fields
-  const countries = Array.isArray(traveller?.countries) && traveller.countries.length
-    ? traveller.countries[0]
-    : (typeof traveller?.countries === "string" ? traveller.countries.split(",")[0].trim() : "");
+  // All countries as array — each appended as separate param for multi-select pre-fill
+  const countryList = Array.isArray(traveller?.countries)
+    ? traveller.countries.filter(Boolean)
+    : (typeof traveller?.countries === "string"
+        ? traveller.countries.split(",").map(c => c.trim()).filter(Boolean)
+        : []);
   // Convert yyyy-mm-dd → dd-MMM-yyyy to match Zoho Creator date field format
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const fmtDate = (iso) => {
@@ -603,10 +605,11 @@ export function qBuildLink(token, traveller) {
     CRM_ID: crmId,
     Client_Name: clientName,
     Traveller_Type: travellerType,
-    ...(countries ? { Applying_for_Country1: countries } : {}),
-    ...(dateFrom  ? { Approx_Travel_Start_Date: dateFrom } : {}),
-    ...(dateTo    ? { Approx_Travel_End_Date:   dateTo   } : {}),
+    ...(dateFrom ? { Approx_Travel_Start_Date: dateFrom } : {}),
+    ...(dateTo   ? { Approx_Travel_End_Date:   dateTo   } : {}),
   });
+  // Append each country as a separate param — multi-select fields require repeated keys
+  countryList.forEach(c => params.append("Applying_for_Country1", c));
   return `${base}?${params.toString()}`;
 }
 
