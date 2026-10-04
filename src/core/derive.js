@@ -316,8 +316,8 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
     function isStepLocked(step) {
       if (step <= 1) return false;
       if (step === 2) return !applicationData.stepStatus.dealCompleted;
-      if (step === 3) return !applicationData.stepStatus.questionnaireCompleted; // Documents unlocks alongside CIF
-      if (step === 4) return !applicationData.stepStatus.questionnaireCompleted;
+      if (step === 3) return !applicationData.stepStatus.anyQuestionnaireSubmitted; // Unlocks as soon as any unit is submitted
+      if (step === 4) return !applicationData.stepStatus.questionnaireCompleted; // CIF only after all units done
       if (step === 5) return !applicationData.stepStatus.cifCompleted;
       if (step === 6) return !applicationData.stepStatus.submitted;
       return false;

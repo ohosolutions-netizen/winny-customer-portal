@@ -802,6 +802,7 @@ const questionnaireSubmitted =
 
 if (questionnaireSubmitted) {
   applicationData.stepStatus.questionnaireCompleted = true;
+  applicationData.stepStatus.anyQuestionnaireSubmitted = true;
 
   applicationData.questionnaire.creatorRecordId =
     String(
@@ -809,6 +810,14 @@ if (questionnaireSubmitted) {
       questionnaireStatus.recordID ||
       ""
     );
+}
+
+// Backward compat: if any units were submitted but the full questionnaire isn't done yet
+if (!applicationData.stepStatus.anyQuestionnaireSubmitted) {
+  const submittedUnits = applicationData.questionnaire.submittedUnits || {};
+  if (Object.keys(submittedUnits).length > 0) {
+    applicationData.stepStatus.anyQuestionnaireSubmitted = true;
+  }
 }
 
 syncCustomerToTraveller();

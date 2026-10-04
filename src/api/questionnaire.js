@@ -455,7 +455,8 @@ async function submitQuestionnaire(familyId = "family-1") {
       applicationData.questionnaire.creatorRecordId = primaryResult.creatorRecordId;
     }
 
-    saveDraft(false);
+    // Mark that at least one unit has been submitted (unlocks Documents step)
+    applicationData.stepStatus.anyQuestionnaireSubmitted = true;
 
     // Check if all units are now done
     const allUnits = deriveQuestionnaireUnits();
@@ -473,7 +474,12 @@ async function submitQuestionnaire(familyId = "family-1") {
       scheduleDocumentChecklistRefresh();
     } else {
       const remaining = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]).length;
-      toast(`Family group saved ✓ ${remaining} group${remaining === 1 ? "" : "s"} remaining.`);
+      saveDraft(false);
+      toast(`Questionnaire submitted ✓ Document checklist unlocked. ${remaining} group${remaining === 1 ? "" : "s"} remaining.`);
+      // Reset document list so it reloads fresh when user navigates to Documents
+      state.documents.items = [];
+      state.documents.loaded = false;
+      state.documents.loadedForDealId = null;
       // Return to unit overview so the next unit can be started
       qState.viewMode = "auto";
       rerenderQuestionnaire();

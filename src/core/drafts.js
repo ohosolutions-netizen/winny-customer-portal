@@ -345,6 +345,7 @@ applicationData.payment.paidAt = "";
 
 applicationData.stepStatus.dealCompleted = false;
 applicationData.stepStatus.questionnaireCompleted = false;
+applicationData.stepStatus.anyQuestionnaireSubmitted = false;
 applicationData.stepStatus.cifCompleted = false;
 applicationData.stepStatus.submitted = false;
 

@@ -47,7 +47,7 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
       if (attempt > delays.length) return;
       window.setTimeout(async () => {
         if (applicationData.currentStep !== 3) return;
-        if (!applicationData.stepStatus.questionnaireCompleted) return;
+        if (!applicationData.stepStatus.anyQuestionnaireSubmitted) return;
         if (state.documents.items && state.documents.items.length) return;
         await loadDocumentChecklist(true);
         if (!state.documents.items || !state.documents.items.length) {

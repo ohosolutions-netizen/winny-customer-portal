@@ -90,6 +90,7 @@ balanceAmount: 0, crmBalanceAmount: null,
       review: {},
       stepStatus: {
         dealCompleted: false, questionnaireCompleted: false,
+        anyQuestionnaireSubmitted: false,
         cifCompleted: false, submitted: false
       },
       crmSync: {
