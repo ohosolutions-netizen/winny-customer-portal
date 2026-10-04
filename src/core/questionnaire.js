@@ -586,6 +586,8 @@ export function qBuildLink(token, traveller) {
   const crmId = applicationData.deal?.crmDealId || "";
   const travellerType = traveller?.type || "";
   const countries = Array.isArray(traveller?.countries) ? traveller.countries.join(",") : "";
+  const dateFrom = applicationData.deal?.travelDateFrom || "";
+  const dateTo = applicationData.deal?.travelDateTo || "";
   const params = new URLSearchParams({
     Q_Token: token,
     CRM_ID: crmId,
@@ -593,6 +595,8 @@ export function qBuildLink(token, traveller) {
     Traveller_Name: clientName,
     Traveller_Type: travellerType,
     ...(countries ? { Applying_for_Country: countries } : {}),
+    ...(dateFrom ? { Travel_Start_Date: dateFrom } : {}),
+    ...(dateTo   ? { Travel_End_Date:   dateTo   } : {}),
   });
   return `${base}?${params.toString()}`;
 }
