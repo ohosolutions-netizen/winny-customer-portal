@@ -36,7 +36,8 @@ export function deriveQuestionnaireUnits() {
   const travellers = applicationData.deal.travellers || [];
   const familyMap = new Map();
   travellers.forEach((t) => {
-    const fid = t.familyId || "family-1";
+    // Use traveller's own ID so each traveller gets their own questionnaire unit
+    const fid = t.id || t.familyId || "family-1";
     if (!familyMap.has(fid)) familyMap.set(fid, []);
     familyMap.get(fid).push(t);
   });
@@ -537,7 +538,7 @@ export function qGoToCommon() {
 export function qSetUnitFillMode(familyId, mode) {
   const travellers = applicationData.deal.travellers || [];
   travellers.forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) {
+    if ((t.id || t.familyId || "family-1") === familyId) {
       t.qFillMode = mode;
     }
   });
@@ -549,14 +550,14 @@ export async function qSendLinkToTraveller(familyId) {
   const travellers = applicationData.deal.travellers || [];
   // Set mode to "link"
   travellers.forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) {
+    if ((t.id || t.familyId || "family-1") === familyId) {
       t.qFillMode = "link";
     }
   });
   // Generate token immediately (skip the "Generate link" intermediate step)
   const token = qGenToken();
   travellers.forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) {
+    if ((t.id || t.familyId || "family-1") === familyId) {
       t.qToken = token;
       t.qLinkSent = false;
       delete t.qCreatorRecordId;
@@ -566,7 +567,7 @@ export async function qSendLinkToTraveller(familyId) {
   rerenderQuestionnaire();
   // Auto-send email if traveller has an email address
   const primaryTraveller = travellers.find(
-    (t) => (t.familyId || "family-1") === familyId
+    (t) => (t.id || t.familyId || "family-1") === familyId
   );
   if (primaryTraveller?.email) {
     await qEmailLink(familyId);
@@ -616,7 +617,7 @@ export function qBuildLink(token, traveller) {
 export function qGenerateLink(familyId) {
   const token = qGenToken();
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) {
+    if ((t.id || t.familyId || "family-1") === familyId) {
       t.qToken = token;
       t.qLinkSent = false;
       delete t.qCreatorRecordId;
@@ -628,14 +629,14 @@ export function qGenerateLink(familyId) {
 
 export function qCopyLink(familyId) {
   const traveller = (applicationData.deal.travellers || []).find(
-    (t) => (t.familyId || "family-1") === familyId && t.qToken
+    (t) => (t.id || t.familyId || "family-1") === familyId && t.qToken
   );
   if (!traveller) return;
   const url = qBuildLink(traveller.qToken, traveller);
 
   // Mark all unit travellers as link-sent
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) t.qLinkSent = true;
+    if ((t.id || t.familyId || "family-1") === familyId) t.qLinkSent = true;
   });
   markAutoSavePending();
 
@@ -668,7 +669,7 @@ export function qCopyLink(familyId) {
 
 export async function qEmailLink(familyId) {
   const traveller = (applicationData.deal.travellers || []).find(
-    (t) => (t.familyId || "family-1") === familyId && t.qToken
+    (t) => (t.id || t.familyId || "family-1") === familyId && t.qToken
   );
   if (!traveller) return;
 
@@ -686,7 +687,7 @@ export async function qEmailLink(familyId) {
     await sendQuestionnaireEmail(toEmail, name, url);
     // Mark as sent
     (applicationData.deal.travellers || []).forEach((t) => {
-      if ((t.familyId || "family-1") === familyId) t.qLinkSent = true;
+      if ((t.id || t.familyId || "family-1") === familyId) t.qLinkSent = true;
     });
     markAutoSavePending();
     toast(`Questionnaire link sent to ${toEmail}`, "ok");
@@ -698,7 +699,7 @@ export async function qEmailLink(familyId) {
 
 export function qResetLink(familyId) {
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.familyId || "family-1") === familyId) {
+    if ((t.id || t.familyId || "family-1") === familyId) {
       t.qToken = "";
       t.qLinkSent = false;
     }
