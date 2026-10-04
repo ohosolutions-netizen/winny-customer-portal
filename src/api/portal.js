@@ -815,6 +815,9 @@ if (questionnaireSubmitted) {
     applicationData.stepStatus.questionnaireCompleted = true;
     applicationData.questionnaire.creatorRecordId =
       String(questionnaireStatus.recordId || questionnaireStatus.recordID || "");
+  } else {
+    // Partial completion — explicitly reset in case the draft saved a stale true
+    applicationData.stepStatus.questionnaireCompleted = false;
   }
 }
 
