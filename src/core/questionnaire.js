@@ -770,8 +770,8 @@ export function qResetLink(familyId) {
   const _units = deriveQuestionnaireUnits();
   const _isMultiUnit = _units.length > 1;
 
-  // For multi-unit bookings, show the unit overview when not explicitly filling a unit
-  if (_isMultiUnit && qState.viewMode !== "form") {
+  // Always show the unit overview first (single or multi-unit) so staff can choose fill or send-link per unit
+  if (qState.viewMode !== "form") {
     return renderUnitOverviewHTML(_units);
   }
 
