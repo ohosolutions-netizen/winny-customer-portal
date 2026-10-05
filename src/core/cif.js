@@ -1322,14 +1322,16 @@ const setIfEmpty = (path, value) => {
 
 if (selectedPurposes.length === 1) {
   const purposeMap = {
-    tourism: "Tourism (including visiting family and friends)",
-    "tourism-group": "Tourism (including visiting family and friends)",
-    family: "Tourism (including visiting family and friends)",
-    friend: "Tourism (including visiting family and friends)",
-    business: "Business (including sports and entertainment)",
-    transit: "Transit through the UK",
-    medical: "Private medical treatment or organ donation",
-    other: "Other - I am visiting for another reason"
+    family: "To meet Family Member / Relative",
+    "family-func": "To attend family function",
+    tourism: "Tourism (customized itinerary)",
+    "tourism-group": "Tourism (Group itinerary)",
+    friend: "To meet Friend",
+    convocation: "To attend convocation",
+    business: "Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)",
+    transit: "Transit",
+    medical: "Medical Treatment",
+    other: "Other (Please Specify)"
   };
 
   const mappedPurpose = purposeMap[selectedPurposes[0]];
