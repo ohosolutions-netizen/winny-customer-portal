@@ -890,6 +890,17 @@ export function qResetLink(familyId) {
               : ""
           }
 
+          ${(() => {
+            const completedUnits = deriveQuestionnaireUnits();
+            if (!completedUnits.length) return "";
+            const btns = completedUnits.map(u => {
+              const label = u.label || "Questionnaire";
+              const safeFid = escapeHtml(u.familyId);
+              return `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qViewAnswers('${safeFid}')">View answers${completedUnits.length > 1 ? ` — ${escapeHtml(label)}` : ""}</button>`;
+            }).join(" ");
+            return `<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">${btns}</div>`;
+          })()}
+
           <div style="margin-top:18px">
             <button
               class="btn primary"
