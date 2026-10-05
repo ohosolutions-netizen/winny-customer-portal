@@ -620,4 +620,41 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   return changed;
 }
 
-export { submitQuestionnaire, saveQuestionnaire, checkExternalQuestionnaireSubmission };
+// ── fetchQCreatorRecord ────────────────────────────────────────────────────
+// Fetches the most-recent Visitor_Visa_Questionnaire_Sales1 record for a
+// given deal + unit (familyId/id). Returns the raw Creator record object or null.
+async function fetchQCreatorRecord(dealId, unitKey) {
+  if (!dealId || !unitKey) return null;
+  const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
+
+  const tryInvokeUrl = async () => {
+    if (!window.ZOHO?.CREATOR?.API?.invokeUrl) return null;
+    const criteria = encodeURIComponent(`CRM_ID == "${dealId}" && Family_Group == "${unitKey}"`);
+    const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}&sort_by=Added_Time&sort_order=desc&page=1&page_size=1`;
+    const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+    const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+    return Array.isArray(body?.data) ? (body.data[0] || null) : null;
+  };
+
+  try {
+    // Try SDK v2 first
+    if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+      const res = await ZOHO.CREATOR.DATA.getRecords({
+        app_name: CONFIG.creator.appLinkName,
+        report_name: reportName,
+        criteria: `CRM_ID == "${dealId}" && Family_Group == "${unitKey}"`,
+        sort_by: "Added_Time",
+        sort_order: "desc",
+        page: 1,
+        page_size: 1
+      });
+      if (Number(res?.code) === 3000 && Array.isArray(res?.data) && res.data.length) return res.data[0];
+    }
+    return await tryInvokeUrl();
+  } catch (err) {
+    console.warn("[Winny] fetchQCreatorRecord: Creator query failed:", err);
+    try { return await tryInvokeUrl(); } catch (_) { return null; }
+  }
+}
+
+export { submitQuestionnaire, saveQuestionnaire, checkExternalQuestionnaireSubmission, fetchQCreatorRecord };

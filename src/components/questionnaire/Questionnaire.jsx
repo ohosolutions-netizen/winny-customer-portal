@@ -19,6 +19,8 @@ const Q_HANDLERS = [
   "qSetCommonField", "qSubmitCommon", "qGoToCommon",
   // Per-unit fill mode toggle + send-link flow
   "qSetUnitFillMode", "qGenerateLink", "qCopyLink", "qEmailLink", "qResetLink", "qSendLinkToTraveller",
+  // View submitted answers
+  "qViewAnswers",
 ];
 
 export default function Questionnaire() {
