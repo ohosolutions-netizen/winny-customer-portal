@@ -167,8 +167,11 @@ async function saveQuestionnaire(familyId) {
 
   const applyingCountries    = (q.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean);
   const questionnaireHasCanada = applyingCountries.some(c => c.toLowerCase() === "canada");
-  const firstEntry           = Object.values(q.travelDates || {}).find(d => d.entry)?.entry || "";
+  const allTravelDateEntries = Object.values(q.travelDates || {}).filter(d => d && d.entry);
+  const firstEntry           = allTravelDateEntries[0]?.entry || "";
+  const lastExit             = allTravelDateEntries[allTravelDateEntries.length - 1]?.exit || "";
   const firstEntryZoho       = toZohoDate(firstEntry);
+  const lastExitZoho         = toZohoDate(lastExit);
   const hasPreplanned        = q.arrangements === "yes";
 
   const inviterValues = hasFamilyPurpose
@@ -209,6 +212,8 @@ async function saveQuestionnaire(familyId) {
     Please_describe_your_exact_purpose_of_visit: selectedPurposeKeys.includes("other") ? (q.purposeOther || "") : "",
     Do_you_have_specific_travel_plans_or_a_pre_planned_itinerary: hasPreplanned ? "Yes" : "No",
     Marital_Status: maritalStatusMap[q.maritalStatus] || "",
+    Approx_Travel_Start_Date: firstEntryZoho,
+    Approx_Travel_End_Date:   lastExitZoho,
     When_do_you_intend_to_travel:      !hasPreplanned ? firstEntryZoho : "",
     What_is_your_intended_travel_date:  hasPreplanned ? firstEntryZoho : "",
     Total_number_of_people_traveling_with_you: totalCountVal,
