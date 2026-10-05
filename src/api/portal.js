@@ -810,6 +810,20 @@ const questionnaireSubmitted =
 if (questionnaireSubmitted) {
   applicationData.stepStatus.anyQuestionnaireSubmitted = true;
 
+  // Populate submittedUnits from the CRM-reported family groups so that
+  // individual traveller status (✓ Submitted) reflects external submissions.
+  const crmFamilyGroups = Array.isArray(questionnaireStatus.familyGroups)
+    ? questionnaireStatus.familyGroups
+    : [];
+  if (crmFamilyGroups.length > 0) {
+    if (!applicationData.questionnaire.submittedUnits) {
+      applicationData.questionnaire.submittedUnits = {};
+    }
+    crmFamilyGroups.forEach(fg => {
+      if (fg) applicationData.questionnaire.submittedUnits[fg] = true;
+    });
+  }
+
   // If per-unit tracking exists in the draft, use it to decide if ALL units are done.
   // Without unit tracking (old data / first load) the CRM flag is treated as fully done.
   const submittedUnits = applicationData.questionnaire.submittedUnits || {};
