@@ -512,27 +512,45 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   if (applicationData.stepStatus.questionnaireCompleted) return false;
   if (!dealId) return false;
 
-  // Visitor_Visa_Questionnaire_Sales_Report1 is the report that includes both portal and
-  // external (pre-fill link) submissions. The _Report variant only shows portal records.
+  // Visitor_Visa_Questionnaire_Sales_Report1 includes both portal and external submissions.
   const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
   let records = [];
 
   try {
+    // 1. SDK v2 getRecords (may or may not be available in all widget contexts)
     if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
       const res = await ZOHO.CREATOR.DATA.getRecords({
         app_name: CONFIG.creator.appLinkName,
         report_name: reportName,
-        criteria: `(CRM_ID == "${dealId}")`
+        criteria: `CRM_ID == "${dealId}"`
       });
-      if (Number(res?.code) === 3000 && Array.isArray(res?.data)) {
-        records = res.data;
-      }
-    } else if (window.ZOHO?.CREATOR?.API?.getAllRecords) {
-      const res = await ZOHO.CREATOR.API.getAllRecords({
+      if (Number(res?.code) === 3000 && Array.isArray(res?.data)) records = res.data;
+    }
+
+    // 2. Creator REST API via invokeUrl — the proven transport used for CRM calls
+    if (!records.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const criteria = encodeURIComponent(`CRM_ID == "${dealId}"`);
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}`;
+      const res = await ZOHO.CREATOR.API.invokeUrl({
+        url,
+        type: "GET",
+        connectionName: CONFIG.creatorConnectionName
+      });
+      const body = typeof res?.data === "string"
+        ? (JSON.parse(res.data) || {})
+        : (res?.data || res || {});
+      if (Array.isArray(body?.data)) records = body.data;
+    }
+
+    // 3. SDK v1 getRecords with criteria
+    if (!records.length && window.ZOHO?.CREATOR?.API?.getRecords) {
+      const res = await ZOHO.CREATOR.API.getRecords({
         accountOwnerName: CONFIG.creator.appOwner,
         appLinkName: CONFIG.creator.appLinkName,
         reportLinkName: reportName,
-        criteria: `(CRM_ID == "${dealId}")`
+        criteria: `CRM_ID == "${dealId}"`,
+        fromIndex: 1,
+        toIndex: 200
       });
       if (Array.isArray(res?.data)) records = res.data;
     }
