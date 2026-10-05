@@ -578,44 +578,240 @@ export async function qSendLinkToTraveller(familyId) {
 }
 
 // ── qViewAnswers ───────────────────────────────────────────────────────────
-// Fetches the submitted questionnaire record for the unit and shows it in a modal.
+// Shows submitted questionnaire answers in a wide modal.
+// Primary source: applicationData.questionnaire (in-memory draft — has ALL answers).
+// Fallback: Creator record (external pre-fill submissions where draft has no data).
 export async function qViewAnswers(familyId) {
   const dealId = applicationData.deal?.crmDealId || applicationData.deal?.crmId || "";
-  if (!dealId) { toast("Could not find deal ID.", "error"); return; }
+  const units  = deriveQuestionnaireUnits();
+  const unit   = units.find(u => u.familyId === familyId) || units[0];
 
-  showLoader("Loading answers…");
-  let record = null;
-  try {
-    record = await fetchQCreatorRecord(dealId, familyId);
-  } catch (_) {}
-  hideLoader();
+  const unitTraveller = (applicationData.deal.travellers || []).find(
+    t => (t.id || t.familyId || "family-1") === familyId
+  );
+  const unitName = unitTraveller
+    ? `${unitTraveller.firstName || ""} ${unitTraveller.lastName || ""}`.trim() || familyId
+    : (unit?.label || familyId);
 
-  if (record) {
-    console.log("[Winny] qViewAnswers raw Creator record:", JSON.stringify(record, null, 2));
-  }
-
-  if (!record) {
-    // External submissions may have used familyId as Family_Group too; try the
-    // portal's own record stored on the traveller.
-    const traveller = (applicationData.deal.travellers || []).find(
-      t => (t.id || t.familyId || "family-1") === familyId
-    );
-    // Fall back to Snapshot_Payload from the deal-level creatorRecordId if available
-    const unitName = traveller
-      ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || familyId
-      : familyId;
-    openWideModal("Questionnaire Answers", `<p style="color:var(--muted);margin:0">No questionnaire record found for <strong>${escapeHtml(unitName)}</strong>.</p>`);
+  // Try in-memory draft first — it has all answers for portal-submitted units
+  const qHtml = unit ? buildAnswersHtmlFromQState(unit, unitName) : null;
+  if (qHtml) {
+    openWideModal(`Questionnaire — ${escapeHtml(unitName)}`, qHtml);
     return;
   }
 
-  const traveller = (applicationData.deal.travellers || []).find(
-    t => (t.id || t.familyId || "family-1") === familyId
-  );
-  const unitName = traveller
-    ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || familyId
-    : familyId;
+  // Fall back to Creator record (external pre-fill submissions)
+  if (!dealId) { toast("Could not find deal ID.", "error"); return; }
+  showLoader("Loading answers…");
+  let record = null;
+  try { record = await fetchQCreatorRecord(dealId, familyId); } catch (_) {}
+  hideLoader();
 
+  if (!record) {
+    openWideModal("Questionnaire Answers", `<p style="color:var(--muted);margin:0">No questionnaire record found for <strong>${escapeHtml(unitName)}</strong>.</p>`);
+    return;
+  }
   openWideModal(`Questionnaire — ${escapeHtml(unitName)}`, buildAnswersHtmlFromRecord(record, unitName));
+}
+
+// ── buildAnswersHtmlFromQState ─────────────────────────────────────────────
+// Renders questionnaire answers from the in-memory applicationData.questionnaire
+// state — the same source saveQuestionnaire() uses, so it has ALL filled fields.
+function buildAnswersHtmlFromQState(unit, unitName) {
+  const q    = applicationData.questionnaire || {};
+  const primary = unit.travellers.find(t => t.type === "Primary Applicant") || unit.travellers[0];
+  if (!primary) return null;
+
+  const tId   = primary.id;
+  const fin   = (q.finance || {})[tId] || {};
+  const hist  = (q.history || {})[tId] || {};
+  const ties  = (q.ties    || {})[tId] || {};
+  const tFinM = fin.multiAnswers  || {};
+  const tTiesM = ties.multiAnswers || {};
+
+  // Require at least some questionnaire data before trusting the draft
+  const hasDraftData = Array.isArray(q.purpose) && q.purpose.length > 0;
+  if (!hasDraftData) return null;
+
+  // ── Value maps (mirrors api/questionnaire.js) ───────────────────────────
+  const purposeMap = {
+    "family":"To meet Family Member / Relative", "family-func":"To attend family function",
+    "tourism":"Tourism (customized itinerary)", "tourism-group":"Tourism (Group itinerary)",
+    "business":"Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)",
+    "friend":"To meet Friend", "convocation":"To attend convocation",
+    "transit":"Transit", "medical":"Medical Treatment", "other":"Other (Please Specify)"
+  };
+  const functionTypeMap = { wedding:"Wedding", engagement:"Engagement", reception:"Reception", anniversary:"Anniversary", birthday:"Birthday", housewarming:"Housewarming" };
+  const maritalStatusMap = { single:"Single (Never Married)", married:"Married", divorced:"Divorced", widowed:"Widowed", separated:"Separated" };
+  const inviterMap = {
+    father:"Father", mother:"Mother", brother:"Brother", sister:"Sister",
+    son:"Son", daughter:"Daughter", uncle:"Uncle", aunt:"Aunt", cousin:"Cousin",
+    grandson:"Grandson", granddaughter:"Granddaughter", husband:"Husband", wife:"Wife", grandparents:"Grandparents"
+  };
+  const inviterRelationMap = { direct:"Directly related to me", spouse:"Related to my spouse" };
+  const inviterStatusMap  = { citizen:"Citizen", pr:"Permanent Resident", work:"Work Visa Holder", student:"Student Visa Holder" };
+  const fundingMap = { self:"Self-funded", inviter:"My inviter will fund", sponsor:"Sponsor / Third party will pay" };
+  const sponsorMap = {
+    parent:"Parent (Father / Mother)", spouse:"Spouse (Husband / Wife)", sibling:"Sibling (Brother / Sister)",
+    extended:"Extended Relative (Uncle, Aunt, Cousin)", employer:"Current Employer", event:"Event Organizers"
+  };
+  const fundsRangeMap = { "4-7l":"4–7 Lakh INR", "7-10l":"7–10 Lakh INR", "10-15l":"10–15 Lakh INR", "15-20l":"15–20 Lakh INR", "20l-plus":"20 Lakh+ INR" };
+  const occMapPrimary = {
+    "occ-employed":"Employed (Job)", "occ-freelancer":"Self employed (Freelancer)", "occ-business":"Business Owner",
+    "occ-homemaker":"Homemaker", "occ-pensioner":"Retired with pension", "occ-retired-nopension":"Retired without pension",
+    "occ-student":"Student", "occ-unemployed":"Unemployed", "occ-other":"Other (Please Specify)"
+  };
+  const itrMap = { yes:"Yes", no:"No", notsure:"Not sure", nofile:"I do not file ITR" };
+  const bizTypeMap = { sole:"Sole Proprietorship", partnership:"Partnership", pvtltd:"Public/Private/LLP", pvtllp:"Public/Private/LLP" };
+  const assetMap = {
+    "asset-house":"House", "asset-shop":"Shop", "asset-office":"Office", "asset-building":"Building",
+    "asset-flat":"Apartment", "asset-factory":"Factory", "asset-shed":"Shed", "asset-warehouse":"Warehouse",
+    "asset-plot":"Plot", "asset-land":"Land", "asset-none":"None", "asset-other":"Other"
+  };
+  const investMap = {
+    "inv-stocks":"Stock Market", "inv-bank":"Bank Savings", "inv-fd":"FD (Fixed Deposits)", "inv-mf":"Mutual Funds",
+    "inv-ppf":"PPF", "inv-epf":"EPF", "inv-bonds":"Bonds", "inv-gold":"Gold",
+    "inv-postal":"Postal Certificate/Savings", "inv-none":"None", "inv-other":"Other"
+  };
+  const tiesMap = {
+    "housing":"Position in Housing Society (Chairman/Secretary)",
+    "social":"Holding position in social community (Samaj, Group etc.)",
+    "bizassoc":"Holding position in business or trade association",
+    "coop":"Holding position in Credit or Co-operative Society",
+    "vol":"Voluntary position in Hospital, Educational Institute, NGO",
+    "religious":"Holding position in religious group, trust or temple",
+    "service":"Holding position in service club (Lions Club, Jaycees, Rotary etc.)",
+    "member":"Active membership in any of the above",
+    "none":"I don't have any position or membership"
+  };
+
+  const mapKeys = (keys, map) => (Array.isArray(keys) ? keys : []).map(k => map[k]).filter(Boolean).join(", ");
+  const mapMultiAnswers = (m, map) => Object.entries(map).filter(([k]) => Boolean((m || {})[k])).map(([,v]) => v).join(", ");
+  const yn = v => v === "yes" ? "Yes" : v === "no" ? "No" : "";
+
+  // Derived values
+  const purposeKeys    = Array.isArray(q.purpose) ? q.purpose : [];
+  const hasFamilyPurp  = purposeKeys.includes("family");
+  const hasInviterPurp = purposeKeys.some(p => ["family","friend","family-func","convocation","business"].includes(p));
+  const fundingKeys    = Array.isArray(fin.funding) ? fin.funding : (fin.funding ? [fin.funding] : []);
+  const hasSponsor     = fundingKeys.includes("sponsor");
+  const isBusinessOwner = Boolean(tFinM["occ-business"]);
+  const needsItr       = ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(tFinM[k]));
+  const countries      = (q.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean).join(", ");
+
+  // Travel dates
+  const travelDatesObj = q.travelDates || {};
+  const allEntries = Object.values(travelDatesObj).filter(d => d && d.entry);
+  const firstEntry = allEntries[0]?.entry || "";
+  const lastExit   = allEntries[allEntries.length - 1]?.exit || "";
+  const travelDates = firstEntry && lastExit ? `${firstEntry} → ${lastExit}`
+                    : firstEntry ? firstEntry : "";
+
+  // ── Shared section/row helpers ──────────────────────────────────────────
+  const row = (question, answer) => {
+    if (!answer) return "";
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:3px">${escapeHtml(question)}</div>
+      <div style="font-size:14px;color:var(--navy)">${escapeHtml(String(answer))}</div>
+    </div>`;
+  };
+  const section = (icon, title, color, rows) => {
+    const body = Array.isArray(rows) ? rows.join("") : rows;
+    if (!body) return "";
+    return `<div style="border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:14px">
+      <div style="background:${color};padding:8px 14px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${icon}</span>
+        <span style="font-weight:700;font-size:13px;color:var(--navy)">${escapeHtml(title)}</span>
+      </div>
+      <div style="padding:0 14px">${body}</div>
+    </div>`;
+  };
+
+  // Companion count
+  const companions = unit.travellers.filter(t => t.id !== primary.id);
+  const companionNames = companions.map(t => `${t.firstName || ""} ${t.lastName || ""}`.trim()).filter(Boolean);
+
+  const s1 = section("✈️", "Trip Details", "#f0fdf4", [
+    row("Applying for (country / visa)", countries),
+    row("Purpose of visit", mapKeys(purposeKeys, purposeMap)),
+    row("Exact purpose / description", purposeKeys.includes("other") ? (q.purposeOther || "") : ""),
+    row("Pre-planned itinerary?", q.arrangements === "yes" ? "Yes" : q.arrangements === "no" ? "No" : ""),
+    row("Approximate travel dates", travelDates),
+    row("Marital status", maritalStatusMap[q.maritalStatus] || ""),
+    row("Travelling with", companionNames.length ? companionNames.join(", ") : ""),
+  ]);
+
+  const s2 = section("👤", "Inviter / Host Details", "#eff6ff", [
+    row("Who is inviting you?", hasFamilyPurp ? mapKeys(q.inviter, inviterMap) : ""),
+    row("Inviter related via", hasFamilyPurp ? (inviterRelationMap[q.inviterRelation] || "") : ""),
+    row("Type of function / event", purposeKeys.includes("family-func") ? (functionTypeMap[q.functionType] || "") : ""),
+    row("Inviter's immigration status", hasInviterPurp ? (inviterStatusMap[q.inviterStatus] || "") : ""),
+    row("Invitation letter available?", hasInviterPurp ? yn(q.invitationLetter) : ""),
+  ]);
+
+  const s3 = section("💰", "Finances", "#fefce8", [
+    row("How will you fund the trip?", mapKeys(fundingKeys, fundingMap)),
+    row("Financial sponsor", hasSponsor ? (sponsorMap[fin.sponsorType] || "") : ""),
+    row("Liquid funds available", fundsRangeMap[fin.fundsRange] || ""),
+  ]);
+
+  const s4 = section("💼", "Occupation & Assets", "#faf5ff", [
+    row("Current occupation", mapMultiAnswers(tFinM, occMapPrimary)),
+    row("ITRs reflect occupation?", needsItr ? (itrMap[fin.itr] || "") : ""),
+    row("Business type", isBusinessOwner ? (bizTypeMap[fin.bizType] || "") : ""),
+    row("Immovable property owned in India", mapMultiAnswers(tFinM, assetMap)),
+    row("Liquid investments held", mapMultiAnswers(tFinM, investMap)),
+    row("Social / community ties", mapMultiAnswers(tTiesM, tiesMap)),
+  ]);
+
+  const s5 = section("🌍", "Travel History & Background", "#fff1f2", [
+    row("Visited other countries before?", yn(hist.prevTravel)),
+    row("Valid US visa?", yn(hist.usaVisa)),
+    row("Previous visa refusals?", yn(hist.refusal)),
+    row("Refusal details", hist.refusal === "yes" ? (hist.refusalDetail || "") : ""),
+    row("Entry or deportation refusal?", yn(hist.border)),
+    row("Border / entry details", hist.border === "yes" ? (hist.borderDetail || "") : ""),
+    row("Criminal record?", yn(hist.criminalRecord)),
+    row("Criminal record details", hist.criminalRecord === "yes" ? (hist.criminalDetail || "") : ""),
+  ]);
+
+  // Per-unit companion travellers (spouse, children)
+  const companionBlocks = unit.travellers.filter(t => t.id !== primary.id).map(t => {
+    const tF = (q.finance || {})[t.id] || {};
+    const tH = (q.history || {})[t.id] || {};
+    const tFM = tF.multiAnswers || {};
+    const isChild = isAdultTraveller(t) === false || t.type === "Child";
+    const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim() || t.type;
+    const rows = isChild
+      ? [
+          row("Occupation / schooling", mapMultiAnswers(tFM, {"preschool":"Preschool","school":"School Student","college":"College Student","infant":"Not Enrolled (Infant)"})),
+          row("Visited other countries?", yn(tH.prevTravel)),
+          row("Previous refusals?", yn(tH.refusal)),
+          row("Entry refusal?", yn(tH.border)),
+          row("Criminal record?", yn(tH.criminalRecord)),
+        ]
+      : [
+          row("Occupation", mapMultiAnswers(tFM, occMapPrimary)),
+          row("ITRs reflect occupation?", ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => tFM[k]) ? (itrMap[tF.itr] || "") : ""),
+          row("Visited other countries?", yn(tH.prevTravel)),
+          row("Previous refusals?", yn(tH.refusal)),
+          row("Entry refusal?", yn(tH.border)),
+          row("Criminal record?", yn(tH.criminalRecord)),
+        ];
+    const body = rows.join("");
+    if (!body) return "";
+    return `<div style="border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:14px">
+      <div style="background:#f8fafc;padding:8px 14px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">👥</span>
+        <span style="font-weight:700;font-size:13px;color:var(--navy)">${escapeHtml(tName)} — ${escapeHtml(t.type || "Companion")}</span>
+      </div>
+      <div style="padding:0 14px">${body}</div>
+    </div>`;
+  }).join("");
+
+  const body = s1 + s2 + s3 + s4 + s5 + companionBlocks;
+  if (!body) return null;
+  return `<div style="padding-bottom:4px">${body}</div>`;
 }
 
 function buildAnswersHtmlFromRecord(r, unitName) {
