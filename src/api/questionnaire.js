@@ -621,40 +621,74 @@ async function checkExternalQuestionnaireSubmission(dealId) {
 }
 
 // ── fetchQCreatorRecord ────────────────────────────────────────────────────
-// Fetches the most-recent Visitor_Visa_Questionnaire_Sales1 record for a
-// given deal + unit (familyId/id). Returns the raw Creator record object or null.
+// Fetches all questionnaire records for the deal, then returns the best match
+// for the given unit key (familyId/id). Falls back to name matching so external
+// pre-fill submissions (which may have a different Family_Group value) are found.
 async function fetchQCreatorRecord(dealId, unitKey) {
-  if (!dealId || !unitKey) return null;
+  if (!dealId) return null;
   const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
+  let allRecords = [];
 
-  const tryInvokeUrl = async () => {
-    if (!window.ZOHO?.CREATOR?.API?.invokeUrl) return null;
-    const criteria = encodeURIComponent(`CRM_ID == "${dealId}" && Family_Group == "${unitKey}"`);
-    const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}&sort_by=Added_Time&sort_order=desc&page=1&page_size=1`;
-    const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+  const parseBody = (res) => {
     const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
-    return Array.isArray(body?.data) ? (body.data[0] || null) : null;
+    return Array.isArray(body?.data) ? body.data : [];
   };
 
   try {
-    // Try SDK v2 first
     if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
       const res = await ZOHO.CREATOR.DATA.getRecords({
         app_name: CONFIG.creator.appLinkName,
         report_name: reportName,
-        criteria: `CRM_ID == "${dealId}" && Family_Group == "${unitKey}"`,
+        criteria: `CRM_ID == "${dealId}"`,
         sort_by: "Added_Time",
         sort_order: "desc",
         page: 1,
-        page_size: 1
+        page_size: 50
       });
-      if (Number(res?.code) === 3000 && Array.isArray(res?.data) && res.data.length) return res.data[0];
+      if (Number(res?.code) === 3000) allRecords = parseBody(res);
     }
-    return await tryInvokeUrl();
+
+    if (!allRecords.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(`CRM_ID == "${dealId}"`)}&sort_by=Added_Time&sort_order=desc&page=1&page_size=50`;
+      const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+      allRecords = parseBody(res);
+    }
   } catch (err) {
     console.warn("[Winny] fetchQCreatorRecord: Creator query failed:", err);
-    try { return await tryInvokeUrl(); } catch (_) { return null; }
   }
+
+  if (!allRecords.length) return null;
+
+  // 1. Exact Family_Group match
+  const exactMatch = allRecords.find(r => String(r.Family_Group || "").trim() === unitKey);
+  if (exactMatch) return exactMatch;
+
+  // 2. Name match — look up the traveller for this unit and match by Client_Name
+  if (unitKey) {
+    const traveller = (applicationData.deal.travellers || []).find(
+      t => (t.id || t.familyId || "family-1") === unitKey
+    );
+    if (traveller) {
+      const tFirst = (traveller.firstName || "").trim().toLowerCase();
+      const tLast  = (traveller.lastName  || "").trim().toLowerCase();
+      const nameMatch = allRecords.find(r => {
+        const rName = String(r.Client_Name || "").trim().toLowerCase();
+        return rName && tFirst && (rName.includes(tFirst) || (tLast && rName.includes(tLast)));
+      });
+      if (nameMatch) return nameMatch;
+    }
+  }
+
+  // 3. Single record — return it regardless
+  if (allRecords.length === 1) return allRecords[0];
+
+  // 4. For "family-1" default units, return the record with empty/missing Family_Group
+  if (!unitKey || unitKey === "family-1") {
+    const noGroup = allRecords.find(r => !String(r.Family_Group || "").trim());
+    if (noGroup) return noGroup;
+  }
+
+  return null;
 }
 
 export { submitQuestionnaire, saveQuestionnaire, checkExternalQuestionnaireSubmission, fetchQCreatorRecord };

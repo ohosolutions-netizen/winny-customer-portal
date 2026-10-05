@@ -611,102 +611,98 @@ export async function qViewAnswers(familyId) {
     ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || familyId
     : familyId;
 
-  // Prefer Snapshot_Payload (portal-submitted records have full JSON there)
-  let html = "";
-  const snapshot = record.Snapshot_Payload || record.snapshot_payload || "";
-  if (snapshot) {
-    try {
-      const snap = typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot;
-      html = buildAnswersHtmlFromSnapshot(snap, unitName);
-    } catch (_) {}
-  }
-
-  if (!html) {
-    // External submission — render from Creator native field values
-    html = buildAnswersHtmlFromRecord(record, unitName);
-  }
-
-  openModal(`Questionnaire — ${escapeHtml(unitName)}`, html);
-}
-
-function buildAnswersHtmlFromSnapshot(snap, unitName) {
-  const rows = [];
-  const add = (label, val) => {
-    if (!val && val !== 0) return;
-    const v = Array.isArray(val) ? val.join(", ") : String(val);
-    if (!v.trim()) return;
-    rows.push(`<tr><td style="padding:6px 10px 6px 0;color:var(--muted);font-size:13px;vertical-align:top;white-space:nowrap">${escapeHtml(label)}</td><td style="padding:6px 0;font-size:13px">${escapeHtml(v)}</td></tr>`);
-  };
-  const common = snap.common || {};
-  const personal = snap.personal || {};
-  add("Purpose of visit", common.purposeOfVisit);
-  add("Exact purpose", common.exactPurpose);
-  add("Specific itinerary?", common.hasItinerary);
-  add("Who is inviting?", common.whoInviting);
-  add("Function type", common.functionType);
-  add("Inviter status", common.inviterStatus);
-  add("Invitation letter?", common.hasInvitationLetter);
-  add("Travel dates", common.travelDateFrom && common.travelDateTo ? `${common.travelDateFrom} – ${common.travelDateTo}` : (common.travelDateFrom || common.travelDateTo));
-  add("Travel companions", common.travelCompanions);
-  add("Funding", Array.isArray(common.funding) ? common.funding : personal.funding);
-  add("Liquid funds", common.liquidFunds || personal.liquidFunds);
-  add("Financial sponsor", common.sponsor || personal.sponsor);
-  add("Occupation", personal.occupation);
-  add("ITRs match occupation?", personal.itrMatch);
-  add("Business type", personal.businessType);
-  add("Property owned", personal.property);
-  add("Liquid investments", personal.investments);
-  add("Social/community ties", personal.socialTies);
-  add("Visited other countries?", personal.travelHistory);
-  add("Valid US visa?", personal.usVisa);
-  add("Previous refusals?", personal.refusals);
-  add("Refusal details", personal.refusalDetails);
-  add("Entry refusal?", personal.entryRefusal);
-  add("Criminal record?", personal.criminalRecord);
-  add("Criminal details", personal.criminalDetails);
-  add("Marital status", personal.maritalStatus);
-  if (!rows.length) return `<p style="color:var(--muted);margin:0">No details found in the snapshot.</p>`;
-  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${rows.join("")}</table></div>`;
+  openModal(`Questionnaire — ${escapeHtml(unitName)}`, buildAnswersHtmlFromRecord(record, unitName));
 }
 
 function buildAnswersHtmlFromRecord(r, unitName) {
-  const rows = [];
-  const add = (label, fieldVal) => {
-    if (!fieldVal && fieldVal !== 0) return;
-    const raw = Array.isArray(fieldVal) ? fieldVal : (typeof fieldVal === "object" ? Object.values(fieldVal) : [fieldVal]);
-    const v = raw.filter(Boolean).join(", ");
-    if (!v.trim()) return;
-    rows.push(`<tr><td style="padding:6px 10px 6px 0;color:var(--muted);font-size:13px;vertical-align:top;white-space:nowrap">${escapeHtml(label)}</td><td style="padding:6px 0;font-size:13px">${escapeHtml(v)}</td></tr>`);
+  // Helper: normalise Creator field value → display string (skip empty)
+  const val = (fieldVal) => {
+    if (fieldVal === null || fieldVal === undefined || fieldVal === "") return "";
+    if (Array.isArray(fieldVal)) return fieldVal.filter(Boolean).join(", ");
+    if (typeof fieldVal === "object") return Object.values(fieldVal).filter(Boolean).join(", ");
+    return String(fieldVal).trim();
   };
-  add("Purpose of visit", r.What_is_the_purpose_of_your_visit);
-  add("Exact purpose", r.Please_describe_your_exact_purpose_of_visit);
-  add("Specific itinerary?", r.Do_you_have_specific_travel_plans_or_a_pre_planned_itinerary);
-  add("Who is inviting?", r.Who_is_inviting_you);
-  add("Function type", r.Please_indicate_the_type_of_function_you_will_attend);
-  add("Inviter status", r.What_is_the_inviter_s_immigration_status);
-  add("Invitation letter?", r.Do_you_have_or_will_you_have_invitation_letter_for_your_visit);
-  add("Travel start", r.Approx_Travel_Start_Date);
-  add("Travel end", r.Approx_Travel_End_Date);
-  add("Travel companions", r.Total_number_of_people_traveling_with_you);
-  add("Marital status", r.Marital_Status);
-  add("Funding", r.How_will_you_be_funding_your_trip);
-  add("Liquid funds", r.How_much_liquid_funds_available_to_you_to_support_your_trip);
-  add("Financial sponsor", r.Who_is_the_Financial_Sponsor);
-  add("Occupation", r.What_is_your_current_occupation);
-  add("ITRs match occupation?", r.Do_your_ITRs_from_the_last_two_years_reflect_your_current_occupation);
-  add("Business type", r.What_type_of_business_do_you_own);
-  add("Property owned", r.Please_select_the_types_of_immovable_property_you_own_in_India);
-  add("Liquid investments", r.Please_select_what_kind_of_liquid_investment_you_hold);
-  add("Social/community ties", r.Business_Data);
-  add("Visited other countries?", r.Own_Travel_History);
-  add("Valid US visa?", r.Do_you_currently_hold_valid_USA_Visa);
-  add("Previous refusals?", r.Do_you_have_any_previous_visa_refusals);
-  add("Refusal details", r.Provide_details_in_Refused_data);
-  add("Entry refusal?", r.Own_Entry_Refusal);
-  add("Criminal record?", r.Own_Criminal_Record);
-  add("Criminal details", r.Provide_details_in_Criminal_Record);
-  if (!rows.length) return `<p style="color:var(--muted);margin:0">No answers found in this record.</p>`;
-  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${rows.join("")}</table></div>`;
+
+  // Build one Q&A row
+  const row = (question, fieldVal, { highlight } = {}) => {
+    const v = val(fieldVal);
+    if (!v) return "";
+    const ansColor = highlight ? "color:var(--teal);font-weight:600" : "color:var(--navy)";
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:3px">${escapeHtml(question)}</div>
+      <div style="font-size:14px;${ansColor}">${escapeHtml(v)}</div>
+    </div>`;
+  };
+
+  // Build a section card
+  const section = (icon, title, color, rows) => {
+    const body = rows.join("");
+    if (!body) return "";
+    return `<div style="border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:14px">
+      <div style="background:${color};padding:8px 14px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${icon}</span>
+        <span style="font-weight:700;font-size:13px;color:var(--navy)">${escapeHtml(title)}</span>
+      </div>
+      <div style="padding:0 14px">${body}</div>
+    </div>`;
+  };
+
+  const countries = val(r.Applying_for_Country1) || val(r.Applying_for_Country);
+  const travelStart = val(r.Approx_Travel_Start_Date) || val(r.When_do_you_intend_to_travel) || val(r.What_is_your_intended_travel_date);
+  const travelEnd   = val(r.Approx_Travel_End_Date);
+  const travelDates = travelStart && travelEnd ? `${travelStart} – ${travelEnd}` : travelStart || travelEnd;
+
+  const s1 = section("✈️", "Trip Details", "#f0fdf4", [
+    row("Applying for (country / visa)", countries),
+    row("Purpose of visit", r.What_is_the_purpose_of_your_visit),
+    row("Exact purpose / description", r.Please_describe_your_exact_purpose_of_visit),
+    row("Pre-planned itinerary?", r.Do_you_have_specific_travel_plans_or_a_pre_planned_itinerary),
+    row("Approximate travel dates", travelDates),
+    row("Travelling companions", r.Total_number_of_people_traveling_with_you),
+    row("Marital status", r.Marital_Status),
+  ]);
+
+  const s2 = section("👤", "Inviter / Host Details", "#eff6ff", [
+    row("Who is inviting you?", r.Who_is_inviting_you),
+    row("Inviter related to you via", r.Is_the_inviter_related_to_you_directly_or_through_your_spouse),
+    row("Type of function / event", r.Please_indicate_the_type_of_function_you_will_attend),
+    row("Inviter's immigration status", r.What_is_the_inviter_s_immigration_status),
+    row("Invitation letter available?", r.Do_you_have_or_will_you_have_invitation_letter_for_your_visit),
+  ]);
+
+  const s3 = section("💰", "Finances", "#fefce8", [
+    row("How will you fund the trip?", r.How_will_you_be_funding_your_trip),
+    row("Financial sponsor", r.Who_is_the_Financial_Sponsor),
+    row("Liquid funds available", r.How_much_liquid_funds_available_to_you_to_support_your_trip),
+  ]);
+
+  const occupation = val(r.What_is_your_current_occupation) || val(r.Please_select_employment_source_of_income_of_your_spouse);
+  const itr = val(r.Do_your_ITRs_from_the_last_two_years_reflect_your_current_occupation) || val(r.Do_your_spouse_s_ITRs_from_the_last_two_years_reflect_their_occupation);
+  const s4 = section("💼", "Occupation & Assets", "#faf5ff", [
+    row("Current occupation", occupation),
+    row("Other occupation detail", r.Please_provide_more_information_about_selection || r.Please_describe_your_spouse_s_other_source_of_income_employment_which_is_not_listed_above),
+    row("ITRs reflect occupation?", itr),
+    row("Type of business owned", r.What_type_of_business_do_you_own || r.Please_select_your_spouse_s_ownership_type_in_business),
+    row("Immovable property owned in India", r.Please_select_the_types_of_immovable_property_you_own_in_India),
+    row("Other assets", r.Please_provide_which_type_of_other_assets_do_you_own),
+    row("Liquid investments held", r.Please_select_what_kind_of_liquid_investment_you_hold),
+    row("Other investments", r.Please_provide_which_type_of_other_investments_do_you_have),
+    row("Social / community ties", r.Business_Data),
+  ]);
+
+  const s5 = section("🌍", "Travel History & Background", "#fff1f2", [
+    row("Visited other countries before?", r.Own_Travel_History),
+    row("Valid US visa?", r.Do_you_currently_hold_valid_USA_Visa),
+    row("Previous visa refusals?", r.Do_you_have_any_previous_visa_refusals),
+    row("Refusal / border details", r.Provide_details_in_Refused_data),
+    row("Entry or deportation refusal?", r.Own_Entry_Refusal),
+    row("Criminal record?", r.Own_Criminal_Record),
+    row("Criminal record details", r.Provide_details_in_Criminal_Record),
+  ]);
+
+  const body = s1 + s2 + s3 + s4 + s5;
+  if (!body) return `<p style="color:var(--muted);margin:0">No answers found in this record.</p>`;
+  return `<div style="padding-bottom:4px">${body}</div>`;
 }
 
 // ── Send-link helpers ──────────────────────────────────────────────────────
