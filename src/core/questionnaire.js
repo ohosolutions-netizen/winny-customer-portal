@@ -580,7 +580,7 @@ export async function qSendLinkToTraveller(familyId) {
 // ── qViewAnswers ───────────────────────────────────────────────────────────
 // Fetches the submitted questionnaire record for the unit and shows it in a modal.
 export async function qViewAnswers(familyId) {
-  const dealId = applicationData.deal?.crmId || applicationData.deal?.id || "";
+  const dealId = applicationData.deal?.crmDealId || applicationData.deal?.crmId || "";
   if (!dealId) { toast("Could not find deal ID.", "error"); return; }
 
   showLoader("Loading answers…");
