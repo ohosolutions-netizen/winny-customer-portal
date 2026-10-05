@@ -601,11 +601,13 @@ export function qBuildLink(token, traveller) {
   };
   const dateFrom = fmtDate(applicationData.deal?.travelDateFrom || "");
   const dateTo   = fmtDate(applicationData.deal?.travelDateTo   || "");
+  const familyGroup = traveller?.familyId || "";
   const params = new URLSearchParams({
     Q_Token: token,
     CRM_ID: crmId,
     Client_Name: clientName,
     Traveller_Type: travellerType,
+    ...(familyGroup ? { Family_Group: familyGroup } : {}),
     ...(dateFrom ? { Approx_Travel_Start_Date: dateFrom } : {}),
     ...(dateTo   ? { Approx_Travel_End_Date:   dateTo   } : {}),
   });

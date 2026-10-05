@@ -26,6 +26,7 @@ import {
   saveDraft, getDraftIndexKey, draftsToApplicationCards, loadApplicationDraftIndex,
   loadHiddenApplicationKeys, saveHiddenApplicationKeys
 } from "../core/drafts.js";
+import { checkExternalQuestionnaireSubmission } from "./questionnaire.js";
 
     // ── submit + poll (Portal_CRM_Request bridge) ──
     async function submitPortalCrmRequest(requestType, requestContext = {}) {
@@ -317,6 +318,12 @@ const contact = await findContactByEmail(loggedInEmail);
                 if (String(applicationData.deal.crmDealId || "").trim() !== targetDeal) return;
                 if (details) {
                   hydrateApplicationDetails(details);
+                  // If traveller submitted via external link, detect and mark as completed
+                  if (!applicationData.stepStatus.questionnaireCompleted && applicationData.deal.crmDealId) {
+                    checkExternalQuestionnaireSubmission(applicationData.deal.crmDealId)
+                      .then(changed => { if (changed) requestRender(); })
+                      .catch(err => console.warn("[Winny] External questionnaire check failed:", err));
+                  }
                   // If no travellers were in CRM, seed a primary applicant from the contact
                   if (!(applicationData.deal.travellers || []).length && applicationData.customer.email) {
                     applicationData.deal.travellers = [{
@@ -921,6 +928,12 @@ if (
 
 if (applicationDetails) {
   hydrateApplicationDetails(applicationDetails);
+  // Detect external questionnaire submissions (traveller used pre-fill link directly)
+  if (!applicationData.stepStatus.questionnaireCompleted && applicationData.deal.crmDealId) {
+    checkExternalQuestionnaireSubmission(applicationData.deal.crmDealId)
+      .then(changed => { if (changed) requestRender(); })
+      .catch(err => console.warn("[Winny] External questionnaire check failed:", err));
+  }
 } else if (deal) {
   hydrateDealFromCrm(deal);
 } else {

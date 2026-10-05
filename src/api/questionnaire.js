@@ -504,4 +504,102 @@ async function submitQuestionnaire(familyId = "family-1") {
   }
 }
 
-export { submitQuestionnaire, saveQuestionnaire };
+// ── checkExternalQuestionnaireSubmission ──────────────────────────────────
+// Queries Creator directly for questionnaire records submitted via the
+// external pre-fill link (bypassing the portal's submitQuestionnaire flow).
+// Returns true if it changed applicationData (caller should requestRender).
+async function checkExternalQuestionnaireSubmission(dealId) {
+  if (applicationData.stepStatus.questionnaireCompleted) return false;
+  if (!dealId) return false;
+
+  // Visitor_Visa_Questionnaire_Sales_Report1 is the report that includes both portal and
+  // external (pre-fill link) submissions. The _Report variant only shows portal records.
+  const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
+  let records = [];
+
+  try {
+    if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+      const res = await ZOHO.CREATOR.DATA.getRecords({
+        app_name: CONFIG.creator.appLinkName,
+        report_name: reportName,
+        criteria: `(CRM_ID == "${dealId}")`
+      });
+      if (Number(res?.code) === 3000 && Array.isArray(res?.data)) {
+        records = res.data;
+      }
+    } else if (window.ZOHO?.CREATOR?.API?.getAllRecords) {
+      const res = await ZOHO.CREATOR.API.getAllRecords({
+        accountOwnerName: CONFIG.creator.appOwner,
+        appLinkName: CONFIG.creator.appLinkName,
+        reportLinkName: reportName,
+        criteria: `(CRM_ID == "${dealId}")`
+      });
+      if (Array.isArray(res?.data)) records = res.data;
+    }
+  } catch (err) {
+    console.warn("[Winny] checkExternalQuestionnaireSubmission: Creator query failed:", err);
+    return false;
+  }
+
+  if (!records.length) return false;
+  console.log(`[Winny] Found ${records.length} external questionnaire record(s) for deal ${dealId}`);
+
+  if (!applicationData.questionnaire.submittedUnits) {
+    applicationData.questionnaire.submittedUnits = {};
+  }
+
+  const allUnits = deriveQuestionnaireUnits();
+
+  let changed = false;
+  const seenGroups = new Set();
+  records.forEach(r => {
+    let fg = String(r.Family_Group || r.family_group || "").trim();
+
+    if (!fg) {
+      // Family_Group missing (pre-fill link didn't include it). Try to match by Client_Name
+      // (external submissions use the traveller's own name as Client_Name).
+      const recordName = String(r.Client_Name || "").trim().toLowerCase();
+      if (recordName) {
+        const matched = (applicationData.deal.travellers || []).find(t => {
+          const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+          return tName && tName === recordName;
+        });
+        if (matched?.familyId) fg = matched.familyId;
+      }
+      // Final fallback: assign to the first unsubmitted unit
+      if (!fg) {
+        const firstOpen = allUnits.find(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
+        fg = firstOpen?.familyId || "family-1";
+      }
+    }
+
+    seenGroups.add(fg);
+    if (!applicationData.questionnaire.submittedUnits[fg]) {
+      applicationData.questionnaire.submittedUnits[fg] = true;
+      if (qState.unitCompletions) qState.unitCompletions[fg] = true;
+      changed = true;
+    }
+  });
+
+  if (changed || !applicationData.stepStatus.anyQuestionnaireSubmitted) {
+    applicationData.stepStatus.anyQuestionnaireSubmitted = true;
+    changed = true;
+  }
+
+  const allDone = allUnits.length === 0 ||
+    allUnits.every(u => applicationData.questionnaire.submittedUnits[u.familyId]);
+
+  if (allDone && !applicationData.stepStatus.questionnaireCompleted) {
+    applicationData.stepStatus.questionnaireCompleted = true;
+    const firstWithId = records.find(r => r.ID);
+    if (firstWithId && !applicationData.questionnaire.creatorRecordId) {
+      applicationData.questionnaire.creatorRecordId = String(firstWithId.ID);
+    }
+    changed = true;
+  }
+
+  if (changed) saveDraft(false);
+  return changed;
+}
+
+export { submitQuestionnaire, saveQuestionnaire, checkExternalQuestionnaireSubmission };
