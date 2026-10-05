@@ -624,9 +624,12 @@ async function checkExternalQuestionnaireSubmission(dealId) {
 // Fetches all questionnaire records for the deal, then returns the best match
 // for the given unit key (familyId/id). Falls back to name matching so external
 // pre-fill submissions (which may have a different Family_Group value) are found.
+// After finding the right record, fetches it again by ID against the form (not
+// the report) so ALL form fields are returned, not just the report's columns.
 async function fetchQCreatorRecord(dealId, unitKey) {
   if (!dealId) return null;
   const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
+  const formName   = CONFIG.creator.formLinkNames.questionnaire;
   let allRecords = [];
 
   try {
@@ -657,36 +660,84 @@ async function fetchQCreatorRecord(dealId, unitKey) {
 
   if (!allRecords.length) return null;
 
+  // Find best-matching record (report gives us the ID; then we re-fetch by ID for full fields)
+  let matched = null;
+
   // 1. Exact Family_Group match
-  const exactMatch = allRecords.find(r => String(r.Family_Group || "").trim() === unitKey);
-  if (exactMatch) return exactMatch;
+  matched = allRecords.find(r => String(r.Family_Group || "").trim() === unitKey) || null;
 
   // 2. Name match — look up the traveller for this unit and match by Client_Name
-  if (unitKey) {
+  if (!matched && unitKey) {
     const traveller = (applicationData.deal.travellers || []).find(
       t => (t.id || t.familyId || "family-1") === unitKey
     );
     if (traveller) {
       const tFirst = (traveller.firstName || "").trim().toLowerCase();
       const tLast  = (traveller.lastName  || "").trim().toLowerCase();
-      const nameMatch = allRecords.find(r => {
+      matched = allRecords.find(r => {
         const rName = String(r.Client_Name || "").trim().toLowerCase();
         return rName && tFirst && (rName.includes(tFirst) || (tLast && rName.includes(tLast)));
-      });
-      if (nameMatch) return nameMatch;
+      }) || null;
     }
   }
 
-  // 3. Single record — return it regardless
-  if (allRecords.length === 1) return allRecords[0];
+  // 3. Single record — use it regardless
+  if (!matched && allRecords.length === 1) matched = allRecords[0];
 
-  // 4. For "family-1" default units, return the record with empty/missing Family_Group
-  if (!unitKey || unitKey === "family-1") {
-    const noGroup = allRecords.find(r => !String(r.Family_Group || "").trim());
-    if (noGroup) return noGroup;
+  // 4. For "family-1" default units, use the record with empty/missing Family_Group
+  if (!matched && (!unitKey || unitKey === "family-1")) {
+    matched = allRecords.find(r => !String(r.Family_Group || "").trim()) || null;
   }
 
-  return null;
+  if (!matched) return null;
+
+  // Re-fetch by record ID against the FORM (not the report) to get ALL form fields.
+  // A report only exposes columns added to its view; getRecordById returns everything.
+  const recordId = String(matched.ID || matched.id || "").trim();
+  if (!recordId) return matched; // no ID — fall back to the sparse report record
+
+  try {
+    if (window.ZOHO?.CREATOR?.DATA?.getRecordById) {
+      const res = await ZOHO.CREATOR.DATA.getRecordById({
+        app_name: CONFIG.creator.appLinkName,
+        form_name: formName,
+        id: recordId
+      });
+      if (Number(res?.code) === 3000 && res?.data && typeof res.data === "object") {
+        console.log("[Winny] fetchQCreatorRecord: full record fetched by ID", recordId);
+        return res.data;
+      }
+    }
+
+    if (window.ZOHO?.CREATOR?.API?.getRecordById) {
+      const res = await ZOHO.CREATOR.API.getRecordById({
+        accountOwnerName: CONFIG.creator.appOwner,
+        appLinkName: CONFIG.creator.appLinkName,
+        formLinkName: formName,
+        id: recordId
+      });
+      if (Number(res?.code) === 3000 && res?.data && typeof res.data === "object") {
+        console.log("[Winny] fetchQCreatorRecord: full record fetched by ID (v1)", recordId);
+        return res.data;
+      }
+    }
+
+    // invokeUrl fallback: GET /form/{formName}/{recordId}
+    if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/form/${formName}/${recordId}`;
+      const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+      const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+      if (body?.data && typeof body.data === "object" && !Array.isArray(body.data)) {
+        console.log("[Winny] fetchQCreatorRecord: full record fetched via invokeUrl", recordId);
+        return body.data;
+      }
+    }
+  } catch (err) {
+    console.warn("[Winny] fetchQCreatorRecord: getRecordById failed, using report record:", err);
+  }
+
+  // If by-ID fetch failed, return the sparse report record as best effort
+  return matched;
 }
 
 export { submitQuestionnaire, saveQuestionnaire, checkExternalQuestionnaireSubmission, fetchQCreatorRecord };
