@@ -629,12 +629,8 @@ async function fetchQCreatorRecord(dealId, unitKey) {
   const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
   let allRecords = [];
 
-  const parseBody = (res) => {
-    const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
-    return Array.isArray(body?.data) ? body.data : [];
-  };
-
   try {
+    // SDK v2: res = { code: 3000, data: [...records] }
     if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
       const res = await ZOHO.CREATOR.DATA.getRecords({
         app_name: CONFIG.creator.appLinkName,
@@ -645,13 +641,15 @@ async function fetchQCreatorRecord(dealId, unitKey) {
         page: 1,
         page_size: 50
       });
-      if (Number(res?.code) === 3000) allRecords = parseBody(res);
+      if (Number(res?.code) === 3000 && Array.isArray(res?.data)) allRecords = res.data;
     }
 
+    // invokeUrl: res.data is JSON string or { code, data: [...records] }
     if (!allRecords.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
       const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(`CRM_ID == "${dealId}"`)}&sort_by=Added_Time&sort_order=desc&page=1&page_size=50`;
       const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
-      allRecords = parseBody(res);
+      const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+      if (Array.isArray(body?.data)) allRecords = body.data;
     }
   } catch (err) {
     console.warn("[Winny] fetchQCreatorRecord: Creator query failed:", err);
