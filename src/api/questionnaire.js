@@ -691,52 +691,43 @@ async function fetchQCreatorRecord(dealId, unitKey) {
 
   if (!matched) return null;
 
-  // Re-fetch by record ID against the FORM (not the report) to get ALL form fields.
-  // A report only exposes columns added to its view; getRecordById returns everything.
+  // Re-fetch by record ID using GET /report/{reportName}/{id}.
+  // The Creator REST API v2 single-record endpoint returns ALL form fields,
+  // unlike the list endpoint which only returns the report's visible columns.
   const recordId = String(matched.ID || matched.id || "").trim();
-  if (!recordId) return matched; // no ID — fall back to the sparse report record
+  if (!recordId) return matched;
 
   try {
-    if (window.ZOHO?.CREATOR?.DATA?.getRecordById) {
-      const res = await ZOHO.CREATOR.DATA.getRecordById({
-        app_name: CONFIG.creator.appLinkName,
-        form_name: formName,
-        id: recordId
-      });
-      if (Number(res?.code) === 3000 && res?.data && typeof res.data === "object") {
-        console.log("[Winny] fetchQCreatorRecord: full record fetched by ID", recordId);
-        return res.data;
-      }
-    }
-
-    if (window.ZOHO?.CREATOR?.API?.getRecordById) {
-      const res = await ZOHO.CREATOR.API.getRecordById({
-        accountOwnerName: CONFIG.creator.appOwner,
-        appLinkName: CONFIG.creator.appLinkName,
-        formLinkName: formName,
-        id: recordId
-      });
-      if (Number(res?.code) === 3000 && res?.data && typeof res.data === "object") {
-        console.log("[Winny] fetchQCreatorRecord: full record fetched by ID (v1)", recordId);
-        return res.data;
-      }
-    }
-
-    // invokeUrl fallback: GET /form/{formName}/{recordId}
+    // invokeUrl is the proven transport in this widget context
     if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
-      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/form/${formName}/${recordId}`;
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}/${recordId}`;
       const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
       const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
-      if (body?.data && typeof body.data === "object" && !Array.isArray(body.data)) {
-        console.log("[Winny] fetchQCreatorRecord: full record fetched via invokeUrl", recordId);
-        return body.data;
+      const rec = body?.data;
+      if (rec && typeof rec === "object" && !Array.isArray(rec)) {
+        const fieldCount = Object.keys(rec).length;
+        console.log(`[Winny] fetchQCreatorRecord: fetched record ${recordId} with ${fieldCount} fields`);
+        return rec;
+      }
+    }
+
+    // SDK v2 getRecords with an ID criteria as fallback
+    if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+      const res = await ZOHO.CREATOR.DATA.getRecords({
+        app_name: CONFIG.creator.appLinkName,
+        report_name: reportName,
+        criteria: `ID == ${recordId}`,
+        page: 1,
+        page_size: 1
+      });
+      if (Number(res?.code) === 3000 && Array.isArray(res?.data) && res.data[0]) {
+        return res.data[0];
       }
     }
   } catch (err) {
-    console.warn("[Winny] fetchQCreatorRecord: getRecordById failed, using report record:", err);
+    console.warn("[Winny] fetchQCreatorRecord: by-ID fetch failed, using report list record:", err);
   }
 
-  // If by-ID fetch failed, return the sparse report record as best effort
   return matched;
 }
 
