@@ -811,7 +811,11 @@ function buildAnswersHtmlFromQState(unit, unitName) {
 
   const body = s1 + s2 + s3 + s4 + s5 + companionBlocks;
   if (!body) return null;
-  return `<div style="padding-bottom:4px">${body}</div>`;
+  const nameHeader = `<div style="margin-bottom:14px;padding:12px 14px;background:var(--navy);border-radius:var(--radius)">
+    <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-bottom:2px">Traveller</div>
+    <div style="font-size:16px;font-weight:700;color:#fff">${escapeHtml(unitName)}</div>
+  </div>`;
+  return `<div style="padding-bottom:4px">${nameHeader}${body}</div>`;
 }
 
 function buildAnswersHtmlFromRecord(r, unitName) {
@@ -911,7 +915,11 @@ function buildAnswersHtmlFromRecord(r, unitName) {
 
   const body = s1 + s2 + s3 + s4 + s5;
   if (!body) return `<p style="color:var(--muted);margin:0">No answers found in this record.</p>`;
-  return `<div style="padding-bottom:4px">${body}</div>`;
+  const nameHeader = `<div style="margin-bottom:14px;padding:12px 14px;background:var(--navy);border-radius:var(--radius)">
+    <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-bottom:2px">Traveller</div>
+    <div style="font-size:16px;font-weight:700;color:#fff">${escapeHtml(unitName)}</div>
+  </div>`;
+  return `<div style="padding-bottom:4px">${nameHeader}${body}</div>`;
 }
 
 // ── Send-link helpers ──────────────────────────────────────────────────────
