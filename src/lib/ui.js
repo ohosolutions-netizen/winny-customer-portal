@@ -12,6 +12,7 @@ let impl = {
   hideLoader() {},
   toast() {},
   openModal() {},
+  openWideModal() {},
   openConfirmModal() {},
   closeModal() {},
   confirmModalOk() {},
@@ -28,6 +29,7 @@ export function showLoader(text) { impl.showLoader(text); }
 export function hideLoader()     { impl.hideLoader(); }
 export function toast(message)   { impl.toast(message); }
 export function openModal(title, body) { impl.openModal(title, body); }
+export function openWideModal(title, body) { impl.openWideModal(title, body); }
 export function openConfirmModal(title, message, onConfirm) { impl.openConfirmModal(title, message, onConfirm); }
 export function closeModal()     { impl.closeModal(); }
 export function confirmModalOk() { impl.confirmModalOk(); }

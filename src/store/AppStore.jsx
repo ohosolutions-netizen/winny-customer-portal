@@ -58,6 +58,7 @@ export function AppStore({ children }) {
         setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), 3600);
       },
       openModal: (title, body) => setModal({ show: true, title, kind: "text", body: String(body ?? ""), message: "" }),
+      openWideModal: (title, body) => setModal({ show: true, title, kind: "wide", body: String(body ?? ""), message: "" }),
       openConfirmModal: (title, message, onConfirm) => {
         pendingConfirmRef.current = onConfirm;
         state.pendingConfirmCallback = onConfirm;

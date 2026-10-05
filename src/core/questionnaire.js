@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { applicationData, state } from "../store/runtime.js";
 import { escapeHtml, setByPath } from "../lib/utils.js";
-import { markAutoSavePending, toast, openModal, showLoader, hideLoader } from "../lib/ui.js";
+import { markAutoSavePending, toast, openModal, openWideModal, showLoader, hideLoader } from "../lib/ui.js";
 import { saveDraft } from "./drafts.js";
 import { sendQuestionnaireEmail } from "../api/deal.js";
 import { submitQuestionnaire, fetchQCreatorRecord } from "../api/questionnaire.js";
@@ -600,7 +600,7 @@ export async function qViewAnswers(familyId) {
     const unitName = traveller
       ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || familyId
       : familyId;
-    openModal("Questionnaire Answers", `<p style="color:var(--muted);margin:0">No questionnaire record found for <strong>${escapeHtml(unitName)}</strong>.</p>`);
+    openWideModal("Questionnaire Answers", `<p style="color:var(--muted);margin:0">No questionnaire record found for <strong>${escapeHtml(unitName)}</strong>.</p>`);
     return;
   }
 
@@ -611,7 +611,7 @@ export async function qViewAnswers(familyId) {
     ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || familyId
     : familyId;
 
-  openModal(`Questionnaire — ${escapeHtml(unitName)}`, buildAnswersHtmlFromRecord(record, unitName));
+  openWideModal(`Questionnaire — ${escapeHtml(unitName)}`, buildAnswersHtmlFromRecord(record, unitName));
 }
 
 function buildAnswersHtmlFromRecord(r, unitName) {
