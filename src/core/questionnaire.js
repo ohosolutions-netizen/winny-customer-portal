@@ -832,43 +832,6 @@ function buildAnswersHtmlFromRecord(r, unitName) {
     return String(fieldVal).trim();
   };
 
-  // Fields already rendered in sections — used to skip them in catch-all
-  const knownFields = new Set([
-    "Applying_for_Country1","Applying_for_Country","What_is_the_purpose_of_your_visit",
-    "Please_describe_your_exact_purpose_of_visit","Do_you_have_specific_travel_plans_or_a_pre_planned_itinerary",
-    "Approx_Travel_Start_Date","Approx_Travel_End_Date","When_do_you_intend_to_travel",
-    "What_is_your_intended_travel_date","Total_number_of_people_traveling_with_you","Marital_Status",
-    "Who_is_inviting_you","Is_the_inviter_related_to_you_directly_or_through_your_spouse",
-    "Please_indicate_the_type_of_function_you_will_attend","What_is_the_inviter_s_immigration_status",
-    "Do_you_have_or_will_you_have_invitation_letter_for_your_visit",
-    "How_will_you_be_funding_your_trip","Who_is_the_Financial_Sponsor",
-    "How_much_liquid_funds_available_to_you_to_support_your_trip",
-    "What_is_your_current_occupation","Please_provide_more_information_about_selection",
-    "Do_your_ITRs_from_the_last_two_years_reflect_your_current_occupation",
-    "What_type_of_business_do_you_own",
-    "Please_select_employment_source_of_income_of_your_spouse",
-    "Please_select_your_spouse_s_ownership_type_in_business",
-    "Do_your_spouse_s_ITRs_from_the_last_two_years_reflect_their_occupation",
-    "Please_describe_your_spouse_s_other_source_of_income_employment_which_is_not_listed_above",
-    "Please_select_the_types_of_immovable_property_you_own_in_India",
-    "Please_provide_which_type_of_other_assets_do_you_own",
-    "Please_select_what_kind_of_liquid_investment_you_hold",
-    "Please_provide_which_type_of_other_investments_do_you_have",
-    "Business_Data","Own_Travel_History","Do_you_currently_hold_valid_USA_Visa",
-    "Do_you_have_any_previous_visa_refusals","Provide_details_in_Refused_data",
-    "Own_Entry_Refusal","Own_Criminal_Record","Provide_details_in_Criminal_Record",
-    // Meta / system fields — never show
-    "ID","Added_Time","Modified_Time","CRM_ID","Q_Token","Family_Group","Client_Name",
-    "Traveller_Type","Snapshot_Payload","Applying_for_Country","Added_User","Modified_User",
-    "Traveller_1","Traveller_1_Relation","Traveller_2","Traveller_2_Relation",
-    "Traveller_3","Traveller_3_Relation","Traveller_4","Traveller_4_Relation",
-    "Please_provide_which_type_of_other_assets_do_you_own",
-    "Please_provide_which_type_of_other_investments_do_you_have",
-    "Company_Name","GST_Registration_Number","Description",
-    "Please_provide_more_information_about_selection",
-    "Please_select_employment_source_of_income_of_your_spouse",
-  ]);
-
   // Build one Q&A row
   const row = (question, fieldVal, { highlight } = {}) => {
     const v = val(fieldVal);
@@ -946,16 +909,7 @@ function buildAnswersHtmlFromRecord(r, unitName) {
     row("Criminal record details", r.Provide_details_in_Criminal_Record),
   ]);
 
-  // Catch-all: any filled Creator field not already in a section above
-  const extraRows = Object.entries(r)
-    .filter(([k, v]) => !knownFields.has(k) && val(v))
-    .map(([k, v]) => row(k.replace(/_/g, " "), v))
-    .join("");
-  const s6 = extraRows
-    ? section("📋", "Additional Fields", "#f8fafc", [extraRows])
-    : "";
-
-  const body = s1 + s2 + s3 + s4 + s5 + s6;
+  const body = s1 + s2 + s3 + s4 + s5;
   if (!body) return `<p style="color:var(--muted);margin:0">No answers found in this record.</p>`;
   return `<div style="padding-bottom:4px">${body}</div>`;
 }
