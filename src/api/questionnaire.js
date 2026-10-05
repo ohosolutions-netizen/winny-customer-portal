@@ -18,10 +18,11 @@ import {
 
 // ── Choice-value maps (verified against live Visitor_Visa_Questionnaire_Sales1) ──
 const purposeMap = {
-  "family": "To meet Family Members/ Relatives", "family-func": "To attend family function",
-  "tourism": "Tourism", "business": "Business Visit", "friend": "To meet Friend",
-  "convocation": "To attend convocation", "transit": "Transit", "medical": "Medical Treatment",
-  "other": "Other / Just exploring"
+  "family": "To meet Family Member / Relative", "family-func": "To attend family function",
+  "tourism": "Tourism (Self planned itinerary)", "tourism-group": "Tourism (Part of group tour)",
+  "business": "Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)",
+  "friend": "To meet Friend", "convocation": "To attend convocation",
+  "transit": "Transit", "medical": "Medical Treatment", "other": "Other (Please Specify)"
 };
 const functionTypeMap = { wedding:"Wedding", engagement:"Engagement", reception:"Reception", anniversary:"Anniversary", birthday:"Birthday", housewarming:"Housewarming" };
 const maritalStatusMap = { single:"Single(Never Married)", married:"Married", divorced:"Divorced", widowed:"Widowed", separated:"Separated" };

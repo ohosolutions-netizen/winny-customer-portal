@@ -1035,14 +1035,15 @@ if (isChildTraveller) {
               <div class="q-sub">Select all reasons that apply to your trip.</div>
               <div class="q-opts c2">
                 ${qOptMulti("purpose","family","To meet Family Member / Relative","Visiting parents, siblings, children, or other family")}
-                ${qOptMulti("purpose","family-func","To attend a family function","Wedding, birthday, anniversary, or similar celebration")}
-                ${qOptMulti("purpose","tourism","Tourism","Sightseeing, leisure, or vacation travel")}
-                ${qOptMulti("purpose","business","Business Visit","Conference, seminar, meeting, exhibition, or training")}
-                ${qOptMulti("purpose","friend","To meet a Friend","Social visit to a friend")}
-                ${qOptMulti("purpose","convocation","To attend Convocation","Graduation ceremony")}
+                ${qOptMulti("purpose","family-func","To attend family function","Wedding, birthday, anniversary, or similar celebration")}
+                ${qOptMulti("purpose","tourism","Tourism (customized itinerary)","Sightseeing, leisure, or self-planned vacation travel")}
+                ${qOptMulti("purpose","business","Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)","Conference, seminar, meeting, exhibition, or training")}
+                ${qOptMulti("purpose","other","Other (Please Specify)","")}
+                ${qOptMulti("purpose","friend","To meet Friend","Social visit to a friend")}
+                ${qOptMulti("purpose","convocation","To attend convocation","Graduation ceremony")}
+                ${qOptMulti("purpose","tourism-group","Tourism (Group itinerary)","Travelling as part of a pre-arranged group tour")}
                 ${qOptMulti("purpose","transit","Transit","Passing through to reach another destination")}
                 ${qOptMulti("purpose","medical","Medical Treatment","Seeking medical consultation or treatment")}
-                ${qOptMulti("purpose","other","Other / Just exploring","")}
               </div>
               <div class="q-dep ${qPurposeIncludes("other")?"show":""}" id="dep-purpose-other">
                 <div class="q-field-row single"><div class="q-field"><label>Please specify</label>

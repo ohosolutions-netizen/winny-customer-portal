@@ -1323,6 +1323,7 @@ const setIfEmpty = (path, value) => {
 if (selectedPurposes.length === 1) {
   const purposeMap = {
     tourism: "Tourism (including visiting family and friends)",
+    "tourism-group": "Tourism (including visiting family and friends)",
     family: "Tourism (including visiting family and friends)",
     friend: "Tourism (including visiting family and friends)",
     business: "Business (including sports and entertainment)",
@@ -1422,6 +1423,7 @@ const ukPurposeSelections = Array.isArray(q.purpose)
 if (ukPurposeSelections.length === 1) {
   const ukHolidayReasonMap = {
     tourism: "Tourist",
+    "tourism-group": "Tourist",
     family: "Visiting family",
     friend: "Visiting friends"
   };
@@ -1552,7 +1554,8 @@ if (finance) {
     }
 
     const CIF_PURPOSE_LABELS = {
-      family: "Family Visit", "family-func": "Family Function", tourism: "Tourism",
+      family: "Family Visit", "family-func": "Family Function",
+      tourism: "Tourism (customized itinerary)", "tourism-group": "Tourism (Group itinerary)",
       business: "Business Visit", friend: "Visiting a Friend", convocation: "Convocation",
       transit: "Transit", medical: "Medical Treatment", other: "Other"
     };
@@ -1818,9 +1821,9 @@ if (finance) {
       // Purpose mapping per CIF type
       const rawPurpose = Array.isArray(q.purpose) ? q.purpose.filter(Boolean)
         : String(q.purpose || "").split(",").map(s => s.trim()).filter(Boolean);
-      const PURPOSE_USA = { tourism:"Tourism/Vacation", family:"Visit Family/Friends", friend:"Visit Family/Friends", business:"Business", medical:"Medical Treatment", transit:"Transit", "family-func":"Other", convocation:"Other", other:"Other" };
-      const PURPOSE_SCHENGEN = { tourism:"Tourism", family:"Visiting family or friends", friend:"Visiting family or friends", business:"Business", medical:"Medical reasons", transit:"Transit", "family-func":"Cultural/Sports/Religious events", convocation:"Study", other:"Other" };
-      const PURPOSE_AUSTRALIA = { tourism:"Tourist stream (tourism/visit family or friends)", family:"Tourist stream (tourism/visit family or friends)", friend:"Tourist stream (tourism/visit family or friends)", business:"Business Visitor stream (business visit for meetings, conferences or negotiations but not for work)", "family-func":"Tourist stream (tourism/visit family or friends)", convocation:"Tourist stream (tourism/visit family or friends)", medical:"Other", transit:"Other", other:"Other" };
+      const PURPOSE_USA = { tourism:"Tourism/Vacation", "tourism-group":"Tourism/Vacation", family:"Visit Family/Friends", friend:"Visit Family/Friends", business:"Business", medical:"Medical Treatment", transit:"Transit", "family-func":"Other", convocation:"Other", other:"Other" };
+      const PURPOSE_SCHENGEN = { tourism:"Tourism", "tourism-group":"Tourism", family:"Visiting family or friends", friend:"Visiting family or friends", business:"Business", medical:"Medical reasons", transit:"Transit", "family-func":"Cultural/Sports/Religious events", convocation:"Study", other:"Other" };
+      const PURPOSE_AUSTRALIA = { tourism:"Tourist stream (tourism/visit family or friends)", "tourism-group":"Tourist stream (tourism/visit family or friends)", family:"Tourist stream (tourism/visit family or friends)", friend:"Tourist stream (tourism/visit family or friends)", business:"Business Visitor stream (business visit for meetings, conferences or negotiations but not for work)", "family-func":"Tourist stream (tourism/visit family or friends)", convocation:"Tourist stream (tourism/visit family or friends)", medical:"Other", transit:"Other", other:"Other" };
       const purposeMap = cifType === "usa" ? PURPOSE_USA : cifType === "australia" ? PURPOSE_AUSTRALIA : PURPOSE_SCHENGEN;
       const purposeValue = rawPurpose.length ? (purposeMap[rawPurpose[0]] || "") : "";
 
