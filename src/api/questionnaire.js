@@ -19,7 +19,7 @@ import {
 // ── Choice-value maps (verified against live Visitor_Visa_Questionnaire_Sales1) ──
 const purposeMap = {
   "family": "To meet Family Member / Relative", "family-func": "To attend family function",
-  "tourism": "Tourism (Self planned itinerary)", "tourism-group": "Tourism (Part of group tour)",
+  "tourism": "Tourism (customized itinerary)", "tourism-group": "Tourism (Group itinerary)",
   "business": "Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)",
   "friend": "To meet Friend", "convocation": "To attend convocation",
   "transit": "Transit", "medical": "Medical Treatment", "other": "Other (Please Specify)"
