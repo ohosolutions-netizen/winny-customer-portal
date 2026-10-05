@@ -601,7 +601,7 @@ export function qBuildLink(token, traveller) {
   };
   const dateFrom = fmtDate(applicationData.deal?.travelDateFrom || "");
   const dateTo   = fmtDate(applicationData.deal?.travelDateTo   || "");
-  const familyGroup = traveller?.familyId || "";
+  const familyGroup = traveller?.id || traveller?.familyId || "";
   const params = new URLSearchParams({
     Q_Token: token,
     CRM_ID: crmId,

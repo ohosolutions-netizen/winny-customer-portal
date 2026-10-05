@@ -819,8 +819,18 @@ if (questionnaireSubmitted) {
     if (!applicationData.questionnaire.submittedUnits) {
       applicationData.questionnaire.submittedUnits = {};
     }
+    const travellerList = applicationData.deal.travellers || [];
     crmFamilyGroups.forEach(fg => {
-      if (fg) applicationData.questionnaire.submittedUnits[fg] = true;
+      if (!fg) return;
+      applicationData.questionnaire.submittedUnits[fg] = true;
+      // Translate: fg may be the traveller's id or familyId (depending on when the
+      // pre-fill link was generated). Mark the correct unit key in either case.
+      travellerList.forEach(t => {
+        if (t.id === fg || t.familyId === fg) {
+          const unitKey = t.id || t.familyId || "family-1";
+          applicationData.questionnaire.submittedUnits[unitKey] = true;
+        }
+      });
     });
   }
 
