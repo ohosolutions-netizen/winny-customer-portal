@@ -829,11 +829,23 @@ if (questionnaireSubmitted) {
       applicationData.questionnaire.submittedUnits = {};
     }
     const travellerList = applicationData.deal.travellers || [];
+    // Build map: CRM Family_Group value → local traveller familyId
+    // crmTravellerRows carries each traveller's CRM id and Family_Group field.
+    const crmFgToLocalFamilyId = {};
+    crmTravellerRows.forEach(row => {
+      const rowCrmId = String(row.id || row.ID || "");
+      const rowFg = String(row.Family_Group || "").trim();
+      if (!rowCrmId || !rowFg) return;
+      const local = travellerList.find(t => t.crmId && String(t.crmId) === rowCrmId);
+      if (local?.familyId) crmFgToLocalFamilyId[rowFg] = local.familyId;
+    });
     crmFamilyGroups.forEach(fg => {
       if (!fg) return;
       applicationData.questionnaire.submittedUnits[fg] = true;
-      // Translate: fg may be the traveller's id or familyId (depending on when the
-      // pre-fill link was generated). Mark the correct unit key in either case.
+      // Translate: fg may be the CRM Family_Group (old format like "family-1"),
+      // a truncated local familyId, or the traveller's crmId. Mark every matching key.
+      const resolvedFamilyId = crmFgToLocalFamilyId[fg];
+      if (resolvedFamilyId) applicationData.questionnaire.submittedUnits[resolvedFamilyId] = true;
       travellerList.forEach(t => {
         if (t.id === fg || t.familyId === fg || t.crmId === fg ||
             (fg && t.familyId && t.familyId.startsWith(fg))) {
