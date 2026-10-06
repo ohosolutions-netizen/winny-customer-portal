@@ -693,13 +693,28 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       }
     }
 
-    // 2. Traveller_Name lookup, then Client_Name fallback (admin-entered records may use either field)
+    // 2. Primary_Traveller_ID lookup (portal-saved records carry the CRM traveller record ID)
     const primary = unit.primaryTraveller;
+    const travCrmId = primary?.crmId || "";
+    if (travCrmId) {
+      try {
+        const rows = await creatorQuery(`Primary_Traveller_ID == "${travCrmId}"`);
+        if (rows.length) {
+          console.log(`[Winny] Found questionnaire record by Primary_Traveller_ID for unit ${unit.familyId}`);
+          applyRecord(rows[0], unit.familyId);
+          continue;
+        }
+      } catch (e) {
+        console.warn(`[Winny] Primary_Traveller_ID lookup failed for unit ${unit.familyId}:`, e);
+      }
+    }
+
+    // 3. Client_Name lookup (admin-entered records that lack Primary_Traveller_ID)
     const tName = `${primary?.firstName || ""} ${primary?.lastName || ""}`.trim();
     console.log(`[Winny] Checking unit ${unit.familyId} by name "${tName}"`);
     if (tName) {
       try {
-        let rows = await creatorQuery(`Client_Name == "${tName}"`);
+        const rows = await creatorQuery(`Client_Name == "${tName}"`);
         if (rows.length) {
           console.log(`[Winny] Found questionnaire record by name "${tName}" for unit ${unit.familyId}`);
           applyRecord(rows[0], unit.familyId);
