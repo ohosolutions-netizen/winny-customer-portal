@@ -573,7 +573,7 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     // 2. Creator REST API via invokeUrl — the proven transport used for CRM calls
     if (!records.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
       const criteria = encodeURIComponent(`CRM_ID == "${dealId}"`);
-      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}`;
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}&max_records=200`;
       const res = await ZOHO.CREATOR.API.invokeUrl({
         url,
         type: "GET",
@@ -626,7 +626,10 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       const recordName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
       if (recordName) {
         const matched = (applicationData.deal.travellers || []).find(t => {
-          const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+          // CRM Traveller_Info only stores combined Name; First_Name/Last_Name may be empty
+          const tFull = String(t.name || t.Name || "").trim().toLowerCase();
+          const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+          const tName = tFull || tBuilt;
           return tName && (tName === recordName || recordName.includes(tName) || tName.includes(recordName));
         });
         if (matched) fg = matched.familyId || matched.id || "";
