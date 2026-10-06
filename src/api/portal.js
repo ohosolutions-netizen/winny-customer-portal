@@ -837,8 +837,8 @@ if (questionnaireSubmitted) {
       travellerList.forEach(t => {
         if (t.id === fg || t.familyId === fg || t.crmId === fg ||
             (fg && t.familyId && t.familyId.startsWith(fg))) {
-          const unitKey = t.id || t.familyId || "family-1";
-          applicationData.questionnaire.submittedUnits[unitKey] = true;
+          if (t.id) applicationData.questionnaire.submittedUnits[t.id] = true;
+          if (t.familyId) applicationData.questionnaire.submittedUnits[t.familyId] = true;
         }
       });
     });

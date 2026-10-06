@@ -613,6 +613,15 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     let fg = familyIdHint || String(r.Family_Group || r.family_group || "").trim();
 
     if (!fg) {
+      // Try matching by Primary_Traveller_ID (CRM traveller record ID)
+      const ptId = String(r.Primary_Traveller_ID || "").trim();
+      if (ptId) {
+        const matched = (applicationData.deal.travellers || []).find(t => t.crmId && String(t.crmId) === ptId);
+        if (matched) fg = matched.familyId || matched.id || "";
+      }
+    }
+
+    if (!fg) {
       // Try matching by Client_Name / Traveller_Name
       const recordName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
       if (recordName) {
@@ -620,13 +629,17 @@ async function checkExternalQuestionnaireSubmission(dealId) {
           const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
           return tName && (tName === recordName || recordName.includes(tName) || tName.includes(recordName));
         });
-        if (matched) fg = matched.id || matched.familyId || "";
+        if (matched) fg = matched.familyId || matched.id || "";
       }
+    }
+
+    if (!fg) {
       // Final fallback: first unsubmitted unit
-      if (!fg) {
-        const firstOpen = allUnits.find(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
-        fg = firstOpen?.familyId || "family-1";
-      }
+      const firstOpen = allUnits.find(u =>
+        !applicationData.questionnaire.submittedUnits[u.familyId] &&
+        !(u.primaryTraveller?.id && applicationData.questionnaire.submittedUnits[u.primaryTraveller.id])
+      );
+      fg = firstOpen?.familyId || "family-1";
     }
 
     if (fg && !applicationData.questionnaire.submittedUnits[fg]) {
