@@ -567,7 +567,11 @@ async function checkExternalQuestionnaireSubmission(dealId) {
         report_name: reportName,
         criteria: `CRM_ID == "${dealId}"`
       });
-      if (Number(res?.code) === 3000 && Array.isArray(res?.data)) records = res.data;
+      if (Number(res?.code) === 3000) {
+        // SDK v2 may return data as a flat array or nested under data.data
+        if (Array.isArray(res?.data)) records = res.data;
+        else if (Array.isArray(res?.data?.data)) records = res.data.data;
+      }
     }
 
     // 2. Creator REST API via invokeUrl — the proven transport used for CRM calls
@@ -666,15 +670,19 @@ async function checkExternalQuestionnaireSubmission(dealId) {
         report_name: reportName,
         criteria
       });
-      console.log(`[Winny] creatorQuery SDK v2 criteria="${criteria}" code=${res?.code} count=${res?.data?.length}`);
-      if (Number(res?.code) === 3000 && Array.isArray(res?.data) && res.data.length) return res.data;
+        if (Number(res?.code) === 3000) {
+        const rows = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.data?.data) ? res.data.data : []);
+        console.log(`[Winny] creatorQuery SDK v2 criteria="${criteria}" code=${res?.code} count=${rows.length}`);
+        if (rows.length) return rows;
+      }
     }
     if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
-      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(criteria)}`;
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(criteria)}&max_records=200`;
       const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
       const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
-      console.log(`[Winny] creatorQuery invokeUrl criteria="${criteria}" count=${body?.data?.length}`);
-      if (Array.isArray(body?.data) && body.data.length) return body.data;
+      const bodyRows = Array.isArray(body?.data) ? body.data : (Array.isArray(body?.data?.data) ? body.data.data : []);
+      console.log(`[Winny] creatorQuery invokeUrl criteria="${criteria}" count=${bodyRows.length}`);
+      if (bodyRows.length) return bodyRows;
     }
     if (window.ZOHO?.CREATOR?.API?.getRecords) {
       const res = await ZOHO.CREATOR.API.getRecords({
@@ -689,6 +697,26 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       if (Array.isArray(res?.data) && res.data.length) return res.data;
     }
     return [];
+  }
+
+  // Pre-pass: try to match batch records to pending units by Client_Name in JS
+  // (Creator portal API can't filter by Client_Name, but we have the data already)
+  if (records.length) {
+    allUnits.forEach(unit => {
+      if (applicationData.questionnaire.submittedUnits[unit.familyId]) return;
+      const primary = unit.primaryTraveller;
+      const uName = `${primary?.firstName || ""} ${primary?.lastName || ""}`.trim().toLowerCase() ||
+                    String(primary?.name || primary?.Name || "").trim().toLowerCase();
+      if (!uName) return;
+      const match = records.find(r => {
+        const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
+        return rName && (rName === uName || rName.includes(uName) || uName.includes(rName));
+      });
+      if (match) {
+        console.log(`[Winny] Matched batch record to unit ${unit.familyId} by Client_Name`);
+        applyRecord(match, unit.familyId);
+      }
+    });
   }
 
   const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
