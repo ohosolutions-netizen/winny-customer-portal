@@ -200,11 +200,14 @@ async function saveQuestionnaire(familyId) {
   const totalCountVal  = companionCount === 0 ? "None" : String(Math.min(companionCount, 4));
 
   // ── Common fields shared across every per-traveller record ──────────────
+  const primaryTravellerName = `${unitPrimary.firstName || ""} ${unitPrimary.lastName || ""}`.trim()
+    || `${applicationData.customer.firstName || ""} ${applicationData.customer.lastName || ""}`.trim();
   const commonFields = {
-    Client_Name: `${applicationData.customer.firstName || ""} ${applicationData.customer.lastName || ""}`.trim(),
+    Client_Name: primaryTravellerName,
     CRM_ID:  applicationData.deal.crmDealId || "",
     Q_Token: qToken,
     Family_Group: familyId,
+    Primary_Traveller_ID: unitPrimary.crmId || "",
 
     Applying_for_Country1: applyingCountries,
     Applying_for_Country:  applyingCountries[0] || "",
