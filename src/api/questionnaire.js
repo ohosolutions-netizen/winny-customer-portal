@@ -603,37 +603,56 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     records.forEach(r => applyRecord(r, null));
   }
 
-  // For units still pending that have a Q_Token, query Creator by token directly.
-  // This catches submissions where CRM_ID wasn't saved in the Creator record.
-  const pendingUnits = allUnits.filter(u =>
-    !applicationData.questionnaire.submittedUnits[u.familyId]
-  );
+  // For units still pending, try further lookups — Q_Token then Traveller_Name.
+  // This catches records where CRM_ID wasn't saved (admin-entered or URL pre-fill field not configured).
+  async function creatorQuery(criteria) {
+    if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+      const res = await ZOHO.CREATOR.DATA.getRecords({
+        app_name: CONFIG.creator.appLinkName,
+        report_name: reportName,
+        criteria
+      });
+      if (Number(res?.code) === 3000 && Array.isArray(res?.data) && res.data.length) return res.data;
+    }
+    if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(criteria)}`;
+      const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+      const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+      if (Array.isArray(body?.data) && body.data.length) return body.data;
+    }
+    return [];
+  }
+
+  const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
   for (const unit of pendingUnits) {
-    const token = unit.travellers[0]?.qToken || unit.travellers.find(t => t.qToken)?.qToken;
-    if (!token) continue;
-    try {
-      let tokenRecords = [];
-      if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
-        const res = await ZOHO.CREATOR.DATA.getRecords({
-          app_name: CONFIG.creator.appLinkName,
-          report_name: reportName,
-          criteria: `Q_Token == "${token}"`
-        });
-        if (Number(res?.code) === 3000 && Array.isArray(res?.data)) tokenRecords = res.data;
+    // 1. Q_Token lookup (traveller filled via link)
+    const token = unit.travellers.find(t => t.qToken)?.qToken;
+    if (token) {
+      try {
+        const rows = await creatorQuery(`Q_Token == "${token}"`);
+        if (rows.length) {
+          console.log(`[Winny] Found questionnaire record by Q_Token for unit ${unit.familyId}`);
+          applyRecord(rows[0], unit.familyId);
+          continue;
+        }
+      } catch (e) {
+        console.warn(`[Winny] Q_Token lookup failed for unit ${unit.familyId}:`, e);
       }
-      if (!tokenRecords.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
-        const criteria = encodeURIComponent(`Q_Token == "${token}"`);
-        const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}`;
-        const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
-        const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
-        if (Array.isArray(body?.data)) tokenRecords = body.data;
+    }
+
+    // 2. Traveller_Name lookup (admin filled directly in Creator)
+    const primary = unit.primaryTraveller;
+    const tName = `${primary?.firstName || ""} ${primary?.lastName || ""}`.trim();
+    if (tName) {
+      try {
+        const rows = await creatorQuery(`Traveller_Name == "${tName}"`);
+        if (rows.length) {
+          console.log(`[Winny] Found questionnaire record by Traveller_Name "${tName}" for unit ${unit.familyId}`);
+          applyRecord(rows[0], unit.familyId);
+        }
+      } catch (e) {
+        console.warn(`[Winny] Traveller_Name lookup failed for unit ${unit.familyId}:`, e);
       }
-      if (tokenRecords.length) {
-        console.log(`[Winny] Found questionnaire record by Q_Token for unit ${unit.familyId}`);
-        applyRecord(tokenRecords[0], unit.familyId);
-      }
-    } catch (e) {
-      console.warn(`[Winny] Q_Token lookup failed for unit ${unit.familyId}:`, e);
     }
   }
 
