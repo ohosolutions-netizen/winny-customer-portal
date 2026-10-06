@@ -603,7 +603,7 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     records.forEach(r => applyRecord(r, null));
   }
 
-  // For units still pending, try further lookups — Q_Token then Traveller_Name.
+  // For units still pending, try further lookups — Q_Token then Traveller_Name / Client_Name.
   // This catches records where CRM_ID wasn't saved (admin-entered or URL pre-fill field not configured).
   async function creatorQuery(criteria) {
     if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
@@ -612,18 +612,33 @@ async function checkExternalQuestionnaireSubmission(dealId) {
         report_name: reportName,
         criteria
       });
+      console.log(`[Winny] creatorQuery SDK v2 criteria="${criteria}" code=${res?.code} count=${res?.data?.length}`);
       if (Number(res?.code) === 3000 && Array.isArray(res?.data) && res.data.length) return res.data;
     }
     if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
       const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(criteria)}`;
       const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
       const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+      console.log(`[Winny] creatorQuery invokeUrl criteria="${criteria}" count=${body?.data?.length}`);
       if (Array.isArray(body?.data) && body.data.length) return body.data;
+    }
+    if (window.ZOHO?.CREATOR?.API?.getRecords) {
+      const res = await ZOHO.CREATOR.API.getRecords({
+        accountOwnerName: CONFIG.creator.appOwner,
+        appLinkName: CONFIG.creator.appLinkName,
+        reportLinkName: reportName,
+        criteria,
+        fromIndex: 1,
+        toIndex: 10
+      });
+      console.log(`[Winny] creatorQuery SDK v1 criteria="${criteria}" count=${res?.data?.length}`);
+      if (Array.isArray(res?.data) && res.data.length) return res.data;
     }
     return [];
   }
 
   const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
+  console.log(`[Winny] ${pendingUnits.length} unit(s) still pending external check`);
   for (const unit of pendingUnits) {
     // 1. Q_Token lookup (traveller filled via link)
     const token = unit.travellers.find(t => t.qToken)?.qToken;
@@ -640,18 +655,22 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       }
     }
 
-    // 2. Traveller_Name lookup (admin filled directly in Creator)
+    // 2. Traveller_Name lookup, then Client_Name fallback (admin-entered records may use either field)
     const primary = unit.primaryTraveller;
     const tName = `${primary?.firstName || ""} ${primary?.lastName || ""}`.trim();
+    console.log(`[Winny] Checking unit ${unit.familyId} by name "${tName}"`);
     if (tName) {
       try {
-        const rows = await creatorQuery(`Traveller_Name == "${tName}"`);
+        let rows = await creatorQuery(`Traveller_Name == "${tName}"`);
+        if (!rows.length) rows = await creatorQuery(`Client_Name == "${tName}"`);
         if (rows.length) {
-          console.log(`[Winny] Found questionnaire record by Traveller_Name "${tName}" for unit ${unit.familyId}`);
+          console.log(`[Winny] Found questionnaire record by name "${tName}" for unit ${unit.familyId}`);
           applyRecord(rows[0], unit.familyId);
+        } else {
+          console.warn(`[Winny] No questionnaire record found by name "${tName}" for unit ${unit.familyId}`);
         }
       } catch (e) {
-        console.warn(`[Winny] Traveller_Name lookup failed for unit ${unit.familyId}:`, e);
+        console.warn(`[Winny] Name lookup failed for unit ${unit.familyId}:`, e);
       }
     }
   }
