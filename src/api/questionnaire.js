@@ -388,7 +388,6 @@ async function saveQuestionnaire(familyId) {
     const recordData = {
       ...commonFields,
       Traveller_Type: travellerType,
-      Traveller_Name: travellerName,
       ...perTravellerFields,
     };
 
@@ -700,8 +699,7 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     console.log(`[Winny] Checking unit ${unit.familyId} by name "${tName}"`);
     if (tName) {
       try {
-        let rows = await creatorQuery(`Traveller_Name == "${tName}"`);
-        if (!rows.length) rows = await creatorQuery(`Client_Name == "${tName}"`);
+        let rows = await creatorQuery(`Client_Name == "${tName}"`);
         if (rows.length) {
           console.log(`[Winny] Found questionnaire record by name "${tName}" for unit ${unit.familyId}`);
           applyRecord(rows[0], unit.familyId);
