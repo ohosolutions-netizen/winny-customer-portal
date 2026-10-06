@@ -14,7 +14,7 @@ import { escapeHtml, setByPath } from "../lib/utils.js";
 import { markAutoSavePending, toast, openModal, openWideModal, showLoader, hideLoader } from "../lib/ui.js";
 import { saveDraft } from "./drafts.js";
 import { sendQuestionnaireEmail } from "../api/deal.js";
-import { submitQuestionnaire, fetchQCreatorRecord } from "../api/questionnaire.js";
+import { submitQuestionnaire, fetchQCreatorRecord, checkExternalQuestionnaireSubmission } from "../api/questionnaire.js";
 import { SCHENGEN_COUNTRIES } from "../config/config.js";
 import { isAdultTraveller } from "./terms.js";
 
@@ -152,6 +152,13 @@ function renderUnitOverviewHTML(units) {
   const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
   const doneCount = units.filter((u) => qState.unitCompletions[u.familyId]).length;
 
+  // Re-check Creator for any externally/previously submitted units not yet reflected in state
+  if (!allDone && applicationData.deal.crmDealId) {
+    checkExternalQuestionnaireSubmission(applicationData.deal.crmDealId)
+      .then(changed => { if (changed) rerenderQuestionnaire(); })
+      .catch(() => {});
+  }
+
   const rows = units.map((u) => {
     const done = qState.unitCompletions[u.familyId];
     const unitFillMode = u.travellers[0]?.qFillMode || "owner";
@@ -241,10 +248,7 @@ function renderUnitOverviewHTML(units) {
       : fillModeToggle + linkSection;
 
     const actionBtn = done
-      ? `<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-           <button class="btn ghost" type="button" style="white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>
-           <button class="btn ghost" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Edit answers &#x2192;</button>
-         </div>`
+      ? `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
       : unitFillMode === "link"
         ? ""
         : `<button class="btn primary" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Fill questionnaire &#x2192;</button>`;
