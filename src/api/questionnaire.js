@@ -564,45 +564,78 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     return false;
   }
 
-  if (!records.length) return false;
-  console.log(`[Winny] Found ${records.length} external questionnaire record(s) for deal ${dealId}`);
-
   if (!applicationData.questionnaire.submittedUnits) {
     applicationData.questionnaire.submittedUnits = {};
   }
 
   const allUnits = deriveQuestionnaireUnits();
-
   let changed = false;
-  const seenGroups = new Set();
-  records.forEach(r => {
-    let fg = String(r.Family_Group || r.family_group || "").trim();
+
+  function applyRecord(r, familyIdHint) {
+    let fg = familyIdHint || String(r.Family_Group || r.family_group || "").trim();
 
     if (!fg) {
-      // Family_Group missing (pre-fill link didn't include it). Try to match by Client_Name
-      // (external submissions use the traveller's own name as Client_Name).
-      const recordName = String(r.Client_Name || "").trim().toLowerCase();
+      // Try matching by Client_Name / Traveller_Name
+      const recordName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
       if (recordName) {
         const matched = (applicationData.deal.travellers || []).find(t => {
           const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
-          return tName && tName === recordName;
+          return tName && (tName === recordName || recordName.includes(tName) || tName.includes(recordName));
         });
-        if (matched?.familyId) fg = matched.familyId;
+        if (matched) fg = matched.id || matched.familyId || "";
       }
-      // Final fallback: assign to the first unsubmitted unit
+      // Final fallback: first unsubmitted unit
       if (!fg) {
         const firstOpen = allUnits.find(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
         fg = firstOpen?.familyId || "family-1";
       }
     }
 
-    seenGroups.add(fg);
-    if (!applicationData.questionnaire.submittedUnits[fg]) {
+    if (fg && !applicationData.questionnaire.submittedUnits[fg]) {
       applicationData.questionnaire.submittedUnits[fg] = true;
       if (qState.unitCompletions) qState.unitCompletions[fg] = true;
       changed = true;
     }
-  });
+  }
+
+  if (records.length) {
+    console.log(`[Winny] Found ${records.length} questionnaire record(s) by CRM_ID for deal ${dealId}`);
+    records.forEach(r => applyRecord(r, null));
+  }
+
+  // For units still pending that have a Q_Token, query Creator by token directly.
+  // This catches submissions where CRM_ID wasn't saved in the Creator record.
+  const pendingUnits = allUnits.filter(u =>
+    !applicationData.questionnaire.submittedUnits[u.familyId]
+  );
+  for (const unit of pendingUnits) {
+    const token = unit.travellers[0]?.qToken || unit.travellers.find(t => t.qToken)?.qToken;
+    if (!token) continue;
+    try {
+      let tokenRecords = [];
+      if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+        const res = await ZOHO.CREATOR.DATA.getRecords({
+          app_name: CONFIG.creator.appLinkName,
+          report_name: reportName,
+          criteria: `Q_Token == "${token}"`
+        });
+        if (Number(res?.code) === 3000 && Array.isArray(res?.data)) tokenRecords = res.data;
+      }
+      if (!tokenRecords.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
+        const criteria = encodeURIComponent(`Q_Token == "${token}"`);
+        const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${criteria}`;
+        const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+        const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+        if (Array.isArray(body?.data)) tokenRecords = body.data;
+      }
+      if (tokenRecords.length) {
+        console.log(`[Winny] Found questionnaire record by Q_Token for unit ${unit.familyId}`);
+        applyRecord(tokenRecords[0], unit.familyId);
+      }
+    } catch (e) {
+      console.warn(`[Winny] Q_Token lookup failed for unit ${unit.familyId}:`, e);
+    }
+  }
 
   if (changed || !applicationData.stepStatus.anyQuestionnaireSubmitted) {
     applicationData.stepStatus.anyQuestionnaireSubmitted = true;
