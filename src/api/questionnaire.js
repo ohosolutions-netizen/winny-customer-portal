@@ -513,9 +513,45 @@ async function submitQuestionnaire(familyId = "family-1") {
 // Queries Creator directly for questionnaire records submitted via the
 // external pre-fill link (bypassing the portal's submitQuestionnaire flow).
 // Returns true if it changed applicationData (caller should requestRender).
+
+function hasCreatorQueryApi() {
+  return Boolean(
+    window.ZOHO?.CREATOR?.DATA?.getRecords ||
+    window.ZOHO?.CREATOR?.API?.invokeUrl ||
+    window.ZOHO?.CREATOR?.API?.getRecords
+  );
+}
+
+async function waitForCreatorApi(maxMs = 8000) {
+  if (hasCreatorQueryApi()) return true;
+  // Also attempt SDK init if ZOHO.CREATOR exists but wasn't init'd yet
+  if (window.ZOHO?.CREATOR?.init) {
+    try { await window.ZOHO.CREATOR.init(); } catch (_) {}
+    if (hasCreatorQueryApi()) return true;
+  }
+  const step = 500;
+  let waited = 0;
+  while (waited < maxMs) {
+    await new Promise(r => setTimeout(r, step));
+    waited += step;
+    if (window.ZOHO?.CREATOR?.init && !hasCreatorQueryApi()) {
+      try { await window.ZOHO.CREATOR.init(); } catch (_) {}
+    }
+    if (hasCreatorQueryApi()) {
+      console.log(`[Winny] Creator SDK became available after ${waited}ms`);
+      return true;
+    }
+  }
+  console.warn(`[Winny] Creator SDK still unavailable after ${maxMs}ms — skipping external questionnaire check`);
+  return false;
+}
+
 async function checkExternalQuestionnaireSubmission(dealId) {
   if (applicationData.stepStatus.questionnaireCompleted) return false;
   if (!dealId) return false;
+
+  // Wait for Creator SDK to initialise (widget SDK handshake can be slow)
+  if (!await waitForCreatorApi()) return false;
 
   // Visitor_Visa_Questionnaire_Sales_Report1 includes both portal and external submissions.
   const reportName = "Visitor_Visa_Questionnaire_Sales_Report1";
