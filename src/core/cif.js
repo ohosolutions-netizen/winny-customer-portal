@@ -341,7 +341,7 @@ const CIF_UK_SECTIONS = [
     ["Next destination after UK","f1","Next_Destination_After_UK","text",null,false],
     ["Planned Activities during your visit","f1","Planned_Activities","textarea",null,false],
   ]},
-  { id:"accommodation", title:"Accommodation in UK", icon:"&#x1F3E8;", fields:[
+  { id:"ukaccommodation", title:"Accommodation in UK", icon:"&#x1F3E8;", fields:[
     ["Type of accommodation","f1","Accommodation_Type","select",["Hotel","Staying with Inviter / Host","Airbnb / Private Rental","Transit only"],false],
     ["Hotel name","f1","Hotel_Name","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
     ["Hotel address","f1","Hotel_Address","address",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
@@ -741,9 +741,9 @@ const CIF_UK_SECTIONS = [
     // keeping every underlying section/field exactly as already defined.
     const CIF_CATEGORIES = [
       { id:"personal_cat",   title:"Personal & Contact",              icon:"&#x1F464;", sections:["personal","contact","address"] },
-      { id:"passport_cat",   title:"Passport & Nationality",          icon:"&#x1F4D8;", sections:["passport"] },
-      { id:"finance_cat",    title:"Employment & Finances",           icon:"&#x1F4BC;", sections:["employment","income","tripcost"] },
-      { id:"trip_cat",       title:"Trip & Purpose",                  icon:"&#x1F3AF;", sections:["purpose","returntrip","academic","marriage","medical","study","orgvisit"] },
+      { id:"passport_cat",   title:"Passport & Nationality",          icon:"&#x1F4D8;", sections:["passport","prevPassports"] },
+      { id:"finance_cat",    title:"Employment & Finances",           icon:"&#x1F4BC;", sections:["employment","employmentHistory","income","largeCreditEntries","tripcost"] },
+      { id:"trip_cat",       title:"Trip & Purpose",                  icon:"&#x1F3AF;", sections:["tripdetails","ukaccommodation","ukdeclarations"] },
       { id:"family_cat",     title:"Family",                          icon:"&#x1F46A;", sections:["family","dependents","dependentsList","parents","relativesUK","adultsTravelling","accommodation","stayPlan"] },
       { id:"history_cat",    title:"Travel & Immigration History",   icon:"&#x1F6C2;", sections:["ukHistory","ukVisits","ukMedical","ukMedicalDetails","ukMisc","publicFunds","visaHistory","worldTravel","immigrationHist","immigrationProblems","breachHist","breachDetails","convictionsHist","convictionsDetails"] },
       { id:"character_cat",  title:"Character & Security",           icon:"&#x1F6E1;&#xFE0F;", sections:["character"] }
