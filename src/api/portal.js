@@ -598,12 +598,16 @@ function hydrateApplicationDetails(details) {
     // wholesale, so the older Creator savedPayload (saved at Payment Complete, before
     // subsequent syncs) overwrites crmId values and agreementSigned state.
     // Key by local id AND crmId so we can match after the array is replaced.
-    const travellerSnapshot = new Map(); // local id → { crmId, agreementSigned, agreementSignedAt }
+    const travellerSnapshot = new Map(); // local id → { crmId, agreementSigned, agreementSignedAt, qFillMode, qToken, qLinkSent, qCreatorRecordId }
     (applicationData.deal.travellers || []).forEach((t) => {
       const entry = {
         crmId: t.crmId || "",
         agreementSigned: t.agreementSigned || false,
         agreementSignedAt: t.agreementSignedAt || "",
+        qFillMode: t.qFillMode || "",
+        qToken: t.qToken || "",
+        qLinkSent: t.qLinkSent || false,
+        qCreatorRecordId: t.qCreatorRecordId || "",
       };
       if (t.id) travellerSnapshot.set(String(t.id), entry);
       if (t.crmId) travellerSnapshot.set(String(t.crmId), entry);
@@ -626,6 +630,11 @@ function hydrateApplicationDetails(details) {
         t.agreementSigned = true;
         if (!t.agreementSignedAt) t.agreementSignedAt = snap.agreementSignedAt;
       }
+      // Restore portal-only questionnaire link state (not in CRM/Creator snapshot)
+      if (snap.qFillMode) t.qFillMode = snap.qFillMode;
+      if (snap.qToken) t.qToken = snap.qToken;
+      if (snap.qLinkSent) t.qLinkSent = snap.qLinkSent;
+      if (snap.qCreatorRecordId) t.qCreatorRecordId = snap.qCreatorRecordId;
     });
 
     const travellerFamilyGroups =
