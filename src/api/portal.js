@@ -835,7 +835,8 @@ if (questionnaireSubmitted) {
       // Translate: fg may be the traveller's id or familyId (depending on when the
       // pre-fill link was generated). Mark the correct unit key in either case.
       travellerList.forEach(t => {
-        if (t.id === fg || t.familyId === fg) {
+        if (t.id === fg || t.familyId === fg || t.crmId === fg ||
+            (fg && t.familyId && t.familyId.startsWith(fg))) {
           const unitKey = t.id || t.familyId || "family-1";
           applicationData.questionnaire.submittedUnits[unitKey] = true;
         }
