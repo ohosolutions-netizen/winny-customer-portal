@@ -636,7 +636,17 @@ async function checkExternalQuestionnaireSubmission(dealId) {
           const tName = tFull || tBuilt;
           return tName && (tName === recordName || recordName.includes(tName) || tName.includes(recordName));
         });
-        if (matched) fg = matched.familyId || matched.id || "";
+        if (matched) {
+          // deriveQuestionnaireUnits uses t.id as unit.familyId; prefer t.id as the primary key
+          fg = matched.id || matched.familyId || "";
+          // Also mark the alternate key so older code paths that read t.familyId still work
+          const altKey = matched.familyId;
+          if (altKey && altKey !== fg && !applicationData.questionnaire.submittedUnits[altKey]) {
+            applicationData.questionnaire.submittedUnits[altKey] = true;
+            if (qState.unitCompletions) qState.unitCompletions[altKey] = true;
+            changed = true;
+          }
+        }
       }
     }
 

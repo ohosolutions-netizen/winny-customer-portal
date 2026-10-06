@@ -856,6 +856,29 @@ if (questionnaireSubmitted) {
     });
   }
 
+  // submittedClients: array of Client_Name values returned by the Deluge function when it
+  // queries Creator server-side. More reliable than browser-side Creator API calls since
+  // the portal widget API blocks most criteria. Matches travellers by name and marks
+  // both t.id (used by deriveQuestionnaireUnits as unit.familyId) and t.familyId.
+  const submittedClients = Array.isArray(questionnaireStatus.submittedClients)
+    ? questionnaireStatus.submittedClients : [];
+  if (submittedClients.length > 0) {
+    if (!applicationData.questionnaire.submittedUnits) applicationData.questionnaire.submittedUnits = {};
+    const allTravellers = applicationData.deal.travellers || [];
+    submittedClients.forEach(clientName => {
+      const nameLower = String(clientName || "").trim().toLowerCase();
+      if (!nameLower) return;
+      const matched = allTravellers.find(t => {
+        const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+        return tBuilt && (tBuilt === nameLower || nameLower.includes(tBuilt) || tBuilt.includes(nameLower));
+      });
+      if (matched) {
+        if (matched.id) applicationData.questionnaire.submittedUnits[matched.id] = true;
+        if (matched.familyId) applicationData.questionnaire.submittedUnits[matched.familyId] = true;
+      }
+    });
+  }
+
   // If per-unit tracking exists in the draft, use it to decide if ALL units are done.
   // Without unit tracking (old data / first load) the CRM flag is treated as fully done.
   const submittedUnits = applicationData.questionnaire.submittedUnits || {};
