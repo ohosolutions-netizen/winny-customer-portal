@@ -2,6 +2,7 @@ import React from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import { formatCurrency } from "../../lib/utils.js";
 import { goDealSubStep } from "../../api/deal.js";
+import { toast } from "../../lib/ui.js";
 import ApplicationTypeSelector from "./ApplicationTypeSelector.jsx";
 import DetailsPane from "./DetailsPane.jsx";
 import ServicesPane, { ServiceBasket } from "./ServicesPane.jsx";
@@ -29,6 +30,16 @@ function PricingSummary() {
 }
 
 const SUB_LABELS = ["Application Type", "Who's applying", "Services", "Terms", "Payment"];
+
+function travelDatesValid() {
+  const today = new Date().toISOString().slice(0, 10);
+  const from = applicationData.deal.travelDateFrom;
+  if (from && from < today) {
+    toast("Please fix the departure date — it cannot be in the past.");
+    return false;
+  }
+  return true;
+}
 
 // Reproduces renderDeal() (source 2501-2545).
 export default function DealStep() {
@@ -63,7 +74,10 @@ export default function DealStep() {
           <div>
             <div className="sub-stepper">
               {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} className={`sub-step ${sub === n ? "active" : sub > n ? "done" : ""}`} type="button" onClick={() => goDealSubStep(n)}>
+                <button key={n} className={`sub-step ${sub === n ? "active" : sub > n ? "done" : ""}`} type="button" onClick={() => {
+                  if (sub === 2 && n > 2 && !travelDatesValid()) return;
+                  goDealSubStep(n);
+                }}>
                   {n}. {SUB_LABELS[n - 1]}
                 </button>
               ))}

@@ -4,6 +4,7 @@ import { steps } from "../../config/config.js";
 import { useApp } from "../../store/AppStore.jsx";
 import { isStepLocked, isStepDone, getCompletionPercent } from "../../core/derive.js";
 import { showStep, goToDashboard, nextStep, previousStep } from "../../core/navigation.js";
+import { toast } from "../../lib/ui.js";
 import DealStep from "../deal/DealStep.jsx";
 import Questionnaire from "../questionnaire/Questionnaire.jsx";
 import CIF from "../cif/CIF.jsx";
@@ -75,7 +76,17 @@ export default function Wizard() {
       <footer id="wizardFooter" className="wizard-footer">
         <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>Previous</button>
         <div className="mini-row" style={{ minWidth: 220 }}><span>Autosave</span><strong id="autoSaveState">{autoSaveState}</strong></div>
-        <button className="btn primary" type="button" id="footerNext" disabled={nextDisabled} onClick={() => nextStep()}>{nextText}</button>
+        <button className="btn primary" type="button" id="footerNext" disabled={nextDisabled} onClick={() => {
+          if (applicationData.currentStep === 1 && state.dealSubStep === 2) {
+            const today = new Date().toISOString().slice(0, 10);
+            const from = applicationData.deal.travelDateFrom;
+            if (from && from < today) {
+              toast("Please fix the departure date — it cannot be in the past.");
+              return;
+            }
+          }
+          nextStep();
+        }}>{nextText}</button>
       </footer>
     </section>
   );
