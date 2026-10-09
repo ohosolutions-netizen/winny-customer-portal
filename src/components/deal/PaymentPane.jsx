@@ -67,8 +67,6 @@ export default function PaymentPane() {
     applicationData.deal.payerMode === "someone-else" && externalPayer.invoiceInPayerName && externalPayer.name
       ? externalPayer.name.trim()
       : primaryName;
-  const refNumber = applicationData.deal.applicationNumber || applicationData.deal.crmDealId || "—";
-
   return (
     <section className="wizard-panel">
       <div className="panel-head">
@@ -92,10 +90,6 @@ export default function PaymentPane() {
             <div className="invoice-header-left">
               <span className="invoice-kicker">Invoice</span>
               <span className="invoice-customer">{customerName}</span>
-            </div>
-            <div className="invoice-header-right">
-              <span className="invoice-ref-label">Reference</span>
-              <span className="invoice-ref">{refNumber}</span>
             </div>
           </div>
           <div className="invoice-lines">
