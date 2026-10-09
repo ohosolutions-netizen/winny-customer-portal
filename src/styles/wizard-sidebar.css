@@ -1,5 +1,44 @@
 /* Wizard sidebar — all classes prefixed wz- to avoid portal.css collisions */
 
+/* ── Compact hero: override portal.css min-height/font so type cards are above the fold ── */
+.wz-main .deal-hero {
+  min-height: 0 !important;
+  padding: 20px 28px !important;
+  gap: 24px !important;
+  margin-bottom: 12px !important;
+  grid-template-columns: minmax(0, 1fr) 300px !important;
+}
+.wz-main .deal-hero .eyebrow {
+  font-size: 10px !important;
+  padding: 3px 10px !important;
+}
+.wz-main .deal-hero h2 {
+  font-size: 22px !important;
+  margin: 6px 0 6px !important;
+  line-height: 1.2 !important;
+}
+.wz-main .deal-hero p {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+.wz-main .ecosystem-card {
+  padding: 14px 16px !important;
+}
+.wz-main .ecosystem-card strong {
+  font-size: 13px !important;
+}
+.wz-main .eco-item {
+  gap: 8px !important;
+  padding: 6px 0 !important;
+}
+.wz-main .eco-icon {
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 11px !important;
+}
+.wz-main .eco-item strong { font-size: 12px !important; }
+.wz-main .eco-item small  { font-size: 10px !important; }
+
 /* ── Shell: two-column layout ── */
 .wz-layout {
   display: flex;
