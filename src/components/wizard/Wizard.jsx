@@ -64,11 +64,8 @@ export default function Wizard() {
                 <h2 id="wizardTitle">{step.title}</h2>
                 <p id="wizardSubtitle">{step.subtitle}</p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 12, color: "var(--muted)" }}>{autoSaveState}</span>
-              </div>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>{autoSaveState}</span>
             </div>
-            <WizardStepper />
           </div>
 
           <main id="wizardContent" className="wizard-content">
@@ -81,8 +78,8 @@ export default function Wizard() {
           </main>
 
           <footer id="wizardFooter" className="wizard-footer">
+            <button className="btn" type="button" onClick={() => goToDashboard()}>← Back to dashboard</button>
             <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
-            <div></div>
             <button className="btn primary" type="button" id="footerNext" disabled={nextDisabled} onClick={() => {
               if (applicationData.currentStep === 1 && state.dealSubStep === 2) {
                 const today = new Date().toISOString().slice(0, 10);
