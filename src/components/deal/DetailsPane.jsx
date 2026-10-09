@@ -6,6 +6,18 @@ import { Field } from "../fields/Field.jsx";
 import TravellerList from "./TravellerList.jsx";
 import { CoordinatorList, AuthorisationList } from "./CoordinatorSection.jsx";
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function dayAfter(dateISO) {
+  if (!dateISO) return "";
+  const d = new Date(dateISO);
+  if (isNaN(d.getTime())) return "";
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function DetailsPane() {
   const dealSaved = isDealSaved();
   const appType = applicationData.deal.applicationType || "family";
@@ -44,18 +56,20 @@ export default function DetailsPane() {
         <div className="panel-head"><div><h3>Travel Dates</h3><p>Approximate dates help Winny plan your application timeline. You can update these any time.</p></div></div>
         <div className="panel-body">
           <div className="form-grid">
-            <Field label="Intended Departure Date" path="deal.travelDateFrom" type="date" />
+            <Field label="Intended Departure Date" path="deal.travelDateFrom" type="date" min={todayISO()} />
             <Field
               label="Intended Return Date"
               path="deal.travelDateTo"
               type="date"
-              min={applicationData.deal.travelDateFrom || undefined}
+              min={dayAfter(applicationData.deal.travelDateFrom) || todayISO()}
             />
           </div>
           {applicationData.deal.travelDateFrom && applicationData.deal.travelDateTo &&
-            applicationData.deal.travelDateTo < applicationData.deal.travelDateFrom ? (
+            applicationData.deal.travelDateTo <= applicationData.deal.travelDateFrom ? (
             <p style={{ color: "var(--danger, #c0392b)", fontSize: 13, marginTop: 6 }}>
-              Return date cannot be before the departure date.
+              {applicationData.deal.travelDateTo === applicationData.deal.travelDateFrom
+                ? "Return date cannot be the same as the departure date."
+                : "Return date cannot be before the departure date."}
             </p>
           ) : null}
         </div>
