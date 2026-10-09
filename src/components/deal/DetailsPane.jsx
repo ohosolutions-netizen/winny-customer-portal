@@ -64,7 +64,11 @@ export default function DetailsPane() {
               min={dayAfter(applicationData.deal.travelDateFrom) || todayISO()}
             />
           </div>
-          {applicationData.deal.travelDateFrom && applicationData.deal.travelDateTo &&
+          {applicationData.deal.travelDateFrom && applicationData.deal.travelDateFrom < todayISO() ? (
+            <p style={{ color: "var(--danger, #c0392b)", fontSize: 13, marginTop: 6 }}>
+              Departure date cannot be in the past.
+            </p>
+          ) : applicationData.deal.travelDateFrom && applicationData.deal.travelDateTo &&
             applicationData.deal.travelDateTo <= applicationData.deal.travelDateFrom ? (
             <p style={{ color: "var(--danger, #c0392b)", fontSize: 13, marginTop: 6 }}>
               {applicationData.deal.travelDateTo === applicationData.deal.travelDateFrom
