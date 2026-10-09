@@ -7,7 +7,7 @@ import { Field } from "../fields/Field.jsx";
 const DEFAULT_FAMILY_ID = "family-1";
 
 // Returns allowed Traveller_Type options based on application type and group position
-function getTravellerTypeOptions(isGroupLead, appType) {
+function getTravellerTypeOptions(isGroupLead, appType, currentType) {
   if (appType === "individual") return ["Primary Applicant"];
   if (appType === "corporate") {
     return isGroupLead
@@ -19,8 +19,11 @@ function getTravellerTypeOptions(isGroupLead, appType) {
       ? ["Primary Applicant"]
       : ["Friend", "Spouse", "Child", "Parent", "Other"];
   }
-  // family/couple — all options
-  return ["Primary Applicant", "Spouse", "Child", "Parent", "Other"];
+  // family/couple — only the group lead can be Primary Applicant
+  if (isGroupLead) return ["Primary Applicant"];
+  const base = ["Spouse", "Child", "Parent", "Other"];
+  // If already promoted via "Set as primary" button, keep the value visible
+  return currentType === "Primary Applicant" ? ["Primary Applicant", ...base] : base;
 }
 
 export default function TravellerList() {
@@ -64,7 +67,7 @@ export default function TravellerList() {
               const isGroupLead = memberIndex === 0;
               const hasDob = String(traveller.dob || "").trim().length > 0;
               const isMinor = hasDob && !isAdultTraveller(traveller);
-              const typeOptions = getTravellerTypeOptions(isGroupLead, appType);
+              const typeOptions = getTravellerTypeOptions(isGroupLead, appType, traveller.type);
               const canSetAsPrimary = !isGroupLead && hasDob && isAdultTraveller(traveller) && traveller.type !== "Primary Applicant";
 
               return (
