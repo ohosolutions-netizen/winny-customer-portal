@@ -1,173 +1,200 @@
-import React from "react";
+import React, { useState } from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import { journeyStages } from "../../config/config.js";
 import { getApplicationCards, isFullyPaidStatus } from "../../core/derive.js";
 import {
-  startNewApplication, openApplication, selectApplication, confirmRemoveApplication
+  openApplication, selectApplication, confirmRemoveApplication
 } from "../../core/drafts.js";
 
-// Reproduces renderApplicationCard() (source 2396-2427) as JSX. React escapes
-// text by default, so the explicit escapeHtml() calls are no longer needed.
+const STAGE_SHORT = [
+  "Journey Begins",
+  "Payment",
+  "Case Questions",
+  "CIF & Docs",
+  "Review",
+  "Submitted",
+];
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const diff = Date.now() - d.getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Updated today";
+  if (days === 1) return "Updated 1 day ago";
+  if (days < 30)  return `Updated ${days} days ago`;
+  const months = Math.floor(days / 30);
+  return `Updated ${months} month${months > 1 ? "s" : ""} ago`;
+}
+
+function getInitials(title) {
+  return (title || "A")
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(w => (w[0] || "").toUpperCase()).join("") || "?";
+}
+
+function getStageIndex(app) {
+  const pct = Number.isFinite(Number(app.progressPercent))
+    ? Math.max(0, Math.min(100, Number(app.progressPercent))) : 0;
+  const nameIdx = journeyStages.findIndex(s => s === app.stage);
+  if (Number.isInteger(Number(app.stageIndex))) {
+    return Math.max(0, Math.min(journeyStages.length - 1, Number(app.stageIndex)));
+  }
+  if (nameIdx >= 0) return nameIdx;
+  return Math.max(0, Math.min(journeyStages.length - 1, Math.round((pct / 100) * (journeyStages.length - 1))));
+}
+
 function ApplicationCard({ app }) {
   const currentDealId = String(applicationData.deal.crmDealId || "");
-  const currentAppId = String(applicationData.applicationId || "");
+  const currentAppId  = String(applicationData.applicationId || "");
   const active = Boolean(
     (app.dealId && app.dealId === currentDealId) ||
     (!app.dealId && app.applicationId && app.applicationId === currentAppId)
   );
+
+  const stageIndex  = getStageIndex(app);
+  const initials    = getInitials(app.title);
+  const updatedText = timeAgo(app.lastSavedAt || app.createdTime);
+  const isPaid      = isFullyPaidStatus(app.paymentStatus);
+
   const selectCard = () => selectApplication(app.dealId || "", app.applicationId || "", app);
-  const handleCardKeyDown = (event) => {
-    if (event.target !== event.currentTarget) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      selectCard();
-    }
-  };
-  const statusClass = app.status === "Submitted" || isFullyPaidStatus(app.paymentStatus) ? "done" : "open";
-  const progressPercent = Number.isFinite(Number(app.progressPercent))
-    ? Math.max(0, Math.min(100, Number(app.progressPercent)))
-    : 0;
-  const stageNameIndex = journeyStages.findIndex((stage) => stage === app.stage);
-  const stageIndex = Number.isInteger(Number(app.stageIndex))
-    ? Math.max(0, Math.min(journeyStages.length - 1, Number(app.stageIndex)))
-    : stageNameIndex >= 0
-      ? stageNameIndex
-      : Math.max(0, Math.min(journeyStages.length - 1, Math.round((progressPercent / 100) * (journeyStages.length - 1))));
+
   return (
-    <article
-      className={`application-card ${active ? "active" : ""}`}
+    <div
+      className={`db-app-row-card${active ? " active" : ""}`}
       role="button"
       tabIndex={0}
       aria-pressed={active}
       aria-label={`Select ${app.title || "application"}`}
       onClick={selectCard}
-      onKeyDown={handleCardKeyDown}
-      style={{ cursor: "pointer" }}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCard(); } }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-        <div>
-          <h3>{app.title || "Application"}</h3>
-          <p>{app.applicationId || "Application number pending"}</p>
-        </div>
-        <span className={`badge ${statusClass}`}>{app.status || "In Progress"}</span>
-      </div>
-      <div className="application-meta">
-        {app.destination ? <span>{app.destination}</span> : null}
-        {app.paymentStatus ? <span>{app.paymentStatus}</span> : null}
-        {app.stage ? <span>{app.stage}</span> : null}
-      </div>
-      <p>{app.serviceType || "Service selection pending"}</p>
-      <div className="application-stage-tracker" aria-label={`${app.title || "Application"} progress`}>
-        <div className="application-stage-head">
-          <span>Application progress</span>
-          <strong>Stage {stageIndex + 1} of {journeyStages.length}</strong>
-        </div>
-        <div className="application-stage-scroll">
-          <div className="application-stage-track" role="list">
-            <div className="application-stage-rail" aria-hidden="true">
-              <span style={{ width: `${(stageIndex / (journeyStages.length - 1)) * 100}%` }}></span>
-            </div>
-            {journeyStages.map((stage, index) => {
-              const stageState = index < stageIndex ? "done" : index === stageIndex ? "current" : "upcoming";
-              return (
-                <div
-                  className={`application-stage ${stageState}`}
-                  key={stage}
-                  role="listitem"
-                  aria-current={stageState === "current" ? "step" : undefined}
-                >
-                  <span className="application-stage-node" aria-hidden="true">
-                    {stageState === "done" ? "✓" : index + 1}
-                  </span>
-                  <span className="application-stage-label">{stage}</span>
-                </div>
-              );
-            })}
+      {/* Left: avatar + info */}
+      <div className="db-app-row-left">
+        <div className="db-avatar db-avatar-sm">{initials}</div>
+        <div className="db-app-row-info">
+          <div className="db-app-row-name">{app.title || "Application"}</div>
+          <div className="db-app-row-meta">
+            {app.serviceType && <span>{app.serviceType}</span>}
+            {app.destination && <span>{app.destination}</span>}
+            {app.applicationId
+              ? <span>{app.applicationId}</span>
+              : <span className="db-pending">Number pending</span>
+            }
           </div>
         </div>
       </div>
-      <div className="application-actions">
-        {!isFullyPaidStatus(app.paymentStatus) ? (
+
+      {/* Centre: inline stage dots */}
+      <div className="db-stage-track-inline" role="list" aria-label="Application progress">
+        {journeyStages.map((stage, index) => {
+          const dotState = index < stageIndex ? "done" : index === stageIndex ? "current" : "upcoming";
+          return (
+            <React.Fragment key={stage}>
+              {index > 0 && (
+                <div className={`db-stage-connector${index <= stageIndex ? " filled" : ""}`} aria-hidden="true" />
+              )}
+              <div className="db-stage-dot-wrap" role="listitem" aria-current={dotState === "current" ? "step" : undefined}>
+                <div className={`db-stage-dot ${dotState}`} aria-hidden="true">
+                  {dotState === "done" ? "✓" : index + 1}
+                </div>
+                <span className="db-stage-dot-label">{STAGE_SHORT[index] || stage}</span>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Right: continue + timestamp */}
+      <div className="db-app-row-right">
+        <button
+          className="btn primary db-continue-row-btn"
+          type="button"
+          onClick={e => { e.stopPropagation(); openApplication(app.dealId || "", app.applicationId || ""); }}
+        >
+          Continue →
+        </button>
+        {updatedText && <span className="db-updated-text">🕐 {updatedText}</span>}
+        {!isPaid && (
           <button
             className="btn danger"
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              confirmRemoveApplication(app.dealId || "", app.applicationId || "");
-            }}
+            style={{ fontSize: "11px", padding: "4px 10px", marginTop: "2px" }}
+            onClick={e => { e.stopPropagation(); confirmRemoveApplication(app.dealId || "", app.applicationId || ""); }}
           >
             Remove
           </button>
-        ) : null}
-        <button
-          className="btn primary"
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            openApplication(app.dealId || "", app.applicationId || "");
-          }}
-        >
-          Continue
-        </button>
+        )}
       </div>
-    </article>
+    </div>
   );
 }
 
-// Reproduces renderApplicationList() (source 2293-2309). Returns null when there
-// are no cards, matching the original's empty-string return.
-export default function ApplicationList() {
+export default function ApplicationList({ hideNewButton }) {
+  const [filter, setFilter] = useState("all");
   const applications = getApplicationCards();
+
+  const inProgress = applications.filter(a => a.status !== "Submitted");
+  const submitted  = applications.filter(a => a.status === "Submitted");
+  const filtered   =
+    filter === "in-progress" ? inProgress :
+    filter === "submitted"   ? submitted  :
+    applications;
+
   if (!applications.length && state.applicationsLoading) {
     return (
-      <section className="application-section" aria-busy="true" aria-live="polite">
-        <div className="application-head">
-          <div>
-            <div className="eyebrow">Applications</div>
-            <h2>Your applications</h2>
-          </div>
+      <div className="db-app-section" aria-busy="true" aria-live="polite">
+        <div className="db-app-section-head">
+          <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1a1f36" }}>Your applications</h2>
         </div>
-        <div className="application-loading-state">
+        <div className="application-loading-state" style={{ padding: "32px 24px" }}>
           <span className="application-loading-spinner" aria-hidden="true"></span>
           <div>
-            <strong>Loading your applications...</strong>
+            <strong>Loading your applications…</strong>
             <p>Retrieving the latest application details from your portal.</p>
           </div>
         </div>
-      </section>
+      </div>
     );
   }
-  if (!applications.length) {
-    return (
-      <section className="application-section">
-        <div className="application-head">
-          <div>
-            <div className="eyebrow">Applications</div>
-            <h2>Your applications</h2>
-          </div>
-          <button className="btn primary" type="button" onClick={() => startNewApplication()}>New Application</button>
-        </div>
-        <div className="no-deal-state" style={{ margin: "16px 0" }}>
-          <p>No applications to show. Start a new one.</p>
-        </div>
-      </section>
-    );
-  }
+
   return (
-    <section className="application-section">
-      <div className="application-head">
-        <div>
-          <div className="eyebrow">Applications</div>
-          <h2>Your applications</h2>
+    <div className="db-app-section">
+      <div className="db-app-section-head">
+        <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1a1f36" }}>Your applications</h2>
+        <div className="db-filter-tabs" role="tablist">
+          {[
+            { key: "all",         label: `All · ${applications.length}` },
+            { key: "in-progress", label: `In progress · ${inProgress.length}` },
+            { key: "submitted",   label: `Submitted · ${submitted.length}` },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              className={`db-filter-tab${filter === tab.key ? " active" : ""}`}
+              role="tab"
+              aria-selected={filter === tab.key}
+              onClick={() => setFilter(tab.key)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <button className="btn primary" type="button" onClick={() => startNewApplication()}>New Application</button>
       </div>
-      <div className="application-list">
-        {applications.map((app) => (
-          <ApplicationCard key={getKey(app)} app={app} />
-        ))}
-      </div>
-    </section>
+
+      {filtered.length === 0 ? (
+        <div className="db-empty-state">
+          <p>No {filter === "submitted" ? "submitted" : filter === "in-progress" ? "in-progress" : ""} applications to show.</p>
+        </div>
+      ) : (
+        <div className="db-app-list">
+          {filtered.map(app => (
+            <ApplicationCard key={getKey(app)} app={app} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
