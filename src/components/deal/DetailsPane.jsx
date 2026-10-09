@@ -6,6 +6,10 @@ import { Field } from "../fields/Field.jsx";
 import TravellerList from "./TravellerList.jsx";
 import { CoordinatorList, AuthorisationList } from "./CoordinatorSection.jsx";
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function dayAfter(dateISO) {
   if (!dateISO) return "";
   const d = new Date(dateISO);
@@ -52,12 +56,12 @@ export default function DetailsPane() {
         <div className="panel-head"><div><h3>Travel Dates</h3><p>Approximate dates help Winny plan your application timeline. You can update these any time.</p></div></div>
         <div className="panel-body">
           <div className="form-grid">
-            <Field label="Intended Departure Date" path="deal.travelDateFrom" type="date" />
+            <Field label="Intended Departure Date" path="deal.travelDateFrom" type="date" min={todayISO()} />
             <Field
               label="Intended Return Date"
               path="deal.travelDateTo"
               type="date"
-              min={dayAfter(applicationData.deal.travelDateFrom) || undefined}
+              min={dayAfter(applicationData.deal.travelDateFrom) || todayISO()}
             />
           </div>
           {applicationData.deal.travelDateFrom && applicationData.deal.travelDateTo &&
