@@ -260,7 +260,7 @@ export default function TermsPane() {
                             <span>Step 2</span>
                             <div><strong>Choose the adult acceptor</strong><small>One adult accepts for this family and country.</small></div>
                           </div>
-                          <label className="field">
+                          <label className="field" style={{ gridColumn: "1 / -1" }}>
                             <span>Adult terms acceptor <em>*</em></span>
                             <select value={record.acceptorId || ""} onChange={(event) => setTermsAcceptor(requirement, event.target.value)}>
                               <option value="">— Select one adult —</option>
@@ -271,8 +271,12 @@ export default function TermsPane() {
                             <small>An adult in {family.label} accepts this agreement for all family members{isGeneric ? "" : ` applying to ${requirement.country}`}.</small>
                           </label>
 
-                          <label className="field">
-                            <span><b>Step 3</b> Full legal name (signature) <em>*</em></span>
+                          <div className="terms-action-heading">
+                            <span>Step 3</span>
+                            <div><strong>Full legal name (signature)</strong><small>Type the selected adult's name exactly as it appears on their ID.</small></div>
+                          </div>
+                          <label className="field" style={{ gridColumn: "1 / -1" }}>
+                            <span>Full legal name (signature) <em>*</em></span>
                             <input
                               type="text"
                               value={record.signature || ""}
