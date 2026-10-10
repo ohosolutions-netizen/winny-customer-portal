@@ -16,7 +16,7 @@ export default function WizardSidebar() {
   const percent     = getCompletionPercent();
   const stageNote   = getStageNote();
   const customerName = getCustomerName() || "New Application";
-  const appNumber   = applicationData.deal.applicationNumber || "";
+  const appNumber   = applicationData.applicationId || applicationData.deal.applicationNumber || "";
   const travellers  = applicationData.deal.travellers || [];
   const destinations = (applicationData.deal.selectedDestinations || []).join(", ")
     || applicationData.deal.destination || "";
