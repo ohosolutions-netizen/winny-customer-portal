@@ -333,7 +333,7 @@ const CIF_UK_SECTIONS = [
     ["Who will bear the expenses?","f1","Expenses_Bearing","multiselect",["Accommodation","Food & meals","Local transport","Flights","Pocket Money","Other"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
   ]},
   { id:"tripdetails", title:"Trip Details", icon:"&#x1F4C5;", fields:[
-    ["Purpose of Visit","f1","What_is_the_main_reason_for_your_visit_to_the_UK","select",["To meet Family Member / Relative","To attend Family Function","Tourism — Self planned itinerary","Tourism — Part of group tour","Business visit (Conference / Seminar / Meeting / Exhibition / Trade Fair / Site Visit / Training)","To meet Friend","To attend Convocation","Transit","Medical Treatment","Other — Please Specify"],false],
+    ["Purpose of Visit","f1","What_is_the_main_reason_for_your_visit_to_the_UK","select",["To meet Family Member / Relative","To attend family function","Tourism (customized itinerary)","Tourism (Group itinerary)","Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)","To meet Friend","To attend convocation","Transit","Medical Treatment","Other (Please Specify)"],false],
     ["Brief reason for visit","f1","Brief_Reason_for_Visit","text",null,false],
     ["Date you plan to arrive in the UK","f1","Date_you_plan_to_arrive_in_the_UK","date",null,true],
     ["Date you plan to leave the UK","f1","Date_you_plan_to_leave_the_UK","date",null,true],
@@ -5622,9 +5622,23 @@ if (instance?.type === "schengen") {
       const data = cifInstanceData(travId, instance.id);
       const purposeValue = (data.f1 || {}).What_is_the_main_reason_for_your_visit_to_the_UK || "";
       const stages = instance.definition.stages;
+      // CIF-2 uses UK Home Office standard categories (different from CIF-1's Winny-specific values)
+      const ukVisaCategoryMap = {
+        "To meet Family Member / Relative": "Tourism (including visiting family and friends)",
+        "To attend family function": "Tourism (including visiting family and friends)",
+        "Tourism (customized itinerary)": "Tourism (including visiting family and friends)",
+        "Tourism (Group itinerary)": "Tourism (including visiting family and friends)",
+        "To meet Friend": "Tourism (including visiting family and friends)",
+        "To attend convocation": "Tourism (including visiting family and friends)",
+        "Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)": "Business (including sports and entertainment)",
+        "Transit": "Transit through the UK",
+        "Medical Treatment": "Private medical treatment or organ donation",
+        "Other (Please Specify)": "Tourism (including visiting family and friends)"
+      };
+      const purposeForCIF2 = ukVisaCategoryMap[purposeValue] || purposeValue;
       const extras = {
         f1:cifCommonPayload("uk", context),
-        f2:{ What_is_the_main_reason_for_your_visit_to_the_UK1:purposeValue },
+        f2:{ What_is_the_main_reason_for_your_visit_to_the_UK1:purposeForCIF2 },
         f3:{}
       };
       for (const stage of stages) {
