@@ -1109,7 +1109,7 @@ const setIfEmpty = (path, value) => {
 
       setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.address_line_1"), applicationData.customer.mailingStreet);
       setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.district_city"), applicationData.customer.mailingCity);
-      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.state_province"), applicationData.customer.mailingState);
+      setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.state_province"), applicationData.customer.mailingState || applicationData.customer.mailingCity || "N/A");
       setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.postal_Code"), applicationData.customer.mailingZip);
       setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.country"), applicationData.customer.mailingCountry);
 
@@ -3995,6 +3995,14 @@ async function completeCIF() {
         This_CIF_belongs_to:context.cifBelongsTo,
         Case_officer_name:context.officerName,
         Case_officer_email_id:context.officerEmail
+      };
+      if (type === "uk") return {
+        App_ID:context.appIdNumber,
+        Client_Name:context.travellerName,
+        This_CIF_belongs_to:context.cifBelongsTo,
+        Case_Officer_Name:context.officerName,
+        Case_officer_email_id:context.officerEmail,
+        Deal_ID:context.dealId
       };
       return {
         App_ID:context.appIdNumber,
