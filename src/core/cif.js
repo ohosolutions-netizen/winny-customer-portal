@@ -252,8 +252,6 @@ const CIF_UK_SECTIONS = [
   ]},
   { id:"address", title:"Address", icon:"&#x1F3E0;", fields:[
     ["Current residence address","f1","Your_current_residence_address","address",null,true],
-    ["Ownership status of home","f1","What_is_the_ownership_status_of_your_home","select",["I own it","I rent it","Other"],true],
-    ["More about your living situation","f1","Give_more_details_about_your_living_situation_such_as_who_you_live_with_and_who_owns_the_property","textarea",null,false,{key:"What_is_the_ownership_status_of_your_home",form:"f1",equals:"Other"}],
   ]},
   { id:"passport", title:"Passport & Nationality", icon:"&#x1F4D8;", fields:[
     ["Passport Type","f1","Passport_Type","select",["Regular","Official","Diplomatic"],false],
@@ -318,13 +316,9 @@ const CIF_UK_SECTIONS = [
     ["Explanation","Credit_Explanation","textarea",null,false],
   ]},
   { id:"tripcost", title:"Cost of Trip", icon:"&#x1F4B5;", fields:[
-    ["Amount planning to spend on visit (INR)","f1","Amount_you_are_planning_to_spent_during_your_visit","number",null,true],
     ["Total amount spent each month (INR)","f1","Total_amount_you_spent_each_month","number",null,true],
     ["Will anyone pay towards your visit?","f1","Will_anyone_be_paying_towards_the_cost_of_your_visit","yesno",null,false],
     ["Who is paying?","f1","Who_is_paying_towards_the_cost_of_your_visit","select",["Someone I know (for example, family or friend)","My employer or company","Another company or organisation"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
-    ["Name of person/entity paying","f1","Name_of_the_person_entity_who_is_paying_cost_for_your_visit","text",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Someone I know (for example, family or friend)"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Another company or organisation"}]}],
-    ["Address of person/entity paying","f1","Address_of_the_person_entity_who_is_paying_cost_for_your_visit","address",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Someone I know (for example, family or friend)"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Another company or organisation"}]}],
-    ["Amount they will pay (INR)","f1","Amount_they_pay_for_your_visit","number",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Why are they helping to pay?","f1","Why_are_they_helping_to_pay_for_your_visit","textarea",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Sponsor's Occupation","f1","Sponsor_Occupation","text",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Sponsor's Annual Income (INR)","f1","Sponsor_Annual_Income","number",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
@@ -388,12 +382,8 @@ const CIF_UK_SECTIONS = [
     ["Spouse's Date of Birth","f2","Spouse_s_Date_of_Birth","date",null,false],
     ["Spouse's Country of nationality","f2","Spouse_s_Country_of_nationality","select",UK_CIF_COUNTRIES,false],
     ["Do they currently live with you?","f2","Do_they_currently_live_with_you","yesno",null,false],
-    // FIX: was unconditional — address only needed when NOT living with you
-    ["Spouse's address","f2","Spouse_s_address","address",null,false,
-      {key:"Do_they_currently_live_with_you",form:"f2",equals:"No"}],
     ["Will they travel with you to the UK?","f2","Will_they_be_travelling_with_you_to_the_UK","yesno",null,false],
-   ["Spouse's passport number","f2","Spouse_s_passport_number","text",null,false],
-    ["How many children travelling with you?","f2","How_many_of_your_children_travelling_with_you","select",["0","1","2","3","4"],false],
+    ["Spouse's passport number","f2","Spouse_s_passport_number","text",null,false],
   ]},
   { id:"dependents", title:"Financial Dependents", icon:"&#x1F91D;", fields:[
     ["Does anyone rely on you for financial support?","f2","Does_anyone_rely_on_you_for_financial_support","yesno",null,true],
@@ -415,120 +405,10 @@ const CIF_UK_SECTIONS = [
   { id:"parents", title:"Parents' Details", icon:"&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F467;", fields:[
     ["Father's name","f2","Your_father_s_name","text",null,true],
     ["Father's date of birth","f2","Father_s_date_of_birth","date",null,true],
-    ["Father's country of nationality","f2","Father_s_Country_of_nationality","select",COUNTRIES,true],
-    ["Father always had same nationality?","f2","Have_your_father_always_had_the_same_nationality","yesno",null,true],
-    // FIX: was unconditional — only relevant if father's nationality changed
-    ["Father's nationality when you were born","f2","Father_s_Country_of_nationality_when_you_were_born","select",COUNTRIES,false,
-      {key:"Have_your_father_always_had_the_same_nationality",form:"f2",equals:"No"}],
     ["Mother's name","f2","Your_mother_s_name","text",null,true],
     ["Mother's date of birth","f2","Mother_s_date_of_birth","date",null,true],
-    ["Mother's country of nationality","f2","Mother_s_Country_of_nationality","select",COUNTRIES,false],
-    ["Mother always had same nationality?","f2","Have_your_mother_always_had_the_same_nationality","yesno",null,true],
-    // FIX: was unconditional — only relevant if mother's nationality changed
-    ["Mother's nationality when you were born","f2","Mother_s_Country_of_nationality_when_you_were_born","select",COUNTRIES,false,
-      {key:"Have_your_mother_always_had_the_same_nationality",form:"f2",equals:"No"}],
-    ["Do you have any family in the UK?","f2","Do_you_have_any_family_in_the_UK","yesno",null,true],
   ]},
-  // FIX: added section-level showIf — this subform previously rendered unconditionally
-  { id:"relativesUK", title:"Relatives in the UK", icon:"&#x1F1EC;&#x1F1E7;", subform:true, form:"f2", key:"Relatives_In_the_UK",
-    showIf:{key:"Do_you_have_any_family_in_the_UK",form:"f2",equals:"Yes"}, rowFields:[
-    ["Their relationship to you","Their_relationship_to_you","select",["Brother","Brother-in-law","Child","Child's spouse (daughter-in-law or son-in-law)","Daughter","Daughter-in-law","Father","Father-in-law","Grandchild","Grandparent","Husband","Mother","Mother-in-law","Parent","Sister","Sister-in-law","Son","Son-in-law","Spouse (husband or wife)","Step-child","Step-parents","Step-sister or brother","Unmarried partner","Wife"],false],
-    ["Prefix","Name_of_Relative.prefix","select",["Mr.","Mrs.","Ms."],false],
-    ["First Name","Name_of_Relative.first_name","text",null,false],
-    ["Last Name","Name_of_Relative.last_name","text",null,false],
-    ["Country of nationality","Country_of_nationality","select",UK_CIF_COUNTRIES,false],
-    ["Their permission to be in the UK","What_permission_do_they_have_to_be_in_the_UK","select",["They have a temporary visa","They are in the UK permanently","They do not have a visa and are not in the UK permanently","I cannot contact my relative"],false],
-    ["Their passport number","Their_passport_number","text",null,false],
-    ["Details of their UK status","Give_as_much_information_as_possible_about_their_status_in_the_UK_including_if_they_are_waiting_fo","textarea",null,false],
-    ["Why can't you ask your relative?","Why_can_you_not_ask_your_relative","textarea",null,false],
-  ]},
- /* ============================================================================
-   REPLACE the existing `{ id:"adultsTravelling", ... }` object inside
-   CIF_UK_SECTIONS with this one. Two bugs fixed:
-
-   1. "Which two adults (if 2)?" and "Which adult (if 1)?" had NO showIf —
-      both could hold stale values simultaneously and both got sent to Zoho
-      even when only one applied (e.g. picking "2 adults" left an old "1
-      adult" answer in the payload too). Now each is gated on the actual
-      "How many adults" selection.
-
-   2. The Co-traveller 1 condition used `containsText:"An adult who is not
-      my parent or guardian"` against the two-adults field. That substring
-      does NOT appear in the option "Both adults who are not my parent or
-      guardian" (plural wording), so picking "Both adults..." would never
-      correctly reveal — or require — Co-traveller 1's details in a clean
-      flow. Added an explicit `equals` check for that option.
-   ============================================================================ */
-
-{ id:"adultsTravelling", title:"Adults Travelling With You", icon:"&#x1F465;", fields:[
-  ["How many adults on your visa?","f2","How_many_adults_do_you_want_to_list_on_your_visa","select",["2 adults","1 adult","I will be travelling alone"],true],
-
-  // FIX: was un-gated — now only shows/sends when "2 adults" is picked
-  ["Which two adults (if 2)?","f2","Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you","select",["My Mother and Father","My Mother and An adult who is not my parent or guardian","My Father and An adult who is not my parent or guardian","Both adults who are not my parent or guardian"],false,
-    {key:"How_many_adults_do_you_want_to_list_on_your_visa",form:"f2",equals:"2 adults"}],
-
-  // FIX: was un-gated — now only shows/sends when "1 adult" is picked
-  ["Which adult (if 1)?","f2","Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you","select",["My Mother","My Father","An adult who is not my parent or guardian"],false,
-    {key:"How_many_adults_do_you_want_to_list_on_your_visa",form:"f2",equals:"1 adult"}],
-
-  // FIX: added the missing equals check for "Both adults..." (plural wording
-  // doesn't match the old containsText test)
-  ["Co-traveller 1: How do you know them?","f2","How_do_you_know_this_person","select",["Relative","Paid carer","Other"],true,
-    {anyOf:[
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"An adult who is not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"An adult who is not my parent or guardian"}
-    ]}],
-  ["Co-traveller 1: Relationship details","f2","Give_your_relationship_details","textarea",null,true,
-    {anyOf:[
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"An adult who is not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"An adult who is not my parent or guardian"}
-    ]}],
-  ["Co-traveller 1 - First Name","f2","Give_name_of_the_person_one.first_name","text",null,true,
-    {anyOf:[
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"An adult who is not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"An adult who is not my parent or guardian"}
-    ]}],
-  ["Co-traveller 1 - Last Name","f2","Give_name_of_the_person_one.last_name","text",null,true,
-    {anyOf:[
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"An adult who is not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"},
-      {key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"An adult who is not my parent or guardian"}
-    ]}],
-
-  // unchanged — this one was already correctly gated
-  ["Co-traveller 2: How do you know them?","f2","How_do_you_know_this_second_person","select",["Relative","Paid carer","Other"],false,{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"}],
-  ["Co-traveller 2: Relationship details","f2","Give_your_relationship_details_with_second_person","textarea",null,false,{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"}],
-  ["Co-traveller 2 - First Name","f2","Give_name_of_the_person_two.first_name","text",null,false,{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"}],
-  ["Co-traveller 2 - Last Name","f2","Give_name_of_the_person_two.last_name","text",null,false,{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",equals:"Both adults who are not my parent or guardian"}],
-
-  ["Mother's contact telephone","f2","Mother_s_contact_telephone_number","phone",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Mother"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Mother"}]}],
-  ["Mother's email address","f2","Mother_s_Email_address","text",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Mother"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Mother"}]}],
-  ["Mother's passport number","f2","Mother_s_Passport_number","text",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Mother"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Mother"}]}],
-  ["I live with my mother","f2","I_live_with_my_mother","yesnobool",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Mother"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Mother"}]}],
-  ["Mother's address","f2","Mother_s_Address","address",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Mother"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Mother"}]}],
-  ["Father's contact telephone","f2","Father_s_contact_telephone_number","phone",null,true,   {anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Father"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Father"}]}],
-  ["Father's email address","f2","Father_s_Email_address","text",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Father"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Father"}]}],
-  ["Father's passport number","f2","Father_s_Passport_number","text",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Father"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Father"}]}],
-  ["I live with my father","f2","I_live_with_my_father","yesnobool",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Father"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Father"}]}],
-  ["Father's address","f2","Father_s_Address","address",null,true,{anyOf:[{key:"Which_adult_will_travel_with_you_if_two_adults_are_travelling_with_you",form:"f2",containsText:"Father"},{key:"Which_adult_will_travel_with_you_if_single_adult_is_travelling_with_you",form:"f2",equals:"My Father"}]}],
-
-  ["Travelling as part of an organised group?","f2","Will_you_be_travelling_to_the_UK_as_part_of_an_organised_group","yesno",null,true],
-  ["Company/group name","f2","Company_or_group_name","text",null,false,
-    {key:"Will_you_be_travelling_to_the_UK_as_part_of_an_organised_group",form:"f2",equals:"Yes"}],
-  ["Travelling with someone who isn't your partner/spouse/dependant?","f2","Will_you_be_travelling_to_the_UK_with_someone_who_is_not_your_partner_spouse_or_dependant","yesno",null,false],
-  ["Companion - First Name","f2","Who_will_you_be_travelling_with_to_the_UK.first_name","text",null,false,
-    {key:"Will_you_be_travelling_to_the_UK_with_someone_who_is_not_your_partner_spouse_or_dependant",form:"f2",equals:"Yes"}],
-  ["Companion - Last Name","f2","Who_will_you_be_travelling_with_to_the_UK.last_name","text",null,false,
-    {key:"Will_you_be_travelling_to_the_UK_with_someone_who_is_not_your_partner_spouse_or_dependant",form:"f2",equals:"Yes"}],
-  ["Companion's country of nationality","f2","Country_of_nationality_Co_Traveller","select",UK_CIF_COUNTRIES,false,
-    {key:"Will_you_be_travelling_to_the_UK_with_someone_who_is_not_your_partner_spouse_or_dependant",form:"f2",equals:"Yes"}],
-  ["Companion's relationship to you","f2","Relationship_to_you","select",["Parent","Fiance or fiancee","Son or Daughter","Friend","Work colleague","Employer","Other"],false,
-    {key:"Will_you_be_travelling_to_the_UK_with_someone_who_is_not_your_partner_spouse_or_dependant",form:"f2",equals:"Yes"}],
-  ["Relationship detail (if Other)","f2","Enter_their_relationship_to_you","text",null,false,
-    {key:"Relationship_to_you",form:"f2",equals:"Other"}],
+  { id:"travelCompanion", title:"Travel Companions", icon:"&#x1F465;", fields:[
   ["Have an address for UK accommodation?","f2","Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK","yesno",null,true],
 ]},
   // FIX: added section-level showIf — this subform previously rendered unconditionally
