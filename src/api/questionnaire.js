@@ -445,6 +445,10 @@ async function submitQuestionnaire(familyId = "family-1") {
       applicationData.questionnaire.submittedUnits = {};
     }
     applicationData.questionnaire.submittedUnits[familyId] = true;
+    if (!applicationData.questionnaire.submittedUnitsAt) {
+      applicationData.questionnaire.submittedUnitsAt = {};
+    }
+    applicationData.questionnaire.submittedUnitsAt[familyId] = new Date().toISOString();
 
     // Mirror into qState so renderUnitOverviewHTML shows the done badge immediately
     qState.unitCompletions[familyId] = true;

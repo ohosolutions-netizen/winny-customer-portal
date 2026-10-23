@@ -132,6 +132,16 @@ export function qStartUnit(idx) {
   // Load the target unit's shared data (or defaults for a fresh unit)
   if (units.length > 1) qLoadUnitSharedData(units[idx].familyId);
 
+  // Stamp first-started time on primary traveller for "in progress" tracking
+  const targetUnit = units[idx];
+  if (targetUnit) {
+    const primary = targetUnit.primaryTraveller || targetUnit.travellers[0];
+    if (primary && !primary.qStartedAt) {
+      primary.qStartedAt = new Date().toISOString();
+      markAutoSavePending();
+    }
+  }
+
   rerenderQuestionnaire();
 }
 
@@ -159,6 +169,22 @@ function renderUnitOverviewHTML(units) {
       .catch(() => {});
   }
 
+  function fmtUpd(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    const diff = Date.now() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1)   return "just now";
+    if (mins < 60)  return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)   return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days === 1) return "yesterday";
+    if (days < 30)  return `${days}d ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+  }
+
   const rows = units.map((u) => {
     const done = qState.unitCompletions[u.familyId];
     const unitFillMode = u.travellers[0]?.qFillMode || "owner";
@@ -173,15 +199,37 @@ function renderUnitOverviewHTML(units) {
     const unitLinkSent = u.travellers.some((t) => t.qLinkSent);
     const fid = escapeHtml(u.familyId);
 
-    // Status indicator — left accent bar colour + badge
-    const linkWaiting = !done && unitFillMode === "link" && unitLinkSent;
-    const rowBg = done ? "background:#f0fdf4" : linkWaiting ? "background:#fffbeb" : "";
-    const accentColor = done ? "var(--teal)" : linkWaiting ? "#f59e0b" : "var(--line)";
-    const statusBadge = done
-      ? `<span class="badge done" style="font-size:11px;white-space:nowrap">&#x2713; Submitted</span>`
-      : linkWaiting
-        ? `<span class="badge" style="font-size:11px;white-space:nowrap;background:#fff8e1;color:#b45309;border:1px solid #fde68a">&#x23F3; Awaiting traveller</span>`
-        : `<span class="badge" style="font-size:11px;white-space:nowrap;opacity:.7">Pending</span>`;
+    // Status indicator — 5-state with last-updated time
+    const unitStarted     = u.travellers.some(t => t.qStartedAt);
+    const unitLinkSentAt  = u.travellers.map(t => t.qLinkSentAt).filter(Boolean).sort().pop() || "";
+    const unitStartedAt   = u.travellers.map(t => t.qStartedAt).filter(Boolean).sort().pop() || "";
+    const unitSubmittedAt = (applicationData.questionnaire.submittedUnitsAt || {})[u.familyId] || "";
+
+    const status = done
+      ? (!applicationData.stepStatus.documentsCompleted ? "docs-pending" : "submitted")
+      : (unitFillMode === "link" && unitLinkSent) ? "link-sent"
+      : unitStarted ? "in-progress"
+      : "not-started";
+
+    const lastUpdated = done ? (unitSubmittedAt || applicationData.lastSavedAt)
+      : unitLinkSentAt || unitStartedAt || "";
+
+    const _sMap = {
+      "not-started": { label:"Not Started",  bg:"#f3f4f6", color:"#374151", border:"#d1d5db", accent:"var(--line)",  row:"" },
+      "link-sent":   { label:"Link Sent",    bg:"#fffbeb", color:"#92400e", border:"#fde68a", accent:"#f59e0b",      row:"background:#fffbeb" },
+      "in-progress": { label:"In Progress",  bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe", accent:"#3b82f6",      row:"background:#f0f9ff" },
+      "submitted":   { label:"Submitted",    bg:"#ecfdf5", color:"#065f46", border:"#6ee7b7", accent:"var(--teal)",  row:"background:#f0fdf4" },
+      "docs-pending":{ label:"Docs Pending", bg:"#fff7ed", color:"#9a3412", border:"#fdba74", accent:"#f97316",      row:"background:#fff7ed" },
+    };
+    const _s = _sMap[status];
+    const rowBg = _s.row;
+    const accentColor = _s.accent;
+    const updText = fmtUpd(lastUpdated);
+    const statusBadge = `
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+        <span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:${_s.bg};color:${_s.color};border:1px solid ${_s.border}">${_s.label}</span>
+        ${updText ? `<span style="font-size:10px;color:var(--muted)">${updText}</span>` : ""}
+      </div>`;
 
     // Action buttons (not shown for minor-only units)
     const fillModeToggle = u.minorOnly ? "" : `
@@ -986,8 +1034,12 @@ export function qCopyLink(familyId) {
   const url = qBuildLink(traveller.qToken, traveller);
 
   // Mark all unit travellers as link-sent
+  const _linkSentAt = new Date().toISOString();
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) t.qLinkSent = true;
+    if ((t.id || t.familyId || "family-1") === familyId) {
+      t.qLinkSent = true;
+      if (!t.qLinkSentAt) t.qLinkSentAt = _linkSentAt;
+    }
   });
   markAutoSavePending();
 
@@ -1037,8 +1089,12 @@ export async function qEmailLink(familyId) {
     toast("Sending email…", "info");
     await sendQuestionnaireEmail(toEmail, name, url);
     // Mark as sent
+    const _emailSentAt = new Date().toISOString();
     (applicationData.deal.travellers || []).forEach((t) => {
-      if ((t.id || t.familyId || "family-1") === familyId) t.qLinkSent = true;
+      if ((t.id || t.familyId || "family-1") === familyId) {
+        t.qLinkSent = true;
+        if (!t.qLinkSentAt) t.qLinkSentAt = _emailSentAt;
+      }
     });
     markAutoSavePending();
     toast(`Questionnaire link sent to ${toEmail}`, "ok");
