@@ -155,8 +155,10 @@ export function qBackToOverview() {
 
 // ── Unit overview panel ────────────────────────────────────────────────────
 function renderUnitOverviewHTML(units) {
-  // Restore unit completions from persisted submittedUnits (survives page reload)
+  // Restore unit completions from persisted submittedUnits (survives page reload).
+  // Reset first so stale keys from a previously-loaded application don't linger.
   const persistedUnits = applicationData.questionnaire.submittedUnits || {};
+  qState.unitCompletions = {};
   Object.keys(persistedUnits).forEach((fid) => { qState.unitCompletions[fid] = true; });
 
   const allDone = units.every((u) => qState.unitCompletions[u.familyId]);
