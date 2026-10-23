@@ -187,12 +187,12 @@ function renderUnitOverviewHTML(units) {
     const fillModeToggle = u.minorOnly ? "" : `
       <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
         <button
-          class="btn primary"
+          class="btn${unitFillMode === "link" ? " ghost" : " primary"}"
           type="button" style="font-size:12px;padding:3px 10px"
-          onclick="qStartUnit(${u.index})"
+          onclick="qSetUnitFillMode('${fid}','owner');qStartUnit(${u.index})"
         >&#x270F;&#xFE0F; I fill it</button>
         <button
-          class="btn ghost"
+          class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
           type="button" style="font-size:12px;padding:3px 10px"
           onclick="qSendLinkToTraveller('${fid}')"
         >&#x1F517; Send link to traveller</button>
