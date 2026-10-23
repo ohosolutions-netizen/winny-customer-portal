@@ -169,20 +169,20 @@ function renderUnitOverviewHTML(units) {
       .catch(() => {});
   }
 
-  function fmtUpd(iso) {
-    if (!iso) return "";
+  function fmtUrgency(iso, status) {
+    if (!iso) return status === "not-started" ? "No activity yet" : "";
     const d = new Date(iso);
     if (isNaN(d.getTime())) return "";
     const diff = Date.now() - d.getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1)   return "just now";
+    if (mins < 1)   return "Just now";
     if (mins < 60)  return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24)   return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
-    if (days === 1) return "yesterday";
-    if (days < 30)  return `${days}d ago`;
-    return `${Math.floor(days / 30)}mo ago`;
+    if (days === 1) return status === "link-sent" ? "1 day, no response" : "1 day ago";
+    if (days < 30)  return status === "link-sent" ? `${days} days, no response` : `${days} days ago`;
+    return `${Math.floor(days / 30)} months ago`;
   }
 
   const rows = units.map((u) => {
@@ -215,7 +215,7 @@ function renderUnitOverviewHTML(units) {
       : unitLinkSentAt || unitStartedAt || "";
 
     const _sMap = {
-      "not-started": { label:"Not Started",  bg:"#f3f4f6", color:"#374151", border:"#d1d5db", accent:"var(--line)",  row:"" },
+      "not-started": { label:"Not Started",  bg:"#f3f4f6", color:"#374151", border:"#d1d5db", accent:"#e24b4a",    row:"background:#fef2f2" },
       "link-sent":   { label:"Link Sent",    bg:"#fffbeb", color:"#92400e", border:"#fde68a", accent:"#f59e0b",      row:"background:#fffbeb" },
       "in-progress": { label:"In Progress",  bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe", accent:"#3b82f6",      row:"background:#f0f9ff" },
       "submitted":   { label:"Submitted",    bg:"#ecfdf5", color:"#065f46", border:"#6ee7b7", accent:"var(--teal)",  row:"background:#f0fdf4" },
@@ -224,12 +224,21 @@ function renderUnitOverviewHTML(units) {
     const _s = _sMap[status];
     const rowBg = _s.row;
     const accentColor = _s.accent;
-    const updText = fmtUpd(lastUpdated);
-    const statusBadge = `
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
-        <span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:${_s.bg};color:${_s.color};border:1px solid ${_s.border}">${_s.label}</span>
-        ${updText ? `<span style="font-size:10px;color:var(--muted)">${updText}</span>` : ""}
-      </div>`;
+    const urgencyText = fmtUrgency(lastUpdated, status);
+    const statusPill = `<span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:${_s.bg};color:${_s.color};border:1px solid ${_s.border}">${_s.label}</span>`;
+
+    // Resend button — inline for stalled link-sent rows
+    const resendBtn = (!done && unitFillMode === "link" && unitLinkSent && !u.minorOnly)
+      ? `<button class="btn ghost" type="button" style="font-size:11px;padding:2px 8px;flex-shrink:0" onclick="qSendLinkToTraveller('${fid}')">&#x21A9; Resend</button>`
+      : "";
+
+    // Mini 3-step stepper
+    const _stepStates = { "not-started":["idle","idle","idle"], "link-sent":["active","idle","idle"], "in-progress":["active","idle","idle"], "submitted":["done","done",applicationData.stepStatus.documentsCompleted?"done":"active"], "docs-pending":["done","done","active"] }[status];
+    const _stepLabels = { "not-started":["Fill","Submit","Docs"], "link-sent":["Waiting","Submit","Docs"], "in-progress":["Filling","Submit","Docs"], "submitted":["Done","Done",applicationData.stepStatus.documentsCompleted?"Done":"Docs due"], "docs-pending":["Done","Done","Docs due"] }[status];
+    const _sdot = (st) => { const bg=st==="done"?"var(--teal)":st==="active"?accentColor:"#e2e8f0"; const clr=st!=="idle"?"#fff":"var(--muted)"; const ico=st==="done"?"&#x2713;":"&middot;"; return `<span style="width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:${bg};color:${clr};flex-shrink:0">${ico}</span>`; };
+    const _slbl = (st, lbl) => { const clr=st==="done"?"var(--teal)":st==="active"?accentColor:"var(--muted)"; const fw=st!=="idle"?"font-weight:600;":""; return `<span style="font-size:10px;color:${clr};${fw}">${lbl}</span>`; };
+    const _sline = (filled) => `<span style="flex:1;height:1.5px;background:${filled?"var(--teal)":"var(--line)"};min-width:10px;margin-bottom:9px;align-self:center"></span>`;
+    const stepperHTML = `<div style="display:flex;align-items:flex-end;gap:4px;margin-top:10px"><span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[0])}${_slbl(_stepStates[0],_stepLabels[0])}</span>${_sline(_stepStates[0]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[1])}${_slbl(_stepStates[1],_stepLabels[1])}</span>${_sline(_stepStates[1]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[2])}${_slbl(_stepStates[2],_stepLabels[2])}</span></div>`;
 
     // Action buttons (not shown for minor-only units)
     const fillModeToggle = u.minorOnly ? "" : `
@@ -294,31 +303,51 @@ function renderUnitOverviewHTML(units) {
       ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">&#x1F9D2; Guardian / parent fills on behalf of the minor</div>`
       : fillModeToggle + linkSection;
 
-    const actionBtn = done
-      ? `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
+    const viewAnswersBtn = done
+      ? `<button class="btn ghost" type="button" style="font-size:11px;padding:2px 8px;flex-shrink:0;white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
       : "";
 
+    const avatarBg = done ? "var(--teal)" : status==="in-progress" ? "#3b82f6" : status==="link-sent" ? "#f59e0b" : "#e2e8f0";
+    const avatarClr = status==="not-started" ? "var(--navy)" : "#fff";
+
     return `
-      <div style="display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;${rowBg}">
-        <div style="width:4px;flex-shrink:0;background:${accentColor}"></div>
-        <div style="flex:1;padding:14px 16px;min-width:0">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:10px;min-width:0">
-              <div style="width:36px;height:36px;border-radius:50%;background:${done ? "var(--teal)" : "#e2e8f0"};color:${done ? "#fff" : "var(--navy)"};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">${escapeHtml((u.label[0] || "Q").toUpperCase())}</div>
-              <div style="min-width:0">
-                <div style="font-weight:700;font-size:14px;color:var(--navy)">${escapeHtml(u.label)}</div>
-                <div style="font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(memberNames) || "—"}</div>
+      <div style="border:1.5px solid var(--line);border-left:3px solid ${accentColor};border-radius:var(--radius);overflow:hidden;margin-bottom:10px;${rowBg}">
+        <div style="padding:14px 16px;min-width:0">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:${avatarBg};color:${avatarClr};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0">${escapeHtml((u.label[0] || "Q").toUpperCase())}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-weight:700;font-size:14px;color:var(--navy)">${escapeHtml(u.label)}</span>
+                ${statusPill}
+                ${resendBtn}
+                ${viewAnswersBtn}
               </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-              ${statusBadge}
-              ${actionBtn}
+              <div style="font-size:12px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(memberNames) || "—"}${urgencyText ? ` &middot; ${urgencyText}` : ""}</div>
+              ${stepperHTML}
             </div>
           </div>
           ${fillModeSection}
         </div>
       </div>`;
   }).join("");
+
+  const pendingUnits = !allDone ? units.filter(u => !qState.unitCompletions[u.familyId]) : [];
+  let blockerBar = "";
+  if (!allDone && pendingUnits.length > 0) {
+    const names = pendingUnits.slice(0, 2).map(u => {
+      const primary = u.primaryTraveller || u.travellers[0];
+      return primary ? (primary.firstName || "").trim() || u.label : u.label;
+    }).filter(Boolean);
+    const rest = pendingUnits.length > 2 ? ` and ${pendingUnits.length - 2} more` : "";
+    const nameStr = names.join(", ") + rest;
+    blockerBar = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px;flex-shrink:0">&#x26A0;&#xFE0F;</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:#92400e">${pendingUnits.length === 1 ? "1 traveller is" : pendingUnits.length + " travellers are"} holding up the application</div>
+        <div style="font-size:12px;color:#b45309;margin-top:2px">${escapeHtml(nameStr)} ${pendingUnits.length === 1 ? "hasn't" : "haven't"} submitted yet</div>
+      </div>
+    </div>`;
+  }
 
   const progressBar = units.length > 1 ? `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
@@ -340,6 +369,7 @@ function renderUnitOverviewHTML(units) {
         <button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Case details</button>
       </div>
       <div class="panel-body">
+        ${blockerBar}
         ${progressBar}
         ${rows}
         ${allDone
