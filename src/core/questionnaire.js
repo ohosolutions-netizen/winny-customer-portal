@@ -183,17 +183,16 @@ function renderUnitOverviewHTML(units) {
         ? `<span class="badge" style="font-size:11px;white-space:nowrap;background:#fff8e1;color:#b45309;border:1px solid #fde68a">&#x23F3; Awaiting traveller</span>`
         : `<span class="badge" style="font-size:11px;white-space:nowrap;opacity:.7">Pending</span>`;
 
-    // Fill mode toggle (not shown for minor-only units)
+    // Action buttons (not shown for minor-only units)
     const fillModeToggle = u.minorOnly ? "" : `
       <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--muted);flex-shrink:0">Who fills:</span>
         <button
-          class="btn${unitFillMode === "owner" ? " primary" : " ghost"}"
+          class="btn primary"
           type="button" style="font-size:12px;padding:3px 10px"
-          onclick="qSetUnitFillMode('${fid}','owner')"
+          onclick="qStartUnit(${u.index})"
         >&#x270F;&#xFE0F; I fill it</button>
         <button
-          class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
+          class="btn ghost"
           type="button" style="font-size:12px;padding:3px 10px"
           onclick="qSendLinkToTraveller('${fid}')"
         >&#x1F517; Send link to traveller</button>
@@ -249,9 +248,7 @@ function renderUnitOverviewHTML(units) {
 
     const actionBtn = done
       ? `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
-      : unitFillMode === "link"
-        ? ""
-        : `<button class="btn primary" type="button" style="white-space:nowrap" onclick="qStartUnit(${u.index})">Fill questionnaire &#x2192;</button>`;
+      : "";
 
     return `
       <div style="display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px;${rowBg}">
