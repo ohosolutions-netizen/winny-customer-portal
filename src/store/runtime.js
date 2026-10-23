@@ -117,6 +117,7 @@ export const state = {
       applicationsLoading: true,
       applicationSelectionLoading: false,
       dealSubStep: 1,
+      activeFamilyUnit: null,    // familyId of the unit active in CIF + Documents (null = all, single-unit)
       activeCifCategory: null,
       activeGenericCifCategory: null,
       activeCifTraveller: null,

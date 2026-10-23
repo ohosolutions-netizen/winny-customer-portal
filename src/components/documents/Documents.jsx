@@ -7,7 +7,7 @@ import { loadDocumentChecklist, renderDocuments } from "../../api/documents.js";
 // exposes the inline handlers on window, paints the current state on mount, and
 // ensures the checklist is loaded (navigation.showStep(3) also kicks it off; the
 // loading guard prevents a double fetch).
-const DOC_HANDLERS = ["loadDocumentChecklist", "viewDocumentFile", "handleDocumentFileSelected"];
+const DOC_HANDLERS = ["loadDocumentChecklist", "viewDocumentFile", "handleDocumentFileSelected", "switchDocumentUnit"];
 
 export default function Documents() {
   const ref = useRef(null);

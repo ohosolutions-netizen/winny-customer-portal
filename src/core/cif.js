@@ -30,7 +30,7 @@ import {
 import { submitPortalCrmRequest, pollCreatorRecord } from "../api/portal.js";
 import { saveDraft } from "./drafts.js";
 import { showStep } from "./navigation.js";
-import { isQuestionnaireChild, qQuestionnaireCountries } from "./questionnaire.js";
+import { isQuestionnaireChild, qQuestionnaireCountries, deriveQuestionnaireUnits } from "./questionnaire.js";
 import { reconcileTravellerCountries, isPaymentConfirmed } from "./deal.js";
 import { isFullyPaidStatus } from "./derive.js";
 import { saveDealData } from "../api/deal.js";
@@ -2938,8 +2938,49 @@ const traveller = travellers.find(t => t.id === travId);
         </div></section>`;
     }
 
+    // ── Family-unit isolation helpers ─────────────────────────────────────
+    // When two families share one application each group sees only their own
+    // travellers in CIF. activeFamilyUnitTravellers() returns the filtered list;
+    // cifFamilyUnitBanner() builds the switcher header; cifSwitchFamilyUnit()
+    // is the inline onclick handler exposed on window.
+    function activeFamilyUnitTravellers() {
+      const all = applicationData.deal.travellers || [];
+      const units = deriveQuestionnaireUnits();
+      if (units.length <= 1) return all;
+      let fid = state.activeFamilyUnit;
+      if (!fid || !units.some(u => u.familyId === fid)) {
+        fid = units[0].familyId;
+        state.activeFamilyUnit = fid;
+      }
+      const unit = units.find(u => u.familyId === fid);
+      return unit ? unit.travellers : all;
+    }
+
+    function cifFamilyUnitBanner() {
+      const units = deriveQuestionnaireUnits();
+      if (units.length <= 1) return "";
+      const activeFid = state.activeFamilyUnit || (units[0] && units[0].familyId);
+      const btns = units.map(u => {
+        const primary = u.primaryTraveller || u.travellers[0] || {};
+        const label = `${primary.firstName || ""} ${primary.lastName || ""}`.trim() || u.label;
+        const active = u.familyId === activeFid;
+        return `<button class="btn${active ? " primary" : " ghost"}" type="button" style="font-size:12px;padding:4px 12px" onclick="cifSwitchFamilyUnit('${escapeHtml(u.familyId)}')">${escapeHtml(label)}</button>`;
+      }).join("");
+      return `<div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:#1d4ed8;flex-shrink:0">&#x1F465; Viewing group:</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${btns}</div>
+      </div>`;
+    }
+
+    export function cifSwitchFamilyUnit(familyId) {
+      state.activeFamilyUnit = familyId;
+      state.activeCifTraveller = null;
+      renderCIF();
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     function renderCIF() {
-      const travellers = applicationData.deal.travellers;
+      const travellers = activeFamilyUnitTravellers();
       if (!travellers.length) {
         qs("#stepCIF").innerHTML = `<section class="wizard-panel"><div class="panel-body"><div class="qn qn-amber">No travellers found — go back to Step 1 to add travellers before filling the CIF.</div></div></section>`;
         return;
@@ -2954,13 +2995,19 @@ const traveller = travellers.find(t => t.id === travId);
       const instance = cifGetInstance(state.activeCifInstance);
       if (instance.type !== "uk") {
         cifRenderGeneric(instances, instance);
-        return;
+      } else {
+        renderUKCIF(instances, instance);
       }
-      renderUKCIF(instances, instance);
+      // Inject family-unit switcher banner at the top of the panel body
+      const banner = cifFamilyUnitBanner();
+      if (banner) {
+        const panelBody = qs("#stepCIF .panel-body");
+        if (panelBody) panelBody.insertAdjacentHTML("afterbegin", banner);
+      }
     }
 
     function renderUKCIF(instances, instance) {
-      const travellers = applicationData.deal.travellers;
+      const travellers = activeFamilyUnitTravellers();
       if (!travellers.length) {
         qs("#stepCIF").innerHTML = `<section class="wizard-panel"><div class="panel-body">
           <div class="qn qn-amber">No travellers found — go back to Step 1 to add travellers before filling the CIF.</div>

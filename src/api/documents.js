@@ -14,6 +14,42 @@ import { escapeHtml, safeJsonParse } from "../lib/utils.js";
 import { toast } from "../lib/ui.js";
 import { documentStatusMeta, isMandatoryDocument, isStrengthDocument, isDocumentReady } from "../core/derive.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
+import { deriveQuestionnaireUnits } from "../core/questionnaire.js";
+
+// ── Family-unit isolation for Documents ───────────────────────────────────
+function docActiveFamilyTravellerIds() {
+  const units = deriveQuestionnaireUnits();
+  if (units.length <= 1) return null; // null = no filter
+  let fid = state.activeFamilyUnit;
+  if (!fid || !units.some(u => u.familyId === fid)) {
+    fid = units[0].familyId;
+    state.activeFamilyUnit = fid;
+  }
+  const unit = units.find(u => u.familyId === fid);
+  return unit ? new Set(unit.travellers.map(t => t.id).filter(Boolean)) : null;
+}
+
+function docFamilyUnitBanner() {
+  const units = deriveQuestionnaireUnits();
+  if (units.length <= 1) return "";
+  const activeFid = state.activeFamilyUnit || (units[0] && units[0].familyId);
+  const btns = units.map(u => {
+    const primary = u.primaryTraveller || u.travellers[0] || {};
+    const label = `${primary.firstName || ""} ${primary.lastName || ""}`.trim() || u.label;
+    const active = u.familyId === activeFid;
+    return `<button class="btn${active ? " primary" : " ghost"}" type="button" style="font-size:12px;padding:4px 12px" onclick="switchDocumentUnit('${escapeHtml(u.familyId)}')">${escapeHtml(label)}</button>`;
+  }).join("");
+  return `<div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:700;color:#1d4ed8;flex-shrink:0">&#x1F465; Viewing group:</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${btns}</div>
+  </div>`;
+}
+
+export function switchDocumentUnit(familyId) {
+  state.activeFamilyUnit = familyId;
+  renderDocuments();
+}
+// ─────────────────────────────────────────────────────────────────────────
 
     async function loadDocumentChecklist(force = false) {
       const dealId = applicationData.deal.crmDealId;
@@ -152,7 +188,11 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
         return;
       }
 
-      const items = state.documents.items;
+      const _allItems = state.documents.items;
+      const _docUnitIds = docActiveFamilyTravellerIds();
+      const items = _docUnitIds
+        ? _allItems.filter(d => !d.travellerId || _docUnitIds.has(d.travellerId))
+        : _allItems;
       if (state.documents.loaded && !items.length) {
         target.innerHTML = `
           <section class="wizard-panel"><div class="panel-body">
@@ -240,6 +280,7 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
             <button class="btn ghost" type="button" onclick="loadDocumentChecklist(true)" title="Refresh">&#x21BA; Refresh</button>
           </div>
           <div class="panel-body">
+            ${docFamilyUnitBanner()}
             <div class="notice blue" style="margin-bottom:16px"><strong>&#x1F4CC; Mandatory documents must be uploaded</strong>
               <span>This checklist is complete only after every mandatory document is ready. Strength documents are recommended but do not block completion.</span></div>
             <div class="q-prog-card" style="margin-bottom:18px">
