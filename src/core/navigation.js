@@ -55,7 +55,7 @@ export function nextStep() {
     }
     if (!applicationData.stepStatus.dealCompleted) { toast("Confirm payment to unlock the questionnaire."); return; }
   }
-  if (applicationData.currentStep === 2 && !applicationData.stepStatus.questionnaireCompleted) { submitQuestionnaire(); return; }
+  if (applicationData.currentStep === 2 && !applicationData.stepStatus.questionnaireCompleted) { toast("Please complete the questionnaire for all travellers before moving to the next stage."); return; }
   if (applicationData.currentStep === 4) {
     const crmApplicationIds = applicationData.crmSync?.applicationIds || [];
     if (!applicationData.stepStatus.cifCompleted || crmApplicationIds.length === 0) {
