@@ -1069,6 +1069,7 @@ export function qBuildLink(token, traveller) {
     Client_Name: clientName,
     Traveller_Type: travellerType,
     ...(familyGroup ? { Family_Group: familyGroup } : {}),
+    ...(traveller?.crmId ? { Primary_Traveller_ID: traveller.crmId } : {}),
     ...(dateFrom ? { Approx_Travel_Start_Date: dateFrom } : {}),
     ...(dateTo   ? { Approx_Travel_End_Date:   dateTo   } : {}),
   });

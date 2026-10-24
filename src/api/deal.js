@@ -880,6 +880,7 @@ async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
     Country:         countryValues.join(","),
     Date_From:       sp.get("Approx_Travel_Start_Date") || "",
     Date_To:         sp.get("Approx_Travel_End_Date")   || "",
+    Traveller_ID:    sp.get("Primary_Traveller_ID")     || "",
   };
   console.log("[Winny:QuestionnaireEmail] sending — data:", recordData);
   try {
