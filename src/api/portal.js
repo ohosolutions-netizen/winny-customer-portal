@@ -897,13 +897,17 @@ if (questionnaireSubmitted) {
     });
   }
 
-  // If per-unit tracking exists in the draft, use it to decide if ALL units are done.
-  // Without unit tracking (old data / first load) the CRM flag is treated as fully done.
+  // If per-unit tracking exists, use it to decide if ALL units are done.
+  // Without unit tracking on a multi-unit deal, assume partial — checkExternalQuestionnaireSubmission
+  // will determine actual per-unit state. For single-unit deals the CRM flag alone is sufficient.
   const submittedUnits = applicationData.questionnaire.submittedUnits || {};
   const hasUnitTracking = Object.keys(submittedUnits).length > 0;
   const travellers = applicationData.deal.travellers || [];
-  const allDone = !hasUnitTracking ||
-    travellers.every(t => submittedUnits[t.id || t.familyId || "family-1"]);
+  const _distinctFamilyIds = [...new Set(travellers.map(t => t.familyId || "family-1"))];
+  const isMultiUnit = _distinctFamilyIds.length > 1;
+  const allDone = hasUnitTracking
+    ? travellers.every(t => submittedUnits[t.id || t.familyId || "family-1"])
+    : !isMultiUnit;
 
   if (allDone) {
     applicationData.stepStatus.questionnaireCompleted = true;
