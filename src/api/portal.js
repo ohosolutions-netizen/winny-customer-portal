@@ -637,6 +637,24 @@ function hydrateApplicationDetails(details) {
       if (snap.qCreatorRecordId) t.qCreatorRecordId = snap.qCreatorRecordId;
     });
 
+    // If the saved externalPayer matches the primary applicant, the payer fields
+    // contain the customer's own contact data — not a real third-party payer.
+    // Reset to a blank "primary" state so the someone-else form opens clean.
+    {
+      const _ep = applicationData.deal.externalPayer || {};
+      const _pt = (applicationData.deal.travellers || []).find(t => t.type === "Primary Applicant") || {};
+      const _ptName  = `${_pt.firstName || ""} ${_pt.lastName || ""}`.trim().toLowerCase();
+      const _ptEmail = (_pt.email || applicationData.customer?.email || "").toLowerCase().trim();
+      const _epName  = String(_ep.name  || "").toLowerCase().trim();
+      const _epEmail = String(_ep.email || "").toLowerCase().trim();
+      const _isSelf  = (_ptName  && _epName  && _epName  === _ptName)
+                    || (_ptEmail && _epEmail && _epEmail === _ptEmail);
+      if (_isSelf) {
+        applicationData.deal.externalPayer = { name: "", email: "", mobile: "", relation: "" };
+        applicationData.deal.payerMode = "primary";
+      }
+    }
+
     const travellerFamilyGroups =
       applicationData.deal.travellerFamilyGroups &&
       typeof applicationData.deal.travellerFamilyGroups === "object"
