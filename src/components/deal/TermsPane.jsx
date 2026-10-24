@@ -89,6 +89,43 @@ export default function TermsPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Restore termsAcceptances from agreementSigned when draft was lost after reload.
+  // termsAcceptances lives only in localStorage; agreementSigned is saved to CRM.
+  // If the primary applicant already signed (Step 4), Step 3 must have been complete too.
+  useEffect(() => {
+    const allTravellers = applicationData.deal.travellers || [];
+    const reqs = getTermsRequirements();
+    let changed = false;
+
+    const autoRestore = (key, familyId, familyLabel, country) => {
+      const existing = (applicationData.deal.termsAcceptances || {})[key] || {};
+      if (existing.accepted) return;
+      const primary = allTravellers.find(
+        (t) => (t.familyId || "family-1") === familyId && t.type === "Primary Applicant"
+      );
+      if (!primary || !primary.agreementSigned) return;
+      const fullName = `${primary.firstName || ""} ${primary.lastName || ""}`.trim();
+      if (!applicationData.deal.termsAcceptances) applicationData.deal.termsAcceptances = {};
+      applicationData.deal.termsAcceptances[key] = {
+        ...existing,
+        familyId, familyLabel, country,
+        acceptorId: primary.id,
+        acceptorName: fullName,
+        signature: fullName,
+        accepted: true,
+        acceptedAt: primary.agreementSignedAt || new Date().toISOString(),
+      };
+      changed = true;
+    };
+
+    reqs.forEach((req) => autoRestore(req.key, req.familyId, req.familyLabel, req.country));
+    for (const sf of getSignatureOnlyFamilies()) {
+      autoRestore(termsAcceptanceKey(sf.id, GENERIC_AGREEMENT_COUNTRY), sf.id, sf.label, GENERIC_AGREEMENT_COUNTRY);
+    }
+    if (changed) requestRender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const families = [];
   requirements.forEach((requirement) => {
     let family = families.find((item) => item.id === requirement.familyId);
