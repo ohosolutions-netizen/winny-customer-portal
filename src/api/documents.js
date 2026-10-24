@@ -26,7 +26,13 @@ function docActiveFamilyTravellerIds() {
     state.activeFamilyUnit = fid;
   }
   const unit = units.find(u => u.familyId === fid);
-  return unit ? new Set(unit.travellers.map(t => t.id).filter(Boolean)) : null;
+  if (!unit) return null;
+  const ids = new Set();
+  unit.travellers.forEach(t => {
+    if (t.id) ids.add(t.id);
+    if (t.crmId) ids.add(t.crmId);
+  });
+  return ids;
 }
 
 function docFamilyUnitBanner() {
