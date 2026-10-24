@@ -299,7 +299,7 @@ export default function AgreementCard({ traveller, onSigned }) {
       {error ? <div className="notice red agreement-card-error">{error}</div> : null}
 
       {!sent ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div>
           <button
             className="btn primary"
             type="button"
@@ -308,15 +308,18 @@ export default function AgreementCard({ traveller, onSigned }) {
           >
             {sending ? "Sending OTP…" : "Send OTP to email"}
           </button>
-          <button
-            className="btn secondary"
-            type="button"
-            onClick={handleSendWithAgreement}
-            disabled={sending || !email}
-            title="Sends OTP + a copy of the agreement PDF to the traveller's email"
-          >
-            {sending ? "Sending…" : "Send OTP with Agreement"}
-          </button>
+          {email && (
+            <div style={{ marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={handleSendWithAgreement}
+                disabled={sending}
+                style={{ background: "none", border: "none", padding: 0, fontSize: "0.8em", color: "var(--link, #2563eb)", cursor: sending ? "not-allowed" : "pointer", textDecoration: "underline" }}
+              >
+                {sending ? "Sending…" : "Also send a copy of the agreement PDF →"}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="agreement-otp-entry">
