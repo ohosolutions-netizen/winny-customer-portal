@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { applicationData } from "../../store/runtime.js";
 import { markAutoSavePending, requestRender } from "../../lib/ui.js";
 
@@ -33,10 +33,19 @@ function setExternalPayerField(field, value) {
   requestRender();
 }
 
+function validateMobile(val) {
+  const digits = val.replace(/\D/g, "");
+  if (!val.trim()) return "";
+  if (digits.length < 7)  return "Mobile number is too short (min 7 digits).";
+  if (digits.length > 15) return "Mobile number is too long (max 15 digits).";
+  return "";
+}
+
 export default function PayerModeSelector() {
   const deal = applicationData.deal;
   const mode = deal.payerMode || "primary";
   const payer = deal.externalPayer || {};
+  const [mobileError, setMobileError] = useState("");
 
   // Count distinct family groups — "per-group" only makes sense for 2+
   const groupIds = [...new Set((deal.travellers || []).map((t) => t.familyId || "family-1"))];
@@ -88,8 +97,20 @@ export default function PayerModeSelector() {
                 type="tel"
                 placeholder="+91 98200 00000"
                 value={payer.mobile || ""}
-                onChange={(e) => setExternalPayerField("mobile", e.target.value)}
+                onChange={(e) => {
+                  // Allow digits, +, spaces, hyphens only; strip everything else
+                  const cleaned = e.target.value.replace(/[^\d+\s\-]/g, "");
+                  setExternalPayerField("mobile", cleaned);
+                  setMobileError(validateMobile(cleaned));
+                }}
+                onBlur={(e) => setMobileError(validateMobile(e.target.value))}
+                style={mobileError ? { borderColor: "var(--danger, #dc2626)" } : undefined}
               />
+              {mobileError && (
+                <span style={{ fontSize: "0.78em", color: "var(--danger, #dc2626)", marginTop: 2 }}>
+                  {mobileError}
+                </span>
+              )}
             </label>
             <label className="field">
               <span>Relation to Applicant</span>
