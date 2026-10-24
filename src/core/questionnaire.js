@@ -378,18 +378,31 @@ function renderUnitOverviewHTML(units) {
       <span style="font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0">${doneCount} of ${units.length} completed</span>
     </div>` : "";
 
+  const isFullyLocked = allDone && applicationData.stepStatus.questionnaireCompleted;
+  const recordId = isFullyLocked ? String(applicationData.questionnaire.creatorRecordId || "").trim() : "";
+  const lockedNotice = isFullyLocked ? `
+    <div class="notice teal" style="margin-bottom:14px">
+      <strong>&#x2713; Questionnaire submitted</strong>
+      <span>All answers have been received and are now locked.${recordId ? ` Reference: ${escapeHtml(recordId)}.` : ""} Contact your case officer to make corrections.</span>
+    </div>` : "";
+
   return `
     <section class="wizard-panel">
       <div class="panel-head">
         <div>
           <h3>Visa Questionnaire</h3>
-          <p>${units.length === 1
-            ? "Complete the questionnaire for this application."
-            : `Fill in the questionnaire for each group below. You can do them in any order.`}</p>
+          <p>${isFullyLocked
+            ? "All questionnaires have been submitted."
+            : units.length === 1
+              ? "Complete the questionnaire for this application."
+              : `Fill in the questionnaire for each group below. You can do them in any order.`}</p>
         </div>
-        <button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Case details</button>
+        ${isFullyLocked
+          ? `<span class="badge done">Submitted</span>`
+          : `<button class="btn ghost" type="button" style="padding:6px 14px;font-size:13px" onclick="qGoToCommon()">&#x2190; Case details</button>`}
       </div>
       <div class="panel-body">
+        ${lockedNotice}
         ${blockerBar}
         ${progressBar}
         ${rows}
@@ -1178,63 +1191,9 @@ export function qResetLink(familyId) {
    * Do not render its editable controls again.
    */
   if (applicationData.stepStatus.questionnaireCompleted) {
-    const recordId =
-      String(
-        applicationData.questionnaire.creatorRecordId || ""
-      ).trim();
-
-    return `
-      <section class="wizard-panel">
-        <div class="panel-head">
-          <div>
-            <h3>Case Questionnaire</h3>
-            <p>Your questionnaire has already been submitted.</p>
-          </div>
-          <span class="badge done">Submitted</span>
-        </div>
-
-        <div class="panel-body">
-          <div class="notice teal">
-            <strong>&#x2713; Questionnaire submitted</strong>
-            <span>
-              Your answers have been received and the questionnaire is now
-              locked. Please contact your case officer if any information
-              needs to be corrected.
-            </span>
-          </div>
-
-          ${
-            recordId
-              ? `<div style="margin-top:12px;font-size:12px;color:var(--muted)">
-                   Reference: ${escapeHtml(recordId)}
-                 </div>`
-              : ""
-          }
-
-          ${(() => {
-            const completedUnits = deriveQuestionnaireUnits();
-            if (!completedUnits.length) return "";
-            const btns = completedUnits.map(u => {
-              const label = u.label || "Questionnaire";
-              const safeFid = escapeHtml(u.familyId);
-              return `<button class="btn ghost" type="button" style="white-space:nowrap" onclick="qViewAnswers('${safeFid}')">View answers${completedUnits.length > 1 ? ` — ${escapeHtml(label)}` : ""}</button>`;
-            }).join(" ");
-            return `<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">${btns}</div>`;
-          })()}
-
-          <div style="margin-top:18px">
-            <button
-              class="btn primary"
-              type="button"
-              data-step-nav="3"
-            >
-              Continue to Document Checklist
-            </button>
-          </div>
-        </div>
-      </section>`;
-
-    return;
+    // Show the per-unit overview (which displays each traveller's Submitted status)
+    // rather than a flat locked panel — the user can still see who submitted what.
+    return renderUnitOverviewHTML(deriveQuestionnaireUnits());
   }
   // ── Grouping logic: determine which questionnaire unit is active ──────────
   const _units = deriveQuestionnaireUnits();

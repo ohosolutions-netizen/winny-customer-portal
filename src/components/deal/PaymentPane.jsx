@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { applicationData } from "../../store/runtime.js";
 import { packageCatalog } from "../../config/config.js";
 import { formatCurrency } from "../../lib/utils.js";
@@ -39,6 +39,7 @@ function buildInvoiceLines(serviceBasket, travellers) {
 // Reproduces renderDealPane() sub-step 4 — Payment (source 2720-2797).
 export default function PaymentPane() {
   const confirmed = isPaymentConfirmed();
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     // Push any pending billing/payer data to CRM, then refresh payment status.
@@ -48,6 +49,14 @@ export default function PaymentPane() {
       .finally(() => refreshCurrentDealFromCrm(false).then(requestRender).catch(() => {}));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function handleCheckStatus() {
+    setChecking(true);
+    refreshCurrentDealFromCrm(false)
+      .then(requestRender)
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }
 
   const basketItems = applicationData.deal.serviceBasket || [];
   syncPaymentBreakdown();
@@ -160,6 +169,10 @@ export default function PaymentPane() {
                 🔒 Pay {formatCurrency(payableAmount)} securely
               </button>
               <div style={{ textAlign: "center", fontSize: 12, color: "var(--muted)" }}>UPI · Card · Net Banking &nbsp;·&nbsp; Secured by Zoho Payments</div>
+              <button type="button" onClick={handleCheckStatus} disabled={checking}
+                style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: "2px 0", alignSelf: "center" }}>
+                {checking ? "Checking…" : "Already paid? Check payment status"}
+              </button>
             </div>
           </>
         )}

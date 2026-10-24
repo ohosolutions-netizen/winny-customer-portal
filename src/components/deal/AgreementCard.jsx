@@ -22,7 +22,11 @@ export default function AgreementCard({ traveller, onSigned }) {
   const email = traveller.email || "";
   const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Primary Applicant";
   const loggedInEmail = (applicationData.crmSync?.loggedInEmail || "").toLowerCase().trim();
-  const isLoggedInUser = !!(email && loggedInEmail && email.toLowerCase().trim() === loggedInEmail);
+  const customerEmail = (applicationData.customer?.email || "").toLowerCase().trim();
+  const isLoggedInUser = !!(loggedInEmail && (
+    (email && email.toLowerCase().trim() === loggedInEmail) ||
+    (traveller.type === "Primary Applicant" && customerEmail && customerEmail === loggedInEmail)
+  ));
 
   function buildAgreementEmailArgs(overrides = {}) {
     const c = applicationData.customer || {};
