@@ -21,6 +21,8 @@ export default function AgreementCard({ traveller, onSigned }) {
 
   const email = traveller.email || "";
   const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Primary Applicant";
+  const loggedInEmail = (applicationData.crmSync?.loggedInEmail || "").toLowerCase().trim();
+  const isLoggedInUser = !!(email && loggedInEmail && email.toLowerCase().trim() === loggedInEmail);
 
   function buildAgreementEmailArgs(overrides = {}) {
     const c = applicationData.customer || {};
@@ -95,8 +97,14 @@ export default function AgreementCard({ traveller, onSigned }) {
     );
   }
 
-  // Portal access toggle — shown in both states
-  const portalToggle = (
+  // Portal access toggle — locked when the traveller is the currently logged-in user
+  const portalToggle = isLoggedInUser ? (
+    <label className="agreement-portal-toggle" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: "0.85em", color: "var(--text-muted, #666)", cursor: "not-allowed" }}
+      title="Cannot remove portal access for the currently signed-in user">
+      <input type="checkbox" checked disabled style={{ cursor: "not-allowed" }} />
+      Traveller has portal access <span style={{ fontSize: "0.9em", color: "#888", marginLeft: 4 }}>(signed-in user — locked)</span>
+    </label>
+  ) : (
     <label className="agreement-portal-toggle" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: "0.85em", color: "var(--text-muted, #666)", cursor: "pointer" }}>
       <input
         type="checkbox"
