@@ -1439,19 +1439,34 @@ const crmPayerEmail    = readZohoValue(deal.Payer_Email);
 const crmPayerMobile   = readZohoValue(deal.Payer_Mobile);
 const crmPayerRelation = readZohoValue(deal.Payer_Relation);
 const crmInvoiceInPayerName = readZohoValue(deal.Invoice_in_Payer_Name);
-// Only restore payer details from CRM when the deal was in someone-else mode.
-// If mode is "primary", CRM payer fields may contain the primary customer's own
-// contact data (written by Deluge), which would pre-fill the someone-else form.
+// Only restore payer details from CRM when the deal was in someone-else mode
+// AND the saved payer isn't the primary applicant themselves.
+// Deluge sometimes writes the contact's own name/email into payer fields;
+// restoring that would pre-fill the "someone else" form with the customer's own data.
 const incomingPayerModeLower = crmPayerMode ? crmPayerMode.toLowerCase() : "";
 if ((crmPayerName || crmPayerEmail || crmPayerMobile || crmPayerRelation) && incomingPayerModeLower === "someone-else") {
-  if (!applicationData.deal.externalPayer) applicationData.deal.externalPayer = {};
-  if (crmPayerName)     applicationData.deal.externalPayer.name     = String(crmPayerName);
-  if (crmPayerEmail)    applicationData.deal.externalPayer.email    = String(crmPayerEmail);
-  if (crmPayerMobile)   applicationData.deal.externalPayer.mobile   = String(crmPayerMobile);
-  if (crmPayerRelation) applicationData.deal.externalPayer.relation = String(crmPayerRelation);
-  if (crmInvoiceInPayerName !== null && crmInvoiceInPayerName !== undefined && crmInvoiceInPayerName !== "") {
-    applicationData.deal.externalPayer.invoiceInPayerName =
-      crmInvoiceInPayerName === true || String(crmInvoiceInPayerName).toLowerCase() === "true";
+  const _primaryT = (applicationData.deal.travellers || []).find(t => t.type === "Primary Applicant") || {};
+  const _primaryName  = `${_primaryT.firstName || ""} ${_primaryT.lastName || ""}`.trim().toLowerCase();
+  const _primaryEmail = (_primaryT.email || applicationData.customer?.email || "").toLowerCase().trim();
+  const _payerName    = String(crmPayerName  || "").toLowerCase().trim();
+  const _payerEmail   = String(crmPayerEmail || "").toLowerCase().trim();
+  const _isSelf = (_primaryName  && _payerName  && _payerName  === _primaryName)
+               || (_primaryEmail && _payerEmail && _payerEmail === _primaryEmail);
+  if (!_isSelf) {
+    if (!applicationData.deal.externalPayer) applicationData.deal.externalPayer = {};
+    if (crmPayerName)     applicationData.deal.externalPayer.name     = String(crmPayerName);
+    if (crmPayerEmail)    applicationData.deal.externalPayer.email    = String(crmPayerEmail);
+    if (crmPayerMobile)   applicationData.deal.externalPayer.mobile   = String(crmPayerMobile);
+    if (crmPayerRelation) applicationData.deal.externalPayer.relation = String(crmPayerRelation);
+    if (crmInvoiceInPayerName !== null && crmInvoiceInPayerName !== undefined && crmInvoiceInPayerName !== "") {
+      applicationData.deal.externalPayer.invoiceInPayerName =
+        crmInvoiceInPayerName === true || String(crmInvoiceInPayerName).toLowerCase() === "true";
+    }
+  } else {
+    // Payer fields contain the primary applicant's own data — reset to blank
+    // so the "someone else" form opens empty for a real third-party payer.
+    applicationData.deal.externalPayer = { name: "", email: "", mobile: "", relation: "" };
+    applicationData.deal.payerMode = "primary";
   }
 }
 
