@@ -36,8 +36,7 @@ function setExternalPayerField(field, value) {
 function validateMobile(val) {
   const digits = val.replace(/\D/g, "");
   if (!val.trim()) return "";
-  if (digits.length < 7)  return "Mobile number is too short (min 7 digits).";
-  if (digits.length > 15) return "Mobile number is too long (max 15 digits).";
+  if (digits.length < 10) return "Mobile number must be 10 digits.";
   return "";
 }
 
@@ -98,12 +97,13 @@ export default function PayerModeSelector() {
                 placeholder="+91 98200 00000"
                 value={payer.mobile || ""}
                 onChange={(e) => {
-                  // Allow digits, +, spaces, hyphens only; strip everything else
-                  const cleaned = e.target.value.replace(/[^\d+\s\-]/g, "");
-                  setExternalPayerField("mobile", cleaned);
-                  setMobileError(validateMobile(cleaned));
+                  // Keep only digits, hard-cap at 10
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setExternalPayerField("mobile", digits);
+                  setMobileError(validateMobile(digits));
                 }}
                 onBlur={(e) => setMobileError(validateMobile(e.target.value))}
+                maxLength={10}
                 style={mobileError ? { borderColor: "var(--danger, #dc2626)" } : undefined}
               />
               {mobileError && (
