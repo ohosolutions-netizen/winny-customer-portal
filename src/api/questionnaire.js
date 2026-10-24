@@ -208,6 +208,7 @@ async function saveQuestionnaire(familyId) {
     Q_Token: qToken,
     Family_Group: familyId,
     Primary_Traveller_ID: unitPrimary.crmId || "",
+    Data_Sharing_Consent: !!((q.unitConsents || {})[familyId]),
 
     Applying_for_Country1: applyingCountries,
     Applying_for_Country:  applyingCountries[0] || "",
@@ -433,6 +434,20 @@ async function submitQuestionnaire(familyId = "family-1") {
   if (!applicationData.deal.crmDealId) {
     state.submittingQuestionnaire = false;
     return fail("No CRM Deal ID found. Please open the correct application or save the deal again before submitting the questionnaire.");
+  }
+
+  // For corporate/friends apps, portal-fill = implicit consent (agent acts on behalf)
+  {
+    const appType = (applicationData.deal.applicationType || "").toLowerCase();
+    if (appType === "corporate" || appType === "friends") {
+      const _units = deriveQuestionnaireUnits();
+      const _unit = _units.find(u => u.familyId === familyId);
+      const _fillMode = (_unit?.travellers[0] || {}).qFillMode || "owner";
+      if (_fillMode !== "link") {
+        if (!applicationData.questionnaire.unitConsents) applicationData.questionnaire.unitConsents = {};
+        applicationData.questionnaire.unitConsents[familyId] = true;
+      }
+    }
   }
 
   showLoader("Saving questionnaire…");
@@ -667,6 +682,17 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       applicationData.questionnaire.submittedUnits[fg] = true;
       if (qState.unitCompletions) qState.unitCompletions[fg] = true;
       changed = true;
+    }
+
+    // Read Data_Sharing_Consent from Creator record
+    const rawConsent = r.Data_Sharing_Consent;
+    const consentGiven = rawConsent === true || rawConsent === "true" || rawConsent === "1" || rawConsent === 1 || String(rawConsent || "").toLowerCase() === "yes";
+    if (consentGiven && fg) {
+      if (!applicationData.questionnaire.unitConsents) applicationData.questionnaire.unitConsents = {};
+      if (!applicationData.questionnaire.unitConsents[fg]) {
+        applicationData.questionnaire.unitConsents[fg] = true;
+        changed = true;
+      }
     }
   }
 

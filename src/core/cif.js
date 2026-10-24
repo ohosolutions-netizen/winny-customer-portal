@@ -30,7 +30,7 @@ import {
 import { submitPortalCrmRequest, pollCreatorRecord } from "../api/portal.js";
 import { saveDraft } from "./drafts.js";
 import { showStep } from "./navigation.js";
-import { isQuestionnaireChild, qQuestionnaireCountries, deriveQuestionnaireUnits } from "./questionnaire.js";
+import { isQuestionnaireChild, qQuestionnaireCountries, deriveQuestionnaireUnits, unitHasConsent } from "./questionnaire.js";
 import { reconcileTravellerCountries, isPaymentConfirmed } from "./deal.js";
 import { isFullyPaidStatus } from "./derive.js";
 import { saveDealData } from "../api/deal.js";
@@ -1306,6 +1306,17 @@ if (finance) {
             const name = `${t.firstName || ""} ${t.lastName || ""}`.trim() || "Traveller";
             const avClass = t.type === "Spouse" ? "sp" : t.type === "Child" ? "ch" : "";
             const initials = `${(t.firstName || "")[0] || ""}${(t.lastName || "")[0] || ""}`.toUpperCase() || "T";
+            const tFamilyId = t.id || t.familyId || "family-1";
+            if (!unitHasConsent(tFamilyId)) {
+              return `<div class="cifx-mc" style="opacity:0.65;cursor:not-allowed">
+                <div class="cifx-mc-top">
+                  <div class="cifx-mc-av ${avClass}" style="filter:grayscale(1)">${escapeHtml(initials)}</div>
+                  <div style="flex:1"><div class="cifx-mc-name">${escapeHtml(name)}</div><div class="cifx-mc-role">${escapeHtml(t.type || "Traveller")}</div></div>
+                  <span class="cifx-pill" style="flex-shrink:0;background:#f3f4f6;color:#6b7280;border-color:#e5e7eb">&#x1F512; Consent pending</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Traveller hasn't consented to sharing their data yet</div>
+              </div>`;
+            }
             const pct = instance?.type === "uk" ? cifOverallProgress(t.id) : cifGenericProgress(t.id, instance);
             const isActive = t.id === state.activeCifTraveller;
             const saved = cifIsInstanceSaved(t.id, instance?.id);
@@ -2992,6 +3003,10 @@ const traveller = travellers.find(t => t.id === travId);
         return;
       }
       if (!state.activeCifTraveller || !travellers.some(t => t.id === state.activeCifTraveller)) state.activeCifTraveller = travellers[0].id;
+      if (!unitHasConsent(state.activeCifTraveller)) {
+        const firstConsented = travellers.find(t => unitHasConsent(t.id || t.familyId || "family-1"));
+        if (firstConsented) state.activeCifTraveller = firstConsented.id;
+      }
       const instance = cifGetInstance(state.activeCifInstance);
       if (instance.type !== "uk") {
         cifRenderGeneric(instances, instance);
@@ -3016,6 +3031,10 @@ const traveller = travellers.find(t => t.id === travId);
       }
       if (!state.activeCifTraveller || !travellers.find(t => t.id === state.activeCifTraveller)) {
         state.activeCifTraveller = travellers[0].id;
+      }
+      if (!unitHasConsent(state.activeCifTraveller)) {
+        const firstConsented = travellers.find(t => unitHasConsent(t.id || t.familyId || "family-1"));
+        if (firstConsented) state.activeCifTraveller = firstConsented.id;
       }
       const travId = state.activeCifTraveller;
       cifAutofillTraveller(travId);
@@ -3603,6 +3622,10 @@ async function cifSaveTraveller(travId) {
     }
 
     function cifSwitchTraveller(travId) {
+      if (!unitHasConsent(travId)) {
+        toast("This traveller hasn't consented to data sharing yet.");
+        return;
+      }
       state.activeCifTraveller = travId;
       renderCIF();
     }

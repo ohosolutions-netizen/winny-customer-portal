@@ -216,7 +216,36 @@ export function switchDocumentUnit(familyId) {
         byTraveller[key].docs.push(d);
       });
 
-      const travellerBlocks = Object.values(byTraveller).map((group) => `
+      const _docAppType = (applicationData.deal.applicationType || "").toLowerCase();
+      const _docConsentGated = _docAppType === "corporate" || _docAppType === "friends";
+      const _docTravMap = {};
+      (applicationData.deal.travellers || []).forEach(t => {
+        if (t.crmId) _docTravMap[t.crmId] = t;
+        if (t.id)    _docTravMap[t.id]    = t;
+      });
+
+      const travellerBlocks = Object.entries(byTraveller).map(([travKey, group]) => {
+        if (_docConsentGated && travKey !== "unassigned") {
+          const trav = _docTravMap[travKey];
+          if (trav) {
+            const fid = trav.id || trav.familyId || "family-1";
+            const units = deriveQuestionnaireUnits();
+            const consentOk = units.length <= 1 || !!((applicationData.questionnaire.unitConsents || {})[fid]);
+            if (!consentOk) {
+              return `<div class="person-block">
+                <div class="person-block-hd">
+                  <div class="pb-av pb-av-pa" style="filter:grayscale(1);opacity:0.6">${escapeHtml((group.name||"T")[0]||"T")}</div>
+                  <div class="pb-info"><div class="pb-name">${escapeHtml(group.name)}</div>
+                  <div class="pb-role" style="color:var(--muted)">&#x1F512; Consent pending</div></div>
+                </div>
+                <div style="padding:12px 14px;background:#f9fafb;border:1px solid var(--line);border-radius:8px;font-size:12.5px;color:var(--muted)">
+                  This traveller hasn't consented to sharing their data yet. Once they tick the consent checkbox in their questionnaire form, their documents will be visible here.
+                </div>
+              </div>`;
+            }
+          }
+        }
+        return `
         <div class="person-block">
           <div class="person-block-hd">
             <div class="pb-av pb-av-pa">${escapeHtml((group.name||"T")[0]||"T")}</div>
@@ -271,7 +300,8 @@ export function switchDocumentUnit(familyId) {
               </div>`;
             }).join("")}
           </div>
-        </div>`).join("");
+        </div>`;
+      }).join("");
 
       target.innerHTML = `
         <section class="wizard-panel">

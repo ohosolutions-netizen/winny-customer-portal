@@ -153,6 +153,17 @@ export function qBackToOverview() {
   rerenderQuestionnaire();
 }
 
+// ── Consent helper ─────────────────────────────────────────────────────────
+// Returns true if the coordinator may see this unit's data.
+// Only gated for friends/corporate multi-unit applications.
+export function unitHasConsent(familyId) {
+  const appType = (applicationData.deal.applicationType || "").toLowerCase();
+  if (appType !== "corporate" && appType !== "friends") return true;
+  const units = deriveQuestionnaireUnits();
+  if (units.length <= 1) return true;
+  return !!((applicationData.questionnaire.unitConsents || {})[familyId]);
+}
+
 // ── Unit overview panel ────────────────────────────────────────────────────
 function renderUnitOverviewHTML(units) {
   // Restore unit completions from persisted submittedUnits (survives page reload).
@@ -306,7 +317,9 @@ function renderUnitOverviewHTML(units) {
       : fillModeToggle + linkSection;
 
     const viewAnswersBtn = done
-      ? `<button class="btn ghost" type="button" style="font-size:11px;padding:2px 8px;flex-shrink:0;white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
+      ? (unitHasConsent(u.familyId)
+        ? `<button class="btn ghost" type="button" style="font-size:11px;padding:2px 8px;flex-shrink:0;white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
+        : `<span style="font-size:11px;padding:2px 8px;color:var(--muted);flex-shrink:0;white-space:nowrap;cursor:default" title="Traveller has not consented to data sharing">&#x1F512; Consent pending</span>`)
       : "";
 
     const avatarBg = done ? "var(--teal)" : status==="in-progress" ? "#3b82f6" : status==="link-sent" ? "#f59e0b" : "#e2e8f0";

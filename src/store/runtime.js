@@ -76,7 +76,8 @@ balanceAmount: 0, crmBalanceAmount: null,
         // Multi-unit support: per-family-group snapshot of trip-level shared fields
         // (purpose, maritalStatus, travelDates, etc.). Keyed by familyId.
         // The flat fields above always reflect the ACTIVE unit; swapped in/out by qStartUnit.
-        unitShared:          {}    // { familyId: { applyingCountries, purpose, purposeOther, functionType, maritalStatus, arrangements, travelDates, inviter, inviterRelation, inviterStatus, invitationLetter, multiAnswers } }
+        unitShared:          {},   // { familyId: { applyingCountries, purpose, purposeOther, functionType, maritalStatus, arrangements, travelDates, inviter, inviterRelation, inviterStatus, invitationLetter, multiAnswers } }
+        unitConsents:        {}    // { familyId: true } — set when traveller ticks Data_Sharing_Consent in questionnaire form
       },
        // 29-Jul-2026: Data is separated by traveller and destination CIF instance.
       // cifData[travellerId].instances[instanceId].f1/f2/f3/f4
