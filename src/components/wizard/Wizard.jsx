@@ -78,8 +78,10 @@ export default function Wizard() {
           </main>
 
           <footer id="wizardFooter" className="wizard-footer">
-            <button className="btn" type="button" onClick={() => goToDashboard()}>← Back to dashboard</button>
-            <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn" type="button" onClick={() => goToDashboard()}>← Back to dashboard</button>
+              <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
+            </div>
             <button className="btn primary" type="button" id="footerNext" disabled={nextDisabled} onClick={() => {
               if (applicationData.currentStep === 1 && state.dealSubStep === 2) {
                 const today = new Date().toISOString().slice(0, 10);

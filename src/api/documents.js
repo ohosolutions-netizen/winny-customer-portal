@@ -20,11 +20,8 @@ import { deriveQuestionnaireUnits } from "../core/questionnaire.js";
 function docActiveFamilyTravellerIds() {
   const units = deriveQuestionnaireUnits();
   if (units.length <= 1) return null; // null = no filter
-  let fid = state.activeFamilyUnit;
-  if (!fid || !units.some(u => u.familyId === fid)) {
-    fid = units[0].familyId;
-    state.activeFamilyUnit = fid;
-  }
+  const fid = state.activeFamilyUnit;
+  if (!fid || fid === "all" || !units.some(u => u.familyId === fid)) return null; // "all" = no filter
   const unit = units.find(u => u.familyId === fid);
   if (!unit) return null;
   const ids = new Set();
@@ -38,16 +35,17 @@ function docActiveFamilyTravellerIds() {
 function docFamilyUnitBanner() {
   const units = deriveQuestionnaireUnits();
   if (units.length <= 1) return "";
-  const activeFid = state.activeFamilyUnit || (units[0] && units[0].familyId);
-  const btns = units.map(u => {
+  const activeFid = state.activeFamilyUnit || "all";
+  const allBtn = `<button class="btn${activeFid === "all" ? " primary" : " ghost"}" type="button" style="font-size:12px;padding:4px 12px" onclick="switchDocumentUnit('all')">All travellers</button>`;
+  const unitBtns = units.map(u => {
     const primary = u.primaryTraveller || u.travellers[0] || {};
     const label = `${primary.firstName || ""} ${primary.lastName || ""}`.trim() || u.label;
     const active = u.familyId === activeFid;
     return `<button class="btn${active ? " primary" : " ghost"}" type="button" style="font-size:12px;padding:4px 12px" onclick="switchDocumentUnit('${escapeHtml(u.familyId)}')">${escapeHtml(label)}</button>`;
   }).join("");
   return `<div style="background:#f0f9ff;border:1px solid #bfdbfe;border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <span style="font-size:12px;font-weight:700;color:#1d4ed8;flex-shrink:0">&#x1F465; Viewing group:</span>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">${btns}</div>
+    <span style="font-size:12px;font-weight:700;color:#1d4ed8;flex-shrink:0">&#x1F465; Viewing:</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${allBtn}${unitBtns}</div>
   </div>`;
 }
 
