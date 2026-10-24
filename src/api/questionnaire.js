@@ -798,9 +798,8 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     console.log(`[Winny] Checking unit ${unit.familyId} by name "${tName}"`);
     if (tName) {
       try {
-        // Scope to this deal first; fall back to name-only if no match (admin records may lack CRM_ID)
-        let rows = dealId ? await creatorQuery(`CRM_ID == "${dealId}" && Client_Name == "${tName}"`) : [];
-        if (!rows.length) rows = await creatorQuery(`Client_Name == "${tName}"`);
+        // Always scope to this deal — a name-only fallback would match records from other deals.
+        const rows = dealId ? await creatorQuery(`CRM_ID == "${dealId}" && Client_Name == "${tName}"`) : [];
         if (rows.length) {
           console.log(`[Winny] Found questionnaire record by name "${tName}" for unit ${unit.familyId}`);
           applyRecord(rows[0], unit.familyId);
