@@ -871,6 +871,31 @@ async function fetchQCreatorRecord(dealId, unitKey) {
     console.warn("[Winny] fetchQCreatorRecord: Creator query failed:", err);
   }
 
+  // Fallback: external-link submissions may have no CRM_ID — try Q_Token and Primary_Traveller_ID
+  if (!allRecords.length && unitKey) {
+    const units = deriveQuestionnaireUnits();
+    const unit = units.find(u => u.familyId === unitKey);
+    const token = unit?.travellers.find(t => t.qToken)?.qToken;
+    const travCrmId = unit?.primaryTraveller?.crmId || "";
+    const tryFallback = async (criteria) => {
+      try {
+        if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+          const r = await ZOHO.CREATOR.DATA.getRecords({ app_name: CONFIG.creator.appLinkName, report_name: reportName, criteria });
+          if (Number(r?.code) === 3000 && Array.isArray(r?.data) && r.data.length) return r.data;
+        }
+        if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
+          const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${reportName}?criteria=${encodeURIComponent(criteria)}&page_size=10`;
+          const r = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+          const b = typeof r?.data === "string" ? (JSON.parse(r.data) || {}) : (r?.data || r || {});
+          if (Array.isArray(b?.data) && b.data.length) return b.data;
+        }
+      } catch (_) {}
+      return [];
+    };
+    if (token) allRecords = await tryFallback(`Q_Token == "${token}"`);
+    if (!allRecords.length && travCrmId) allRecords = await tryFallback(`Primary_Traveller_ID == "${travCrmId}"`);
+  }
+
   if (!allRecords.length) return null;
 
   // Find best-matching record (report gives us the ID; then we re-fetch by ID for full fields)
