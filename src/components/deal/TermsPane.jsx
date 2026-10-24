@@ -340,7 +340,11 @@ export default function TermsPane() {
                     ) : (
                       <AgreementCard
                         traveller={primaryApplicant}
-                        onSigned={() => { saveDraft(false); requestRender(); }}
+                        onSigned={() => {
+                          saveDraft(false);
+                          saveDealData({ syncOnly: true, silent: true }).catch(() => {});
+                          requestRender();
+                        }}
                       />
                     )}
                   </div>

@@ -74,13 +74,11 @@ export default function PaymentPane() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span className={`badge ${confirmed ? "done" : "pending"}`}>{applicationData.payment.status}</span>
           <button className="btn ghost" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => {
-            if (confirmed) {
-              // Push current portal state → CRM without hydrating (avoids overwriting user edits)
-              state.billingPushedForDealId = "";
-              saveDealData({ syncOnly: true, silent: false });
-            } else {
-              refreshCurrentDealFromCrm(false);
-            }
+            // Always push payer/billing data to CRM first, then refresh payment status.
+            state.billingPushedForDealId = "";
+            saveDealData({ syncOnly: true, silent: !confirmed })
+              .catch(() => {})
+              .finally(() => { if (!confirmed) refreshCurrentDealFromCrm(false); });
           }}>↺ {confirmed ? "Sync billing" : "Check status"}</button>
         </div>
       </div>

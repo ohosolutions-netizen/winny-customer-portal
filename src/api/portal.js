@@ -1439,7 +1439,11 @@ const crmPayerEmail    = readZohoValue(deal.Payer_Email);
 const crmPayerMobile   = readZohoValue(deal.Payer_Mobile);
 const crmPayerRelation = readZohoValue(deal.Payer_Relation);
 const crmInvoiceInPayerName = readZohoValue(deal.Invoice_in_Payer_Name);
-if (crmPayerName || crmPayerEmail || crmPayerMobile || crmPayerRelation) {
+// Only restore payer details from CRM when the deal was in someone-else mode.
+// If mode is "primary", CRM payer fields may contain the primary customer's own
+// contact data (written by Deluge), which would pre-fill the someone-else form.
+const incomingPayerModeLower = crmPayerMode ? crmPayerMode.toLowerCase() : "";
+if ((crmPayerName || crmPayerEmail || crmPayerMobile || crmPayerRelation) && incomingPayerModeLower === "someone-else") {
   if (!applicationData.deal.externalPayer) applicationData.deal.externalPayer = {};
   if (crmPayerName)     applicationData.deal.externalPayer.name     = String(crmPayerName);
   if (crmPayerEmail)    applicationData.deal.externalPayer.email    = String(crmPayerEmail);
