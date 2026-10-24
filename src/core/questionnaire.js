@@ -253,8 +253,8 @@ function renderUnitOverviewHTML(units) {
     const _sline = (filled) => `<span style="flex:1;height:1.5px;background:${filled?"var(--teal)":"var(--line)"};min-width:10px;margin-bottom:9px;align-self:center"></span>`;
     const stepperHTML = `<div style="display:flex;align-items:flex-end;gap:4px;margin-top:10px"><span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[0])}${_slbl(_stepStates[0],_stepLabels[0])}</span>${_sline(_stepStates[0]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[1])}${_slbl(_stepStates[1],_stepLabels[1])}</span>${_sline(_stepStates[1]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[2])}${_slbl(_stepStates[2],_stepLabels[2])}</span></div>`;
 
-    // Action buttons (not shown for minor-only units)
-    const fillModeToggle = u.minorOnly ? "" : `
+    // Action buttons — hidden once the unit is done (View answers handles review)
+    const fillModeToggle = (u.minorOnly || done) ? "" : `
       <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
         <button
           class="btn${unitFillMode === "link" ? " ghost" : " primary"}"
@@ -313,7 +313,13 @@ function renderUnitOverviewHTML(units) {
     }
 
     const fillModeSection = u.minorOnly
-      ? `<div style="font-size:12px;color:var(--muted);margin-top:8px">&#x1F9D2; Guardian / parent fills on behalf of the minor</div>`
+      ? (done ? "" : `
+          <div style="margin-top:8px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">&#x1F9D2; Guardian / parent fills on behalf of the minor</div>
+            <button class="btn primary" type="button" style="font-size:12px;padding:3px 10px"
+              onclick="qSetUnitFillMode('${fid}','owner');qStartUnit(${u.index})"
+            >&#x270F;&#xFE0F; Fill on behalf of minor</button>
+          </div>`)
       : fillModeToggle + linkSection;
 
     const viewAnswersBtn = done
