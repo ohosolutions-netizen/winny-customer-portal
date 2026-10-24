@@ -41,7 +41,11 @@ export default function PaymentPane() {
   const confirmed = isPaymentConfirmed();
 
   useEffect(() => {
-    refreshCurrentDealFromCrm(false).then(requestRender).catch(() => {});
+    // Push any pending billing/payer data to CRM, then refresh payment status.
+    state.billingPushedForDealId = "";
+    saveDealData({ syncOnly: true, silent: true })
+      .catch(() => {})
+      .finally(() => refreshCurrentDealFromCrm(false).then(requestRender).catch(() => {}));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -71,16 +75,7 @@ export default function PaymentPane() {
     <section className="wizard-panel">
       <div className="panel-head">
         <div><h3>Payment</h3><p>Review your order and pay securely via Zoho Payments.</p></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span className={`badge ${confirmed ? "done" : "pending"}`}>{applicationData.payment.status}</span>
-          <button className="btn ghost" type="button" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => {
-            // Always push payer/billing data to CRM first, then refresh payment status.
-            state.billingPushedForDealId = "";
-            saveDealData({ syncOnly: true, silent: !confirmed })
-              .catch(() => {})
-              .finally(() => { if (!confirmed) refreshCurrentDealFromCrm(false); });
-          }}>↺ {confirmed ? "Sync billing" : "Check status"}</button>
-        </div>
+        <span className={`badge ${confirmed ? "done" : "pending"}`}>{applicationData.payment.status}</span>
       </div>
       <div className="panel-body">
         <div className="invoice-card">
