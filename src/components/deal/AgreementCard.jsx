@@ -13,7 +13,7 @@ export default function AgreementCard({ traveller, onSigned }) {
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState("");
-  const [hasPortalAccess, setHasPortalAccess] = useState(traveller.portalAccess !== false);
+  const [hasPortalAccess, setHasPortalAccess] = useState(traveller.portalAccess === true);
   const [noPortalSent, setNoPortalSent] = useState(false);
   const [noPortalOtp, setNoPortalOtp] = useState("");
   const [noPortalVerifying, setNoPortalVerifying] = useState(false);
