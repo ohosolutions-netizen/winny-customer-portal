@@ -78,7 +78,7 @@ export default function Wizard() {
           </main>
 
           <footer id="wizardFooter" className="wizard-footer">
-            <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
+            <button className="btn ghost" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
             <button className="btn primary" type="button" id="footerNext" disabled={nextDisabled} onClick={() => {
               if (applicationData.currentStep === 1 && state.dealSubStep === 2) {
                 const today = new Date().toISOString().slice(0, 10);
