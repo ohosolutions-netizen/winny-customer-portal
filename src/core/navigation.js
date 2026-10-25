@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { applicationData, state } from "../store/runtime.js";
 import { toast, requestRender } from "../lib/ui.js";
-import { isStepLocked } from "./derive.js";
+import { isStepLocked, isVisitTravel } from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { refreshCurrentDealFromCrm } from "../api/portal.js";
 import { loadDocumentChecklist } from "../api/documents.js";
@@ -53,7 +53,8 @@ export function nextStep() {
       goDealSubStep(state.dealSubStep + 1);
       return;
     }
-    if (!applicationData.stepStatus.dealCompleted) { toast("Confirm payment to unlock the questionnaire."); return; }
+    if (!applicationData.stepStatus.dealCompleted) { toast("Confirm payment to proceed."); return; }
+    if (!isVisitTravel()) { showStep(5); return; }
   }
   if (applicationData.currentStep === 2 && !applicationData.stepStatus.questionnaireCompleted) { toast("Please complete the questionnaire for all travellers before moving to the next stage."); return; }
   if (applicationData.currentStep === 4) {
@@ -69,5 +70,6 @@ export function nextStep() {
 
 export function previousStep() {
   if (applicationData.currentStep === 1 && state.dealSubStep > 1) { goDealSubStep(state.dealSubStep - 1); return; }
+  if (!isVisitTravel() && applicationData.currentStep === 5) { showStep(1); return; }
   showStep(Math.max(applicationData.currentStep - 1, 1));
 }

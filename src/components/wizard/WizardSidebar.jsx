@@ -88,7 +88,7 @@ export default function WizardSidebar() {
                 {done ? "✓" : STEP_ICONS[step.id - 1]}
               </span>
               <span className="wz-step-label">{step.label}</span>
-              {locked && <span className="wz-step-lock" aria-label="Locked">🔒</span>}
+              {locked && !done && <span className="wz-step-lock" aria-label="Locked">🔒</span>}
             </button>
           );
         })}

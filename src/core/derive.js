@@ -307,23 +307,46 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
 
     function getStageNote() {
       if (applicationData.stepStatus.submitted)             return "Application submitted to the case team.";
+      if (!isVisitTravel()) {
+        if (applicationData.stepStatus.dealCompleted) return "Payment complete. Ready for final review.";
+        return "Start by filling in your details.";
+      }
       if (applicationData.stepStatus.cifCompleted)          return "Ready for final review.";
       if (applicationData.stepStatus.questionnaireCompleted)return "Complete the CIF form and upload your documents.";
       if (applicationData.stepStatus.dealCompleted)         return "Payment complete. Questionnaire is unlocked.";
       return "Start by filling in your details.";
     }
 
+    // Visit & Travel is the only service type that requires Questionnaire, Documents and CIF.
+    function isVisitTravel() {
+      const key = applicationData.deal.serviceTypeKey || "";
+      return !key || key === "visit";
+    }
+
     function isStepLocked(step) {
       if (step <= 1) return false;
+      if (!isVisitTravel()) {
+        if (step === 2 || step === 3 || step === 4) return true;
+        if (step === 5) return !applicationData.stepStatus.dealCompleted;
+        if (step === 6) return !applicationData.stepStatus.submitted;
+        return false;
+      }
       if (step === 2) return !applicationData.stepStatus.dealCompleted;
-      if (step === 3) return !applicationData.stepStatus.anyQuestionnaireSubmitted; // Unlocks as soon as any unit is submitted
-      if (step === 4) return !applicationData.stepStatus.questionnaireCompleted; // CIF only after all units done
+      if (step === 3) return !applicationData.stepStatus.anyQuestionnaireSubmitted;
+      if (step === 4) return !applicationData.stepStatus.questionnaireCompleted;
       if (step === 5) return !applicationData.stepStatus.cifCompleted;
       if (step === 6) return !applicationData.stepStatus.submitted;
       return false;
     }
 
     function isStepDone(step) {
+      if (!isVisitTravel()) {
+        if (step === 1) return applicationData.stepStatus.dealCompleted;
+        if (step === 2 || step === 3 || step === 4) return applicationData.stepStatus.dealCompleted;
+        if (step === 5) return applicationData.stepStatus.submitted;
+        if (step === 6) return applicationData.stepStatus.submitted;
+        return false;
+      }
       if (step === 1) return applicationData.stepStatus.dealCompleted;
       if (step === 2) return applicationData.stepStatus.questionnaireCompleted;
       if (step === 3) return isDocumentChecklistClear();
@@ -399,6 +422,6 @@ export {
   hasApplicationInfo, hasMeaningfulApplicationContent, isDealSaved,
   getApplicationCompletionPercent, getApplicationJourneyStageIndex, getApplicationStage,
   getCompletionPercent, getJourneyStageIndex, getCurrentStage, getStageNote,
-  isStepLocked, isStepDone, documentStatusMeta, isMandatoryDocument, isStrengthDocument,
+  isVisitTravel, isStepLocked, isStepDone, documentStatusMeta, isMandatoryDocument, isStrengthDocument,
   isDocumentReady, isDocumentChecklistClear
 };
