@@ -193,8 +193,11 @@ export function switchDocumentUnit(familyId) {
       }
 
       const _allItems = state.documents.items;
-      // Always show every traveller's documents — interactivity is gated per family below
-      const items = _allItems;
+      // Filter by selected tab; interactivity is separately gated by family membership below
+      const _docUnitIds = docActiveFamilyTravellerIds();
+      const items = _docUnitIds
+        ? _allItems.filter(d => !d.travellerId || _docUnitIds.has(d.travellerId))
+        : _allItems;
       if (state.documents.loaded && !items.length) {
         target.innerHTML = `
           <section class="wizard-panel"><div class="panel-body">
@@ -321,6 +324,7 @@ export function switchDocumentUnit(familyId) {
             <button class="btn ghost" type="button" onclick="loadDocumentChecklist(true)" title="Refresh">&#x21BA; Refresh</button>
           </div>
           <div class="panel-body">
+            ${docFamilyUnitBanner()}
             <div class="notice blue" style="margin-bottom:16px"><strong>&#x1F4CC; Mandatory documents must be uploaded</strong>
               <span>This checklist is complete only after every mandatory document is ready. Strength documents are recommended but do not block completion.</span></div>
             <div class="q-prog-card" style="margin-bottom:18px">

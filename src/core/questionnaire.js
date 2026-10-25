@@ -281,9 +281,9 @@ function renderUnitOverviewHTML(units) {
         >&#x1F517; Send link to traveller</button>
       </div>`;
 
-    // Link section — shown below the toggle when mode is "link"
+    // Link section — shown below the toggle when mode is "link" and not yet submitted
     let linkSection = "";
-    if (!u.minorOnly && unitFillMode === "link") {
+    if (!u.minorOnly && !done && unitFillMode === "link") {
       if (!unitToken) {
         // Token is generated immediately by qSendLinkToTraveller — this state is transient
         linkSection = "";
