@@ -246,7 +246,7 @@ const requestEmail = isPortalReadRequest
       if (!applicationData.customer.email) applicationData.customer.email = loggedInEmail;
       state.localApplicationDrafts = loadApplicationDraftIndex();
       if (!hasZohoTransport()) return;
-      showLoader("Loading your CRM application...");
+      showLoader("Loading your application details...");
      try {
         // findContactByEmail / findDealsForContact rely on direct CRM SDK
         // transport (hasCreatorRestTransport / canUseCrmSdk) which is NOT
