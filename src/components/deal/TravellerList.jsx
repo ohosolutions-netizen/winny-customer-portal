@@ -79,7 +79,15 @@ export default function TravellerList() {
                     </span>
                     <span>
                       {isGroupLead
-                        ? (groupIndex === 0 ? "Primary Applicant" : "Independent Traveller")
+                        ? (groupIndex === 0
+                            ? "Primary Applicant"
+                            : appType === "family"
+                              ? `Family ${groupIndex + 1}`
+                              : appType === "friends"
+                                ? `Group ${groupIndex + 1}`
+                                : appType === "corporate"
+                                  ? `Group ${groupIndex + 1}`
+                                  : `Group ${groupIndex + 1}`)
                         : "Family Member"}
                     </span>
                     {isMinor && <span className="minor-badge">Minor</span>}
