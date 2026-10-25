@@ -433,7 +433,7 @@ async function submitQuestionnaire(familyId = "family-1") {
 
   if (!applicationData.deal.crmDealId) {
     state.submittingQuestionnaire = false;
-    return fail("No CRM Deal ID found. Please open the correct application or save the deal again before submitting the questionnaire.");
+    return fail("Application not found. Please open the correct application or save your details before submitting the questionnaire.");
   }
 
   // For corporate/friends apps, portal-fill = implicit consent (agent acts on behalf)

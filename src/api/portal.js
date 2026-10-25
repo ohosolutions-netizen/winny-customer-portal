@@ -348,7 +348,7 @@ const contact = await findContactByEmail(loggedInEmail);
             }
             toast("Your application details have been loaded.");
           } else if (requestSucceeded) {
-            toast("No CRM contact found for this portal email. A contact will be created when details are saved.");
+            toast("No account found for this email. Your details will be saved when you proceed.");
           }
           return;
         }
@@ -371,7 +371,7 @@ const contact = await findContactByEmail(loggedInEmail);
           }
           toast("Your latest application has been loaded.");
         } else {
-          toast("CRM contact found. No related deal yet.");
+          toast("Account found. No application linked yet.");
         }
       } catch (error) {
         console.error(error);
@@ -1081,7 +1081,7 @@ if (applicationDetails) {
         return true;
       } catch (error) {
         console.warn("[Winny] Current deal refresh failed:", error);
-        if (!silent) toast("Could not refresh payment status from CRM.");
+        if (!silent) toast("Could not refresh your payment status. Please try again.");
         return false;
       } finally {
         state.refreshingCurrentDeal = false;
@@ -1196,7 +1196,7 @@ const stale =
       }
       const currentDealId = String(applicationData.deal.crmDealId || "");
       if (currentDealId && !validIds.has(currentDealId)) {
-        toast("This application was deleted in CRM and has been removed.");
+        toast("This application is no longer available and has been removed.");
         try { localStorage.removeItem(CONFIG.localStorageKey); } catch (e) {}
         replaceApplicationData(blankApplication());
         state.dealSubStep = 1;

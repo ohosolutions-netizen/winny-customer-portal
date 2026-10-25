@@ -242,7 +242,7 @@ let zPayInstance = null;
         if (isFullyPaidStatus(applicationData.payment.status)) {
           showPaymentConfirmedScreen();
         } else {
-          toast("Partial payment saved. Questionnaire will unlock once the CRM payment status is Paid.");
+          toast("Partial payment saved. Questionnaire will unlock once your payment is confirmed as Paid.");
       requestRender();
         }
 
@@ -561,16 +561,16 @@ ${sigBlock()}
         if (applicationData.stepStatus.dealCompleted) applicationData.currentStep = 2;
         saveDraft(false);
         if (applicationData.stepStatus.dealCompleted) {
-          toast("Payment & travellers saved to CRM ✓ Questionnaire unlocked.");
+          toast("Payment confirmed ✓ Questionnaire unlocked.");
           showStep(2);
         } else {
-          toast("Partial payment saved to CRM. Questionnaire will unlock once payment is fully Paid.");
+          toast("Partial payment saved. Questionnaire will unlock once payment is fully Paid.");
       requestRender();
         }
       } catch (error) {
         console.error(error);
         applicationData.crmSync.lastError = error.message || "CRM save failed";
-        toast(`CRM save failed: ${applicationData.crmSync.lastError}`);
+        toast(`Save failed: ${applicationData.crmSync.lastError}`);
       } finally {
         hideLoader();
       }
@@ -626,7 +626,7 @@ ${sigBlock()}
       if (state.savingDeal) return;
 
 if (isDealSaved()) {
-  toast("This application already has a CRM Deal.");
+  toast("This application has already been saved.");
   return;
 }
       const required = [["customer.firstName","First name is required."],["customer.lastName","Last name is required."],["customer.email","Email is required."],["customer.mobile","Mobile is required."]];
@@ -635,7 +635,7 @@ if (isDealSaved()) {
       if (validators.email(applicationData.customer.email)) return fail(validators.email(applicationData.customer.email));
 
       state.savingDeal = true;
-      showLoader("Creating Deal in CRM...");
+      showLoader("Saving your application details...");
       try {
         applicationData.applicationId = applicationData.applicationId || makeApplicationId();
         applicationData.deal.dealName = applicationData.deal.dealName || `${getCustomerName()} - Application`;
@@ -645,7 +645,7 @@ if (isDealSaved()) {
         const creatorRecordId = await submitPortalCrmRequest("Save Deal");
 
         // Poll Creator record until Deluge finishes (Status ≠ "Processing"/"Pending")
-        showLoader("Waiting for CRM to confirm...");
+        showLoader("Almost there, finalising your details...");
         const crmResult = await pollCreatorRecord(creatorRecordId);
 
         if (crmResult.Status === "Failed") {
@@ -691,7 +691,7 @@ if (isDealSaved()) {
         saveDraft(false);
       requestRender();
       requestRender();
-        toast("Deal created in CRM ✓ You can now add travellers.");
+        toast("Application saved ✓ You can now add travellers.");
       } catch (error) {
         console.error(error);
         applicationData.crmSync.lastError = error.message || "CRM save failed";
@@ -699,7 +699,7 @@ if (isDealSaved()) {
         applicationData.deal.dealSavedToCRM = true;
         saveDraft(false);
       requestRender();
-        toast(`Deal save issue: ${applicationData.crmSync.lastError}. Travellers unlocked locally.`);
+        toast(`Save issue: ${applicationData.crmSync.lastError}. Travellers unlocked locally.`);
       } finally {
   state.savingDeal = false;
   hideLoader();

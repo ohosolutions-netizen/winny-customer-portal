@@ -3681,7 +3681,7 @@ async function completeCIF() {
 
   if (!applicationData.deal.crmDealId) {
     return fail(
-      "CRM Deal ID is missing. Applications cannot be created."
+      "Application details are incomplete. Please save your application details first."
     );
   }
 
@@ -3701,7 +3701,7 @@ async function completeCIF() {
   if (address.state_province) applicationData.customer.mailingState = address.state_province;
   if (address.postal_Code) applicationData.customer.mailingZip = address.postal_Code;
 
-  showLoader("Creating applications in CRM...");
+  showLoader("Submitting your application details...");
 
   try {
     const requestId = await submitPortalCrmRequest(
@@ -3727,14 +3727,14 @@ async function completeCIF() {
 
     if (result._timedOut) {
       throw new Error(
-        "CRM application creation timed out. Please try again."
+        "Submission timed out. Please try again."
       );
     }
 
     if (result.Status !== "Success") {
       throw new Error(
         result.Error_Message ||
-        "CRM application creation failed."
+        "Application submission failed."
       );
     }
 
@@ -3765,9 +3765,9 @@ async function completeCIF() {
     saveDraft(false);
 
     toast(
-      `${applicationIds.length} CRM application${
+      `Application${
         applicationIds.length === 1 ? "" : "s"
-      } created. Review unlocked.`
+      } submitted successfully. Review unlocked.`
     );
 
     showStep(5);

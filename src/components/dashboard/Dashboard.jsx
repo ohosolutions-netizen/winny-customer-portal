@@ -81,11 +81,9 @@ export default function Dashboard() {
 
         {/* Continue Button */}
         {hasInfo && (
-          <div style={{ padding: "12px 20px 4px" }}>
-            <button className="btn primary db-continue-btn" style={{ width: "100%", justifyContent: "center" }} onClick={handleContinue}>
-              Continue application →
-            </button>
-          </div>
+          <button className="btn primary db-continue-btn" onClick={handleContinue}>
+            Continue application →
+          </button>
         )}
 
         {/* Details */}
