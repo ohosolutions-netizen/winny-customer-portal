@@ -121,7 +121,7 @@ export default function AgreementCard({ traveller, onSigned }) {
   );
 
   // ── No portal access: OTP-gated agreement email flow ───────────────────
-  if (!hasPortalAccess) {
+  if (!hasPortalAccess && !isLoggedInUser) {
     async function handleSendNoPortal() {
       if (!email) {
         setError("No email address on file for this traveller.");
@@ -303,28 +303,14 @@ export default function AgreementCard({ traveller, onSigned }) {
       {error ? <div className="notice red agreement-card-error">{error}</div> : null}
 
       {!sent ? (
-        <div>
-          <button
-            className="btn primary"
-            type="button"
-            onClick={handleSend}
-            disabled={sending || !email}
-          >
-            {sending ? "Sending OTP…" : "Send OTP to email"}
-          </button>
-          {email && (
-            <div style={{ marginTop: 6 }}>
-              <button
-                type="button"
-                onClick={handleSendWithAgreement}
-                disabled={sending}
-                style={{ background: "none", border: "none", padding: 0, fontSize: "0.8em", color: "var(--link, #2563eb)", cursor: sending ? "not-allowed" : "pointer", textDecoration: "underline" }}
-              >
-                {sending ? "Sending…" : "Also send a copy of the agreement PDF →"}
-              </button>
-            </div>
-          )}
-        </div>
+        <button
+          className="btn primary"
+          type="button"
+          onClick={handleSend}
+          disabled={sending || !email}
+        >
+          {sending ? "Sending OTP…" : "Send OTP"}
+        </button>
       ) : (
         <div className="agreement-otp-entry">
           <label className="field">
