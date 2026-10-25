@@ -36,8 +36,8 @@ export function deriveQuestionnaireUnits() {
   const travellers = applicationData.deal.travellers || [];
   const familyMap = new Map();
   travellers.forEach((t) => {
-    // Use traveller's own ID so each traveller gets their own questionnaire unit
-    const fid = t.id || t.familyId || "family-1";
+    // Group by family so co-travellers share one unit and see each other's data
+    const fid = t.familyId || "family-1";
     if (!familyMap.has(fid)) familyMap.set(fid, []);
     familyMap.get(fid).push(t);
   });
@@ -654,7 +654,7 @@ export function qGoToCommon() {
 export function qSetUnitFillMode(familyId, mode) {
   const travellers = applicationData.deal.travellers || [];
   travellers.forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) {
+    if ((t.familyId || "family-1") === familyId) {
       t.qFillMode = mode;
     }
   });
@@ -664,28 +664,22 @@ export function qSetUnitFillMode(familyId, mode) {
 
 export async function qSendLinkToTraveller(familyId) {
   const travellers = applicationData.deal.travellers || [];
-  // Set mode to "link"
+  // Set mode to "link" and give each family member their own token
   travellers.forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) {
+    if ((t.familyId || "family-1") === familyId) {
       t.qFillMode = "link";
-    }
-  });
-  // Generate token immediately (skip the "Generate link" intermediate step)
-  const token = qGenToken();
-  travellers.forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) {
-      t.qToken = token;
+      t.qToken = qGenToken();  // unique per traveller
       t.qLinkSent = false;
       delete t.qCreatorRecordId;
     }
   });
   markAutoSavePending();
   rerenderQuestionnaire();
-  // Auto-send email if traveller has an email address
-  const primaryTraveller = travellers.find(
-    (t) => (t.id || t.familyId || "family-1") === familyId
+  // Auto-send email to every family member who has an email address
+  const familyMembers = travellers.filter(
+    (t) => (t.familyId || "family-1") === familyId
   );
-  if (primaryTraveller?.email) {
+  if (familyMembers.some(t => t.email)) {
     await qEmailLink(familyId);
   }
 }
@@ -700,7 +694,7 @@ export async function qViewAnswers(familyId) {
   const unit   = units.find(u => u.familyId === familyId) || units[0];
 
   const unitTraveller = (applicationData.deal.travellers || []).find(
-    t => (t.id || t.familyId || "family-1") === familyId
+    t => (t.familyId || "family-1") === familyId
   );
   const unitName = unitTraveller
     ? `${unitTraveller.firstName || ""} ${unitTraveller.lastName || ""}`.trim() || familyId
@@ -1079,10 +1073,10 @@ export function qBuildLink(token, traveller) {
 }
 
 export function qGenerateLink(familyId) {
-  const token = qGenToken();
+  // Each traveller gets their own token so sibling submissions can be tracked individually
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) {
-      t.qToken = token;
+    if ((t.familyId || "family-1") === familyId) {
+      t.qToken = qGenToken();
       t.qLinkSent = false;
       delete t.qCreatorRecordId;
     }
@@ -1093,7 +1087,7 @@ export function qGenerateLink(familyId) {
 
 export function qCopyLink(familyId) {
   const traveller = (applicationData.deal.travellers || []).find(
-    (t) => (t.id || t.familyId || "family-1") === familyId && t.qToken
+    (t) => (t.familyId || "family-1") === familyId && t.qToken
   );
   if (!traveller) return;
   const url = qBuildLink(traveller.qToken, traveller);
@@ -1101,7 +1095,7 @@ export function qCopyLink(familyId) {
   // Mark all unit travellers as link-sent
   const _linkSentAt = new Date().toISOString();
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) {
+    if ((t.familyId || "family-1") === familyId) {
       t.qLinkSent = true;
       if (!t.qLinkSentAt) t.qLinkSentAt = _linkSentAt;
     }
@@ -1136,42 +1130,41 @@ export function qCopyLink(familyId) {
 }
 
 export async function qEmailLink(familyId) {
-  const traveller = (applicationData.deal.travellers || []).find(
-    (t) => (t.id || t.familyId || "family-1") === familyId && t.qToken
+  // Send individual links to every family member who has an email and their own token
+  const recipients = (applicationData.deal.travellers || []).filter(
+    (t) => (t.familyId || "family-1") === familyId && t.qToken && t.email
   );
-  if (!traveller) return;
-
-  const toEmail = traveller.email || applicationData.customer?.email || "";
-  if (!toEmail) {
+  if (!recipients.length) {
     toast("No email address found for this traveller.", "error");
     return;
   }
 
-  const url = qBuildLink(traveller.qToken, traveller);
-  const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Traveller";
-
-  try {
-    toast("Sending email…", "info");
-    await sendQuestionnaireEmail(toEmail, name, url);
-    // Mark as sent
-    const _emailSentAt = new Date().toISOString();
-    (applicationData.deal.travellers || []).forEach((t) => {
-      if ((t.id || t.familyId || "family-1") === familyId) {
-        t.qLinkSent = true;
-        if (!t.qLinkSentAt) t.qLinkSentAt = _emailSentAt;
-      }
-    });
+  toast("Sending email…", "info");
+  const _emailSentAt = new Date().toISOString();
+  let sentCount = 0;
+  for (const t of recipients) {
+    const url  = qBuildLink(t.qToken, t);
+    const name = `${t.firstName || ""} ${t.lastName || ""}`.trim() || "Traveller";
+    try {
+      await sendQuestionnaireEmail(t.email, name, url);
+      t.qLinkSent = true;
+      if (!t.qLinkSentAt) t.qLinkSentAt = _emailSentAt;
+      sentCount++;
+    } catch (_) {
+      toast(`Failed to send email to ${t.email}. Please copy the link manually.`, "error");
+    }
+  }
+  if (sentCount > 0) {
     markAutoSavePending();
-    toast(`Questionnaire link sent to ${toEmail}`, "ok");
-  } catch (_) {
-    toast("Failed to send email. Please copy the link and share manually.", "error");
+    const emailList = recipients.slice(0, sentCount).map(t => t.email).join(", ");
+    toast(`Questionnaire link${sentCount > 1 ? "s" : ""} sent to ${emailList}`, "ok");
   }
   rerenderQuestionnaire();
 }
 
 export function qResetLink(familyId) {
   (applicationData.deal.travellers || []).forEach((t) => {
-    if ((t.id || t.familyId || "family-1") === familyId) {
+    if ((t.familyId || "family-1") === familyId) {
       t.qToken = "";
       t.qLinkSent = false;
     }

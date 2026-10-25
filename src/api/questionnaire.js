@@ -656,15 +656,8 @@ async function checkExternalQuestionnaireSubmission(dealId) {
           return tName && (tName === recordName || recordName.includes(tName) || tName.includes(recordName));
         });
         if (matched) {
-          // deriveQuestionnaireUnits uses t.id as unit.familyId; prefer t.id as the primary key
-          fg = matched.id || matched.familyId || "";
-          // Also mark the alternate key so older code paths that read t.familyId still work
-          const altKey = matched.familyId;
-          if (altKey && altKey !== fg && !applicationData.questionnaire.submittedUnits[altKey]) {
-            applicationData.questionnaire.submittedUnits[altKey] = true;
-            if (qState.unitCompletions) qState.unitCompletions[altKey] = true;
-            changed = true;
-          }
+          // Units are now grouped by familyId — use that as the canonical key
+          fg = matched.familyId || matched.id || "";
         }
       }
     }
@@ -762,31 +755,47 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
   console.log(`[Winny] ${pendingUnits.length} unit(s) still pending external check`);
   for (const unit of pendingUnits) {
-    // 1. Q_Token lookup (traveller filled via link)
-    const token = unit.travellers.find(t => t.qToken)?.qToken;
-    if (token) {
-      try {
-        const rows = await creatorQuery(`Q_Token == "${token}"`);
-        if (rows.length) {
-          // Guard: Q_Tokens can be shared across family members — only apply if this
-          // record's Family_Group or Primary_Traveller_ID actually maps to this unit.
-          // Without this check a co-traveller falsely matches the primary's submission.
-          const r = rows[0];
-          const rFG = String(r.Family_Group || "").trim();
-          const rPT = String(r.Primary_Traveller_ID || "").trim();
-          const unitMemberIds = unit.travellers.flatMap(t => [t.id, t.familyId, t.crmId]).filter(Boolean);
-          const isThisUnit = !rFG || unitMemberIds.includes(rFG) || unitMemberIds.includes(rPT);
-          if (isThisUnit) {
-            console.log(`[Winny] Found questionnaire record by Q_Token for unit ${unit.familyId}`);
-            applyRecord(r, unit.familyId);
-            continue;
+    // 1. Per-traveller Q_Token lookup (each traveller now has their own unique token)
+    //    A unit is complete only when every traveller with a token has a matching record.
+    const tokenTravellers = unit.travellers.filter(t => t.qToken);
+    if (tokenTravellers.length > 0) {
+      let allFound = true;
+      for (const t of tokenTravellers) {
+        try {
+          const rows = await creatorQuery(`Q_Token == "${t.qToken}"`);
+          if (rows.length) {
+            // Capture consent from this traveller's record
+            const r = rows[0];
+            const rawConsent = r.Data_Sharing_Consent;
+            const consentGiven = rawConsent === true || rawConsent === "true" || rawConsent === "1" || rawConsent === 1 || String(rawConsent || "").toLowerCase() === "yes";
+            if (consentGiven) {
+              if (!applicationData.questionnaire.unitConsents) applicationData.questionnaire.unitConsents = {};
+              if (!applicationData.questionnaire.unitConsents[unit.familyId]) {
+                applicationData.questionnaire.unitConsents[unit.familyId] = true;
+                changed = true;
+              }
+            }
+            console.log(`[Winny] Traveller ${t.id} in unit ${unit.familyId} confirmed submitted via Q_Token`);
           } else {
-            console.log(`[Winny] Q_Token matched a record for a different unit — skipping for ${unit.familyId}`);
+            allFound = false;
           }
+        } catch (e) {
+          console.warn(`[Winny] Q_Token lookup failed for traveller ${t.id}:`, e);
+          allFound = false;
         }
-      } catch (e) {
-        console.warn(`[Winny] Q_Token lookup failed for unit ${unit.familyId}:`, e);
       }
+      if (allFound) {
+        console.log(`[Winny] All ${tokenTravellers.length} traveller(s) in unit ${unit.familyId} submitted — marking unit done`);
+        if (!applicationData.questionnaire.submittedUnits[unit.familyId]) {
+          applicationData.questionnaire.submittedUnits[unit.familyId] = true;
+          if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
+          changed = true;
+        }
+        continue;
+      }
+      // Some travellers have tokens but not all submitted — don't fall through to name
+      // lookup which could false-positive on partial completions
+      continue;
     }
 
     // 2. Primary_Traveller_ID lookup (portal-saved records carry the CRM traveller record ID)
