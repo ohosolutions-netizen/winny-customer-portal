@@ -3,7 +3,7 @@ import { applicationData } from "../../store/runtime.js";
 import { steps } from "../../config/config.js";
 import { formatCurrency } from "../../lib/utils.js";
 import {
-  isStepLocked, isStepDone,
+  isStepLocked, isStepDone, isVisitTravel,
   getCompletionPercent, getJourneyStageIndex, getStageNote, getCustomerName,
 } from "../../core/derive.js";
 import { showStep, goToDashboard } from "../../core/navigation.js";
@@ -71,7 +71,7 @@ export default function WizardSidebar() {
 
       {/* ── Step list ── */}
       <nav className="wz-sidebar-steps" aria-label="Application steps">
-        {steps.map((step) => {
+        {steps.filter(step => isVisitTravel() || ![2, 3, 4].includes(step.id)).map((step) => {
           const locked = isStepLocked(step.id);
           const done   = isStepDone(step.id);
           const active = currentStep === step.id;

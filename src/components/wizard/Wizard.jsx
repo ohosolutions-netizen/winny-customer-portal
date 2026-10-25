@@ -2,7 +2,7 @@ import React from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import { steps } from "../../config/config.js";
 import { useApp } from "../../store/AppStore.jsx";
-import { isStepLocked, isStepDone, getCompletionPercent } from "../../core/derive.js";
+import { isStepLocked, isStepDone, isVisitTravel, getCompletionPercent } from "../../core/derive.js";
 import { showStep, nextStep, previousStep } from "../../core/navigation.js";
 import { toast } from "../../lib/ui.js";
 import WizardSidebar from "./WizardSidebar.jsx";
@@ -22,7 +22,7 @@ function WizardStepper() {
         <div className="progress-fill" id="wizardProgressBar" style={{ width: `${percent}%` }}></div>
       </div>
       <div id="stepper" className="stepper" style={{ marginTop: 12 }}>
-        {steps.map((step) => {
+        {steps.filter(step => isVisitTravel() || ![2, 3, 4].includes(step.id)).map((step) => {
           const locked = isStepLocked(step.id);
           const done = isStepDone(step.id);
           const active = applicationData.currentStep === step.id;
