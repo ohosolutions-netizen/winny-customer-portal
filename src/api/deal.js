@@ -59,7 +59,7 @@ let zPayInstance = null;
     );
 
   if (shouldSyncApplicationDetails) {
-    showLoader("Saving travellers and services to CRM...");
+    showLoader("Saving your travellers and services...");
     applicationData.crmSync.applicationDetailsSyncInFlight = true;
 
     try {
@@ -545,7 +545,7 @@ ${sigBlock()}
     async function completePayment() {
       if (!validateDealSubStep(1) || !validateDealSubStep(2) || !validateDealSubStep(3) || !validateDealSubStep(4)) return;
       if (!applicationData.payment.method) return fail("Select a payment method.");
-      showLoader("Saving payment & travellers to CRM...");
+      showLoader("Saving your payment and traveller details...");
       try {
         const payableAmount = getPayableAmount();
         if (payableAmount <= 0) return fail("Enter a valid payment amount.");
@@ -740,7 +740,7 @@ if (
     if (!silent) {
       showLoader(
         syncOnly
-          ? "CRM saving application details..."
+          ? "Saving your application details..."
           : "CRM processing payment..."
       );
     }
