@@ -20,10 +20,8 @@ import { sendDocumentEmail } from "./deal.js";
 import { crmUpdateRecord } from "./zoho.js";
 
 // ── Document share-link helpers (mirrors questionnaire link pattern) ──────────
-// Base URL for the standalone doc-upload widget (set VITE_DOC_UPLOAD_URL in .env)
-const DOC_UPLOAD_BASE = (typeof import.meta !== "undefined" && import.meta.env?.VITE_DOC_UPLOAD_URL)
-  ? import.meta.env.VITE_DOC_UPLOAD_URL
-  : (typeof window !== "undefined" ? window.location.origin : "");
+// Zoho Creator page perma-link for the standalone document upload widget
+const DOC_UPLOAD_BASE = "https://creatorapp.zohopublic.in/hpatel_winnyedu/hiren-patel/page-perma/Document_Checklist/GqdX6qtOHv2GRq5S123egF3AgTtnObEzHJK8YUYR5KtqTWbxmdMvDNYWTBRxfFqtC0tSfZaBjvTRwzFpkk6Mbg5NBqqzEjGUtuWZ";
 
 function docGenToken() {
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
