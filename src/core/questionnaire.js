@@ -74,6 +74,19 @@ export function deriveQuestionnaireUnits() {
   return units;
 }
 
+// ── Portal user family identification ─────────────────────────────────────
+// Returns the familyId of the logged-in portal user by matching their email
+// against the travellers list. Falls back to the first traveller's family.
+export function getPortalUserFamilyId() {
+  const userEmail = (applicationData.customer?.email || "").toLowerCase().trim();
+  const travellers = applicationData.deal?.travellers || [];
+  if (userEmail) {
+    const matched = travellers.find(t => t.email && t.email.toLowerCase().trim() === userEmail);
+    if (matched?.familyId) return matched.familyId;
+  }
+  return travellers[0]?.familyId || "family-1";
+}
+
 // ── Per-unit shared-data helpers ───────────────────────────────────────────
 // Trip-level fields (purpose, maritalStatus, travelDates, …) are stored flat
 // in applicationData.questionnaire and always reflect the ACTIVE unit.
@@ -322,7 +335,10 @@ function renderUnitOverviewHTML(units) {
           </div>`)
       : fillModeToggle + linkSection;
 
-    const viewAnswersBtn = done
+    // "View answers" is only available to the portal user's own family group
+    const _portalFamilyId = getPortalUserFamilyId();
+    const _isOwnFamily = u.familyId === _portalFamilyId;
+    const viewAnswersBtn = done && _isOwnFamily
       ? (unitHasConsent(u.familyId)
         ? `<button class="btn ghost" type="button" style="font-size:11px;padding:2px 8px;flex-shrink:0;white-space:nowrap" onclick="qViewAnswers('${fid}')">View answers</button>`
         : `<span style="font-size:11px;padding:2px 8px;color:var(--muted);flex-shrink:0;white-space:nowrap;cursor:default" title="Traveller has not consented to data sharing">&#x1F512; Consent pending</span>`)

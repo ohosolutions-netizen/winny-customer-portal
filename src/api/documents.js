@@ -14,7 +14,7 @@ import { escapeHtml, safeJsonParse } from "../lib/utils.js";
 import { toast } from "../lib/ui.js";
 import { documentStatusMeta, isMandatoryDocument, isStrengthDocument, isDocumentReady } from "../core/derive.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
-import { deriveQuestionnaireUnits } from "../core/questionnaire.js";
+import { deriveQuestionnaireUnits, getPortalUserFamilyId } from "../core/questionnaire.js";
 
 // ── Family-unit isolation for Documents ───────────────────────────────────
 function docActiveFamilyTravellerIds() {
@@ -193,10 +193,8 @@ export function switchDocumentUnit(familyId) {
       }
 
       const _allItems = state.documents.items;
-      const _docUnitIds = docActiveFamilyTravellerIds();
-      const items = _docUnitIds
-        ? _allItems.filter(d => !d.travellerId || _docUnitIds.has(d.travellerId))
-        : _allItems;
+      // Always show every traveller's documents — interactivity is gated per family below
+      const items = _allItems;
       if (state.documents.loaded && !items.length) {
         target.innerHTML = `
           <section class="wizard-panel"><div class="panel-body">
@@ -228,12 +226,20 @@ export function switchDocumentUnit(familyId) {
         if (t.id)    _docTravMap[t.id]    = t;
       });
 
+      const _docUnits = deriveQuestionnaireUnits();
+      const _portalFamilyId = getPortalUserFamilyId();
+
       const travellerBlocks = Object.entries(byTraveller).map(([travKey, group]) => {
+        // Determine if this traveller block belongs to the portal user's own family
+        const _blockTrav = _docTravMap[travKey];
+        const _blockFamilyId = _blockTrav?.familyId || "family-1";
+        const canInteract = _docUnits.length <= 1 || _blockFamilyId === _portalFamilyId;
+
         if (_docConsentGated && travKey !== "unassigned") {
-          const trav = _docTravMap[travKey];
+          const trav = _blockTrav;
           if (trav) {
-            const fid = trav.id || trav.familyId || "family-1";
-            const units = deriveQuestionnaireUnits();
+            const fid = trav.familyId || trav.id || "family-1";
+            const units = _docUnits;
             const consentOk = units.length <= 1 || !!((applicationData.questionnaire.unitConsents || {})[fid]);
             if (!consentOk) {
               return `<div class="person-block">
@@ -289,11 +295,12 @@ export function switchDocumentUnit(familyId) {
                 ${d.reviewComments ? `<div style="margin-top:8px;padding:8px 10px;background:#fafbff;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted)"><strong style="color:var(--ink)">Note from case officer:</strong> ${escapeHtml(d.reviewComments)}</div>` : ""}
                 ${isLocked && hasFile ? `<div style="margin-top:8px;font-size:11.5px;color:var(--muted)">&#x1F512; ${d.status === "Reviewed" ? "Approved — this document can no longer be changed." : "Not required for this case."}</div>` : ""}
                 <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                  ${hasFile ? `
+                  ${hasFile && canInteract ? `
                   <button class="btn ghost" type="button" style="font-size:12.5px;padding:7px 13px" ${viewing ? "disabled" : ""} onclick="viewDocumentFile('${d.id}')">
                     ${viewing ? "Opening…" : "&#x1F441;&#xFE0F; View file"}
                   </button>` : ""}
-                  ${canUpload ? `
+                  ${hasFile && !canInteract ? `<span style="font-size:11.5px;color:var(--muted)">&#x1F4CE; File uploaded</span>` : ""}
+                  ${canUpload && canInteract ? `
                   <label class="btn ghost" style="cursor:pointer;font-size:12.5px;padding:7px 13px" for="${inputId}">
                     ${uploading ? "Uploading…" : (hasFile ? "&#x21BA; Replace file" : "&#x1F4CE; Upload file")}
                   </label>
@@ -314,7 +321,6 @@ export function switchDocumentUnit(familyId) {
             <button class="btn ghost" type="button" onclick="loadDocumentChecklist(true)" title="Refresh">&#x21BA; Refresh</button>
           </div>
           <div class="panel-body">
-            ${docFamilyUnitBanner()}
             <div class="notice blue" style="margin-bottom:16px"><strong>&#x1F4CC; Mandatory documents must be uploaded</strong>
               <span>This checklist is complete only after every mandatory document is ready. Strength documents are recommended but do not block completion.</span></div>
             <div class="q-prog-card" style="margin-bottom:18px">
