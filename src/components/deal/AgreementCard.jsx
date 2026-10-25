@@ -23,9 +23,10 @@ export default function AgreementCard({ traveller, onSigned }) {
   const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Primary Applicant";
   const loggedInEmail = (applicationData.crmSync?.loggedInEmail || "").toLowerCase().trim();
   const customerEmail = (applicationData.customer?.email || "").toLowerCase().trim();
+  const travellerEmail = email.toLowerCase().trim();
   const isLoggedInUser = !!(loggedInEmail && (
-    (email && email.toLowerCase().trim() === loggedInEmail) ||
-    (traveller.type === "Primary Applicant" && customerEmail && customerEmail === loggedInEmail)
+    (travellerEmail && travellerEmail === loggedInEmail) ||
+    (!travellerEmail && traveller.type === "Primary Applicant" && customerEmail && customerEmail === loggedInEmail)
   ));
 
   function buildAgreementEmailArgs(overrides = {}) {
