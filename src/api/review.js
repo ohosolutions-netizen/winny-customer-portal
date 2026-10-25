@@ -11,14 +11,17 @@
 // preserved here as a no-op. Wire a real CRM submit here if/when the original
 // intent is confirmed.
 // ─────────────────────────────────────────────────────────────────────────
+import { CONFIG } from "../config/config.js";
 import { applicationData } from "../store/runtime.js";
 import { qs } from "../lib/dom.js";
 import { getByPath, escapeHtml, formatCurrency, formatDateTime, safeJsonParse } from "../lib/utils.js";
 import { getCustomerName, getSelectedServiceNames, isVisitTravel } from "../core/derive.js";
+import { getGoalDefinition } from "../core/catalog.js";
 import { cifDestinationInstances, cifInstanceData, cifIsInstanceSaved } from "../core/cif.js";
 import { toast, showLoader, hideLoader, requestRender } from "../lib/ui.js";
 import { saveDraft } from "../core/drafts.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
+import { crmUpdateRecord } from "./zoho.js";
 
 export async function submitApplication() {
   showLoader("Submitting your application...");
@@ -41,6 +44,21 @@ export async function submitApplication() {
       if (!applicationIds.length) throw new Error("CRM did not return any Application record IDs.");
 
       applicationData.crmSync.applicationIds = applicationIds;
+
+      // Stamp the correct Service_Type and portal Application_Reference_No on each
+      // newly created Application record (Deluge defaults to "Visitor Visa" and
+      // uses an auto-number; this corrects both fields immediately after creation).
+      const serviceTypeKey = applicationData.deal.serviceTypeKey || applicationData.deal.goal || "";
+      const crmServiceType = getGoalDefinition(serviceTypeKey)?.crmLabel || applicationData.deal.goal || "";
+      const portalAppNumber = applicationData.applicationId || "";
+      if (crmServiceType || portalAppNumber) {
+        const patch = {};
+        if (crmServiceType) patch.Service_Type = crmServiceType;
+        if (portalAppNumber) patch.Application_Reference_No = portalAppNumber;
+        await Promise.allSettled(
+          applicationIds.map(id => crmUpdateRecord(CONFIG.modules.applications, id, patch))
+        );
+      }
     }
 
     // Mark submitted and advance to the Success step.

@@ -15,10 +15,11 @@
       paymentsApiKey:         "",  // ← set your Zoho Payments API key, Settings > Developer Space (scrubbed for the public repo)
       paymentsDomain:         "IN",         // ← 2-letter country code
       modules: {
-        contacts:   "Contacts",
-        deals:      "Deals",
-        travellers: "Traveller_Info",
-        documents:  "Document"    // ← verified via MCP: singular, NOT "Documents"
+        contacts:     "Contacts",
+        deals:        "Deals",
+        travellers:   "Traveller_Info",
+        documents:    "Document",       // ← verified via MCP: singular, NOT "Documents"
+        applications: "Applications",   // ← verified via MCP: CustomModule1
       },
       creator: {
         appOwner:        "hpatel_winnyedu",   // ← verified workspace owner
