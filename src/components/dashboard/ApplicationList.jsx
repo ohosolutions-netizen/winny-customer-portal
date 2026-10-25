@@ -24,7 +24,7 @@ const STAGE_SHORT_SIMPLE = [
 
 function isVisitTravelApp(app) {
   const st = String(app.serviceType || app.serviceTypeKey || "").toLowerCase().trim();
-  return !st || st === "visit" || /visitor visa|visitor/i.test(st);
+  return !st || /\bvisit/i.test(st);
 }
 
 // Map a 6-stage index into the 4-stage simple track
