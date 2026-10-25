@@ -6,7 +6,7 @@ import {
   openApplication, selectApplication, confirmRemoveApplication
 } from "../../core/drafts.js";
 
-const STAGE_SHORT = [
+const STAGE_SHORT_FULL = [
   "Journey Begins",
   "Payment",
   "Case Questions",
@@ -14,6 +14,25 @@ const STAGE_SHORT = [
   "Review",
   "Submitted",
 ];
+
+const STAGE_SHORT_SIMPLE = [
+  "Journey Begins",
+  "Payment",
+  "Review",
+  "Submitted",
+];
+
+function isVisitTravelApp(app) {
+  const st = String(app.serviceType || app.serviceTypeKey || "").toLowerCase().trim();
+  return !st || st === "visit" || /visitor visa|visitor/i.test(st);
+}
+
+// Map a 6-stage index into the 4-stage simple track
+function mapSimpleStageIndex(rawIndex) {
+  if (rawIndex >= 5) return 3;  // Submitted
+  if (rawIndex >= 2) return 2;  // Review (Q/CIF not applicable)
+  return rawIndex;              // 0 or 1 unchanged
+}
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -53,7 +72,10 @@ function ApplicationCard({ app }) {
     (!app.dealId && app.applicationId && app.applicationId === currentAppId)
   );
 
-  const stageIndex  = getStageIndex(app);
+  const rawStageIndex = getStageIndex(app);
+  const visitTravel   = isVisitTravelApp(app);
+  const stages        = visitTravel ? STAGE_SHORT_FULL : STAGE_SHORT_SIMPLE;
+  const stageIndex    = visitTravel ? rawStageIndex : mapSimpleStageIndex(rawStageIndex);
   const initials    = getInitials(app.title);
   const updatedText = timeAgo(app.lastSavedAt || app.createdTime);
   const isPaid      = isFullyPaidStatus(app.paymentStatus);
@@ -88,7 +110,7 @@ function ApplicationCard({ app }) {
 
       {/* Centre: inline stage dots */}
       <div className="db-stage-track-inline" role="list" aria-label="Application progress">
-        {journeyStages.map((stage, index) => {
+        {stages.map((stage, index) => {
           const dotState = index < stageIndex ? "done" : index === stageIndex ? "current" : "upcoming";
           return (
             <React.Fragment key={stage}>
@@ -99,7 +121,7 @@ function ApplicationCard({ app }) {
                 <div className={`db-stage-dot ${dotState}`} aria-hidden="true">
                   {dotState === "done" ? "✓" : index + 1}
                 </div>
-                <span className="db-stage-dot-label">{STAGE_SHORT[index] || stage}</span>
+                <span className="db-stage-dot-label">{stage}</span>
               </div>
             </React.Fragment>
           );
