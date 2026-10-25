@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Winny Global — Document Upload</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<!-- Zoho Creator Widget SDK — injected automatically when running inside Creator; this tag is a safety fallback -->
+<script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk.min.js"></script>
+<style>
+/* ── Design tokens (mirrors portal.css exactly) ──────────────────────────── */
+:root {
+  --blue:       #0561f4;
+  --teal:       #06c9b5;
+  --navy:       #1e1841;
+  --ink:        #222947;
+  --muted:      #79839b;
+  --line:       #e7ebf3;
+  --bg:         #f6f8fc;
+  --card:       #ffffff;
+  --soft-blue:  #eef4ff;
+  --soft-teal:  #edfaf8;
+  --soft-amber: #fff8e5;
+  --green:      #0faa82;
+  --amber:      #d99200;
+  --red:        #d94f68;
+  --shadow:     0 14px 42px rgba(30,24,65,.09);
+  --r:          14px;
+}
+
+*  { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.55 "DM Sans", system-ui, -apple-system, sans-serif;
+}
+button, input, label { font: inherit; cursor: pointer; }
+
+/* ── Top nav ─────────────────────────────────────────────────────────────── */
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 16px rgba(30,24,65,.05);
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.wmark {
+  width: 42px; height: 36px; border-radius: 11px;
+  background: linear-gradient(135deg,rgba(5,97,244,.14),rgba(6,201,181,.16)), #fff;
+  border: 1px solid #d9e5fb;
+  display: grid; place-items: center;
+  font-size: 22px; font-weight: 900; color: var(--navy);
+}
+.brand-name { margin: 0; font-size: 18px; font-weight: 900; color: var(--navy); }
+.brand-sub  { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .3px; }
+.nav-traveller {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 99px;
+  background: var(--soft-blue); color: var(--blue);
+  font-size: 13px; font-weight: 800;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  min-height: 38px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 800;
+  transition: transform .18s, box-shadow .18s, border-color .18s, background .18s;
+  text-decoration: none;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(30,24,65,.08); border-color: #c9d7ec; }
+.btn:disabled              { opacity: .46; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.ghost   { background: var(--soft-blue); color: var(--blue); border-color: #cddcf5; }
+.btn.primary { background: linear-gradient(135deg,var(--blue),var(--teal)); color: #fff; border-color: transparent; }
+.btn.sm      { min-height: 32px; padding: 5px 12px; font-size: 12.5px; }
+
+/* ── Page body ───────────────────────────────────────────────────────────── */
+.page-body  { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+
+/* ── Cards / panels ─────────────────────────────────────────────────────── */
+.wizard-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+.panel-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
+  padding: 22px 24px 0;
+}
+.panel-head h3 { margin: 0; font-size: 19px; color: var(--navy); }
+.panel-head p  { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.panel-body    { padding: 20px 24px 24px; }
+
+/* ── Notices ────────────────────────────────────────────────────────────── */
+.notice {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; line-height: 1.55;
+  margin-bottom: 16px;
+}
+.notice strong { display: block; margin-bottom: 3px; font-size: 13.5px; }
+.notice span   { color: inherit; opacity: .85; }
+.notice.blue   { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+.notice.amber  { background: var(--soft-amber); border: 1px solid #f5d589; color: #8a5700; }
+
+/* ── Progress bar ───────────────────────────────────────────────────────── */
+.q-prog-card { padding: 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); margin-bottom: 18px; }
+.q-prog-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 800; font-size: 13.5px; }
+.q-prog-pct  { font-size: 19px; font-weight: 900; color: var(--navy); }
+.q-prog-bg   { height: 10px; border-radius: 999px; background: #eaf0fa; overflow: hidden; }
+.q-prog-fill { height: 100%; border-radius: inherit; background: linear-gradient(135deg,var(--blue),var(--teal)); transition: width .3s ease; }
+
+/* ── Spinner ────────────────────────────────────────────────────────────── */
+.spin {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid #dce6f8; border-top-color: var(--teal);
+  animation: spin .8s linear infinite; display: inline-block;
+}
+.spin.sm { width: 18px; height: 18px; border-width: 2.5px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Person block ───────────────────────────────────────────────────────── */
+.person-block { margin-bottom: 28px; }
+.person-block-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 0; border-bottom: 1px solid var(--line); margin-bottom: 14px;
+}
+.pb-av {
+  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 17px; font-weight: 900;
+  background: linear-gradient(135deg,rgba(5,97,244,.14),rgba(6,201,181,.18));
+  color: var(--navy); border: 1.5px solid #d1e3fc;
+}
+.pb-name { font-size: 15px; font-weight: 800; color: var(--navy); }
+.pb-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Document cards ─────────────────────────────────────────────────────── */
+.doc-card {
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+.doc-card-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.doc-name {
+  font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.4;
+}
+.req-badge {
+  display: inline-flex; align-items: center;
+  margin-left: 7px; padding: 3px 8px;
+  border-radius: 99px; font-size: 10px; font-weight: 800;
+  vertical-align: middle;
+}
+.status-pill {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 99px;
+  font-size: 11px; font-weight: 800; white-space: nowrap;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.doc-hint   { margin: 8px 0 0; font-size: 11.5px; }
+.doc-note   { margin: 8px 0 0; padding: 8px 10px; background: #fafbff; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; color: var(--muted); }
+.doc-note strong { color: var(--ink); }
+.doc-actions { margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.upload-msg  { margin: 8px 0 0; font-size: 12.5px; font-weight: 700; }
+
+/* ── Center screen ──────────────────────────────────────────────────────── */
+.center-screen {
+  min-height: 70vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 32px 20px;
+}
+.center-screen .big-icon { font-size: 48px; margin-bottom: 16px; }
+.center-screen h2        { margin: 0 0 10px; font-size: 21px; color: var(--navy); }
+.center-screen p         { margin: 0; color: var(--muted); max-width: 380px; line-height: 1.65; }
+</style>
+</head>
+<body>
+
+<!-- ── Top nav ──────────────────────────────────────────────────────────── -->
+<nav class="top-nav">
+  <div class="brand">
+    <div class="wmark">W</div>
+    <div>
+      <p class="brand-name">Winny Global</p>
+      <p class="brand-sub">Document Upload Portal</p>
+    </div>
+  </div>
+  <div id="navTraveller" class="nav-traveller" style="display:none"></div>
+</nav>
+
+<!-- ── Phases ───────────────────────────────────────────────────────────── -->
+<div id="phaseLoading" class="center-screen">
+  <div class="spin" style="margin-bottom:16px"></div>
+  <p style="color:var(--muted)">Loading your document checklist…</p>
+</div>
+
+<div id="phaseInvalid" class="center-screen" style="display:none">
+  <div class="big-icon">🔒</div>
+  <h2>Link invalid or expired</h2>
+  <p>This link is no longer valid. Please contact your case officer to receive a new link.</p>
+</div>
+
+<div id="phaseError" class="center-screen" style="display:none">
+  <div class="big-icon">⚠️</div>
+  <h2>Something went wrong</h2>
+  <p id="errorMsg" style="color:var(--red)"></p>
+</div>
+
+<div id="phaseReady" class="page-body" style="display:none">
+
+  <div class="wizard-panel">
+    <div class="panel-head">
+      <div>
+        <h3>📋 Document Checklist</h3>
+        <p>Upload each document required for your case. Mandatory documents must be submitted before your application can proceed.</p>
+      </div>
+      <button class="btn sm ghost" onclick="refreshChecklist()">↺ Refresh</button>
+    </div>
+    <div class="panel-body">
+
+      <div class="notice blue" style="margin-bottom:16px">
+        <div>
+          <strong>📌 Mandatory documents must be uploaded</strong>
+          <span>This checklist is complete only when every mandatory document is submitted. Strength documents are recommended but optional.</span>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="q-prog-card" id="progressCard">
+        <div class="q-prog-top">
+          <span id="progressLabel"></span>
+          <span class="q-prog-pct" id="progressPct"></span>
+        </div>
+        <div class="q-prog-bg"><div class="q-prog-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Document list renders here -->
+      <div id="docListRoot"></div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Config (must match your Creator app) ──────────────────────────────────
+const APP_NAME    = "hiren-patel";
+const FORM_NAME   = "Portal_CRM_Request";
+const REPORT_NAME = "Portal_CRM_Request_Report";
+
+// ── Status → visual style map ─────────────────────────────────────────────
+const STATUS_META = {
+  "Not Submitted": { bg:"#f1f5f9", fg:"#64748b", dot:"#94a3b8" },
+  "Submitted":     { bg:"#eff6ff", fg:"#1d4ed8", dot:"#3b82f6" },
+  "Under Review":  { bg:"#fefce8", fg:"#a16207", dot:"#eab308" },
+  "Reviewed":      { bg:"#f0fdf4", fg:"#15803d", dot:"#22c55e" },
+  "Accepted":      { bg:"#f0fdf4", fg:"#15803d", dot:"#22c55e" },
+  "Rejected":      { bg:"#fff1f2", fg:"#be123c", dot:"#f43f5e" },
+  "Not Required":  { bg:"#f8fafc", fg:"#94a3b8", dot:"#cbd5e1" },
+  "Collected":     { bg:"#f0fdf4", fg:"#15803d", dot:"#22c55e" },
+};
+function statusMeta(s) { return STATUS_META[s] || { bg:"#f1f5f9", fg:"#64748b", dot:"#94a3b8" }; }
+
+// ── State ─────────────────────────────────────────────────────────────────
+let params      = {};   // URL query params from the Creator page
+let docList     = [];   // flat array of all document items
+let uploadingId = null; // document ID currently being uploaded
+let uploadMsgs  = {};   // { docId: { ok, text } }
+
+// ── Phase helpers ─────────────────────────────────────────────────────────
+function showPhase(name) {
+  ["Loading","Invalid","Error","Ready"].forEach(p =>
+    document.getElementById("phase" + p).style.display = p === name ? "" : "none"
+  );
+  if (name === "Loading") document.getElementById("phase" + name).style.display = "flex";
+}
+
+// ── Creator SDK wrappers ──────────────────────────────────────────────────
+function addBridgeRecord(data) {
+  return ZOHO.CREATOR.DATA.addRecords({
+    app_name:  APP_NAME,
+    form_name: FORM_NAME,
+    payload:   { data }
+  }).then(function(res) {
+    if (res.code !== 3000) throw new Error("Bridge failed (" + res.code + "): " + (res.message || ""));
+    return res.data.ID || res.data.id;
+  });
+}
+
+function getRecord(recordId) {
+  return ZOHO.CREATOR.DATA.getRecordById({
+    app_name:    APP_NAME,
+    report_name: REPORT_NAME,
+    id:          recordId
+  }).then(function(res) {
+    if (res.code !== 3000) return null;
+    return res.data;
+  });
+}
+
+function pollRecord(recordId, attempts, intervalMs) {
+  attempts   = attempts   || 15;
+  intervalMs = intervalMs || 1500;
+  return new Promise(function(resolve) {
+    var tries = 0;
+    function attempt() {
+      tries++;
+      getRecord(recordId).then(function(rec) {
+        if (rec && rec.Status !== "Pending") return resolve(rec);
+        if (tries >= attempts)               return resolve({ _timedOut: true });
+        setTimeout(attempt, intervalMs);
+      }).catch(function() {
+        if (tries >= attempts) return resolve({ _timedOut: true });
+        setTimeout(attempt, intervalMs);
+      });
+    }
+    setTimeout(attempt, intervalMs);
+  });
+}
+
+// ── Token validation via bridge ───────────────────────────────────────────
+// Requires a "Validate Doc Token" branch in your Portal_CRM_Request Deluge.
+// See the backend guide at the bottom of this file.
+function validateToken(docToken, travellerId) {
+  return addBridgeRecord({
+    Request_Type: "Validate Doc Token",
+    Status:       "Pending",
+    Payload:      JSON.stringify({ Doc_Token: docToken, Traveller_ID: travellerId })
+  }).then(function(id) {
+    return pollRecord(id, 15, 1500);
+  }).then(function(result) {
+    if (result._timedOut || result.Status !== "Success") return { valid: false };
+    return { valid: true, travellerName: result.CRM_Response || "Traveller" };
+  });
+}
+
+// ── Checklist load via bridge ─────────────────────────────────────────────
+// Re-uses the existing "Get Document Checklist" bridge.
+// Deluge should return all docs for the deal; we filter client-side by travellerId.
+function loadChecklist(dealId, travellerId) {
+  return addBridgeRecord({
+    Request_Type: "Get Document Checklist",
+    Status:       "Pending",
+    CRM_Deal_ID:  dealId,
+    Payload:      JSON.stringify({ Traveller_ID: travellerId })
+  }).then(function(id) {
+    return pollRecord(id, 15, 1500);
+  }).then(function(result) {
+    if (result._timedOut || result.Status === "Failed") return [];
+    var raw = result.Document_Checklist_JSON || result.CRM_Response || "[]";
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch(e) { return []; }
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(function(d) {
+        // Keep only this traveller's docs (server-side filter fallback)
+        var tid = d.traveller_id || d.travellerId || "";
+        return !tid || tid === travellerId || String(tid) === String(travellerId);
+      })
+      .map(function(d) {
+        var reqRaw = String(d.document_requirement || d.documentRequirement || d.Document_Requirement || "").trim().toLowerCase();
+        var isMandatory = reqRaw !== "" && reqRaw !== "optional" && reqRaw !== "strength" && reqRaw !== "not mandatory" && reqRaw !== "no";
+        var isStrength  = reqRaw === "strength";
+        return {
+          id:             d.id   || d.ID   || "",
+          requirement:    d.requirement || d.Name || "Document",
+          status:         d.status      || d.Document_Status || "Not Submitted",
+          reviewComments: d.review_comments || d.Review_Comments || "",
+          hasFile:        Boolean(d.has_file || d.hasFile || d.Has_File || d.source_request_id),
+          sourceRequestId:d.source_request_id || d.sourceRequestId || "",
+          isMandatory:    isMandatory,
+          isStrength:     isStrength
+        };
+      });
+  });
+}
+
+// ── File upload (mirrors portal's 2-step bridge exactly) ─────────────────
+function uploadFile(docId, file) {
+  uploadingId = docId;
+  uploadMsgs[docId] = null;
+  renderDocs();
+
+  return addBridgeRecord({
+    Request_Type:    "Upload Document",
+    Status:          "Pending",
+    Target_Record_ID: String(docId),
+    Payload:         JSON.stringify({ documentId: docId, fileName: file.name })
+  })
+  .then(function(recordId) {
+    return ZOHO.CREATOR.FILE.uploadFile({
+      app_name:    APP_NAME,
+      report_name: REPORT_NAME,
+      id:          recordId,
+      field_name:  "Document_File",
+      file:        file
+    }).then(function(uploadRes) {
+      if (uploadRes.code !== 3000) throw new Error("File upload failed (" + uploadRes.code + ")");
+      return pollRecord(recordId, 15, 2000);
+    });
+  })
+  .then(function(result) {
+    if (result._timedOut) throw new Error("Still processing — refresh and check status.");
+    if (result.Status === "Failed") throw new Error(result.Error_Message || "Upload processing failed.");
+    if (result.Status !== "Success") throw new Error("Unexpected status: " + result.Status);
+
+    // Update local doc entry
+    docList = docList.map(function(d) {
+      return d.id === docId ? Object.assign({}, d, { hasFile: true, status: "Submitted" }) : d;
+    });
+    uploadMsgs[docId] = { ok: true, text: "✓ " + file.name + " uploaded successfully" };
+  })
+  .catch(function(err) {
+    console.error("[DocUpload] upload error:", err);
+    uploadMsgs[docId] = { ok: false, text: err.message || "Upload failed — please try again." };
+  })
+  .finally(function() {
+    uploadingId = null;
+    renderDocs();
+  });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s || "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function reqBadgeHtml(isMandatory, isStrength) {
+  if (isMandatory) return '<span class="req-badge" style="background:#fff0f3;color:#a1233b">Mandatory</span>';
+  if (isStrength)  return '<span class="req-badge" style="background:#e8f8f2;color:#077753">Strength</span>';
+  return '<span class="req-badge" style="background:#f0f2f6;color:#5b6072">Optional</span>';
+}
+
+function docCardHtml(d) {
+  var meta     = statusMeta(d.status);
+  var isLocked = ["Not Required","Reviewed","Accepted"].includes(d.status);
+  var inputId  = "file-" + d.id;
+  var uploading = uploadingId === d.id;
+  var msg      = uploadMsgs[d.id];
+
+  var strengthHint = d.isStrength
+    ? '<p class="doc-hint" style="color:#077753">Recommended — providing this document can strengthen your application.</p>' : "";
+
+  var noteHtml = d.reviewComments
+    ? '<div class="doc-note"><strong>Note from case officer:</strong> ' + escHtml(d.reviewComments) + '</div>' : "";
+
+  var lockMsg = (isLocked && d.hasFile)
+    ? '<p class="doc-hint" style="color:var(--muted)">🔒 ' + (d.status === "Reviewed" ? "Approved — this document can no longer be changed." : "Not required for this case.") + '</p>' : "";
+
+  var uploadBtn = !isLocked
+    ? '<label class="btn ghost sm" for="' + inputId + '" style="' + (uploading ? 'opacity:.5;pointer-events:none' : '') + '">' +
+        (uploading ? "Uploading…" : (d.hasFile ? "↻ Replace file" : "📎 Upload file")) +
+      '</label>' +
+      '<input type="file" id="' + inputId + '" style="display:none"' + (uploading ? " disabled" : "") +
+        ' onchange="handleFileChange(\'' + d.id + '\', this)">' +
+      (uploading ? '<span class="spin sm"></span>' : "")
+    : "";
+
+  var msgHtml = msg
+    ? '<p class="upload-msg" style="color:' + (msg.ok ? "#15803d" : "#be123c") + '">' + escHtml(msg.text) + '</p>' : "";
+
+  return '<div class="doc-card">' +
+    '<div class="doc-card-top">' +
+      '<div class="doc-name">' + escHtml(d.requirement) + reqBadgeHtml(d.isMandatory, d.isStrength) + '</div>' +
+      '<span class="status-pill" style="background:' + meta.bg + ';color:' + meta.fg + '">' +
+        '<span class="status-dot" style="background:' + meta.dot + '"></span>' + escHtml(d.status) +
+      '</span>' +
+    '</div>' +
+    strengthHint + noteHtml + lockMsg +
+    '<div class="doc-actions">' + uploadBtn + '</div>' +
+    msgHtml +
+  '</div>';
+}
+
+function renderDocs() {
+  var mandatory = docList.filter(function(d) { return d.isMandatory; });
+  var strength  = docList.filter(function(d) { return !d.isMandatory && d.isStrength; });
+  var optional  = docList.filter(function(d) { return !d.isMandatory && !d.isStrength; });
+
+  var readyCount = mandatory.filter(function(d) {
+    return ["Submitted","Collected","Reviewed","Accepted"].includes(d.status) || d.hasFile;
+  }).length;
+  var pct = mandatory.length ? Math.round((readyCount / mandatory.length) * 100) : 100;
+
+  document.getElementById("progressLabel").textContent =
+    readyCount + " of " + mandatory.length + " mandatory documents uploaded" +
+    (strength.length ? " · " + strength.length + " strength" : "") +
+    (optional.length ? " · " + optional.length + " optional" : "");
+  document.getElementById("progressPct").textContent  = pct + "%";
+  document.getElementById("progressFill").style.width = pct + "%";
+
+  function sectionHtml(title, items) {
+    if (!items.length) return "";
+    return '<div style="margin-bottom:22px">' +
+      '<h4 style="margin:0 0 12px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">' + title + '</h4>' +
+      items.map(docCardHtml).join("") +
+    '</div>';
+  }
+
+  var html = "";
+  if (docList.length === 0) {
+    html = '<div class="notice blue">No documents have been assigned yet. Please check back shortly.</div>';
+  } else {
+    html += sectionHtml("Mandatory documents",  mandatory);
+    html += sectionHtml("Strength documents",   strength);
+    html += sectionHtml("Optional documents",   optional);
+  }
+
+  document.getElementById("docListRoot").innerHTML = html;
+}
+
+// ── File input handler (called from inline onchange) ──────────────────────
+function handleFileChange(docId, input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  input.value = "";
+  uploadFile(docId, file);
+}
+
+// ── Refresh ───────────────────────────────────────────────────────────────
+function refreshChecklist() {
+  var btn = document.querySelector("[onclick='refreshChecklist()']");
+  if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
+  loadChecklist(params.CRM_Deal_ID, params.Traveller_ID)
+    .then(function(docs) {
+      docList = docs;
+      renderDocs();
+    })
+    .finally(function() {
+      if (btn) { btn.disabled = false; btn.textContent = "↺ Refresh"; }
+    });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+ZOHO.CREATOR.init().then(function() {
+  // ZOHO.CREATOR.UTIL.getQueryParams() reads the outer Creator page URL params.
+  // These are passed through the share link: ?Doc_Token=...&Traveller_ID=...&CRM_Deal_ID=...
+  return ZOHO.CREATOR.UTIL.getQueryParams();
+})
+.then(function(queryParams) {
+  params = queryParams || {};
+  var docToken    = params.Doc_Token    || "";
+  var travellerId = params.Traveller_ID || "";
+  var dealId      = params.CRM_Deal_ID  || "";
+
+  if (!docToken || !travellerId) { showPhase("Invalid"); return; }
+
+  // 1. Validate the token
+  return validateToken(docToken, travellerId)
+    .then(function(valResult) {
+      if (!valResult.valid) { showPhase("Invalid"); return; }
+
+      // Show traveller name in nav
+      var nameEl = document.getElementById("navTraveller");
+      nameEl.textContent = "👤 " + valResult.travellerName;
+      nameEl.style.display = "";
+
+      // 2. Load the document checklist
+      return loadChecklist(dealId, travellerId);
+    })
+    .then(function(docs) {
+      if (!docs) return; // already showed Invalid phase
+      docList = docs;
+      showPhase("Ready");
+      renderDocs();
+    });
+})
+.catch(function(err) {
+  console.error("[DocUpload] init error:", err);
+  document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
+  showPhase("Error");
+});
+</script>
+
+<!--
+════════════════════════════════════════════════════════════════════════════════
+BACKEND — DELUGE CODE NEEDED IN Portal_CRM_Request (On Add workflow)
+════════════════════════════════════════════════════════════════════════════════
+
+You need ONE new branch in your existing Portal_CRM_Request "On Add" Deluge:
+
+──────────────────────────────────────────────────────────────────────────────
+BRANCH: "Validate Doc Token"
+──────────────────────────────────────────────────────────────────────────────
+
+if(input.Request_Type == "Validate Doc Token")
+{
+  payload      = input.Payload.toMap();
+  doc_token    = payload.get("Doc_Token");
+  traveller_id = payload.get("Traveller_ID");
+
+  trav_records = zoho.crm.searchRecords(
+    "Traveller_Info",
+    "id:equals:" + traveller_id,
+    1, 1,
+    "winny_connection"   // ← your CRM connection name
+  );
+
+  if(trav_records.size() == 0)
+  {
+    zoho.creator.updateRecord(
+      "hpatel_winnyedu", "hiren-patel", "Portal_CRM_Request_Report",
+      input.ID.toLong(),
+      {"Status": "Failed", "CRM_Response": "Traveller not found"},
+      "winny_connection"
+    );
+    return;
+  }
+
+  trav = trav_records.get(0);
+  if(trav.get("Doc_Token") != doc_token)
+  {
+    zoho.creator.updateRecord(
+      "hpatel_winnyedu", "hiren-patel", "Portal_CRM_Request_Report",
+      input.ID.toLong(),
+      {"Status": "Failed", "CRM_Response": "Invalid token"},
+      "winny_connection"
+    );
+    return;
+  }
+
+  full_name = trav.get("Full_Name").toString();
+  zoho.creator.updateRecord(
+    "hpatel_winnyedu", "hiren-patel", "Portal_CRM_Request_Report",
+    input.ID.toLong(),
+    {"Status": "Success", "CRM_Response": full_name},
+    "winny_connection"
+  );
+}
+
+──────────────────────────────────────────────────────────────────────────────
+BRANCH: "Get Document Checklist" — MODIFY to include traveller_id in each item
+──────────────────────────────────────────────────────────────────────────────
+
+Your existing Deluge for this branch builds a JSON array and writes it to
+Document_Checklist_JSON. Make sure each item includes the traveller lookup ID:
+
+  "traveller_id": doc.get("Traveller_Info").get("ID").toString()
+
+Example item structure:
+{
+  "id":                   doc.get("ID").toString(),
+  "requirement":          doc.get("Name").toString(),
+  "document_requirement": doc.get("Document_Requirement").toString(),
+  "status":               doc.get("Status").toString(),
+  "review_comments":      doc.get("Review_Comments").toString(),
+  "traveller_id":         doc.get("Traveller_Info").get("ID").toString(),
+  "has_file":             doc.get("Has_File").toString()
+}
+
+The widget filters client-side by Traveller_ID from the URL — so as long as
+traveller_id is in each item, each traveller only sees their own documents.
+
+──────────────────────────────────────────────────────────────────────────────
+HOW THE LINK URL IS BUILT (by the portal when case officer clicks "Generate Link")
+──────────────────────────────────────────────────────────────────────────────
+
+https://creatorapp.zoho.in/hpatel_winnyedu/hiren-patel/page/YourPageName
+  ?Doc_Token=<token>
+  &Traveller_ID=<CRM_traveller_info_record_id>
+  &CRM_Deal_ID=<crm_deal_id>
+  &Traveller_Name=<url-encoded name>
+
+Set VITE_DOC_UPLOAD_URL in your .env to this base URL (without the ?...).
+
+════════════════════════════════════════════════════════════════════════════════
+-->
+</body>
+</html>

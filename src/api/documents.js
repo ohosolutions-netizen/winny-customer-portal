@@ -17,10 +17,13 @@ import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 import { deriveQuestionnaireUnits, getPortalUserFamilyId } from "../core/questionnaire.js";
 import { saveDraft } from "../core/drafts.js";
 import { sendDocumentEmail } from "./deal.js";
+import { crmUpdateRecord } from "./zoho.js";
 
 // ── Document share-link helpers (mirrors questionnaire link pattern) ──────────
-// Replace this placeholder with your Creator form perma-link once the form is built.
-const DOC_UPLOAD_FORM_PERMA = "REPLACE_WITH_CREATOR_FORM_PERMA_LINK";
+// Base URL for the standalone doc-upload widget (set VITE_DOC_UPLOAD_URL in .env)
+const DOC_UPLOAD_BASE = (typeof import.meta !== "undefined" && import.meta.env?.VITE_DOC_UPLOAD_URL)
+  ? import.meta.env.VITE_DOC_UPLOAD_URL
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 function docGenToken() {
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
@@ -38,18 +41,25 @@ function docBuildLink(token, traveller) {
     ...(clientName               ? { Traveller_Name: clientName }               : {}),
     ...(traveller?.type          ? { Traveller_Type: traveller.type }           : {}),
   });
-  return `${DOC_UPLOAD_FORM_PERMA}?${params.toString()}`;
+  return `${DOC_UPLOAD_BASE}?${params.toString()}`;
 }
 
 export function docGenerateLink(travellerId) {
+  let targetTraveller = null;
+  const token = docGenToken();
   (applicationData.deal.travellers || []).forEach(t => {
     if (t.id === travellerId || t.crmId === travellerId) {
-      t.docToken = docGenToken();
+      t.docToken = token;
       t.docLinkSent = false;
+      targetTraveller = t;
     }
   });
   saveDraft(false);
   renderDocuments();
+  if (targetTraveller?.crmId) {
+    crmUpdateRecord(CONFIG.modules.travellers, targetTraveller.crmId, { Doc_Token: token })
+      .catch(err => console.warn("[Winny] Failed to push Doc_Token to CRM:", err));
+  }
 }
 
 export function docCopyLink(travellerId) {
