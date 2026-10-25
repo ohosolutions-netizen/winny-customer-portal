@@ -6,8 +6,8 @@
 <title>Winny Global — Document Upload</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-<!-- Zoho Creator Widget SDK — injected automatically when running inside Creator; this tag is a safety fallback -->
-<script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk.min.js"></script>
+<!-- Zoho Creator Widget SDK v2 — correct CDN URL from official docs -->
+<script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
 <style>
 /* ── Design tokens (mirrors portal.css exactly) ──────────────────────────── */
 :root {
@@ -135,22 +135,6 @@ button, input, label { font: inherit; cursor: pointer; }
 .spin.sm { width: 18px; height: 18px; border-width: 2.5px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Person block ───────────────────────────────────────────────────────── */
-.person-block { margin-bottom: 28px; }
-.person-block-hd {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 0; border-bottom: 1px solid var(--line); margin-bottom: 14px;
-}
-.pb-av {
-  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-  display: grid; place-items: center;
-  font-size: 17px; font-weight: 900;
-  background: linear-gradient(135deg,rgba(5,97,244,.14),rgba(6,201,181,.18));
-  color: var(--navy); border: 1.5px solid #d1e3fc;
-}
-.pb-name { font-size: 15px; font-weight: 800; color: var(--navy); }
-.pb-role { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
 /* ── Document cards ─────────────────────────────────────────────────────── */
 .doc-card {
   border: 1.5px solid var(--line);
@@ -227,7 +211,6 @@ button, input, label { font: inherit; cursor: pointer; }
 </div>
 
 <div id="phaseReady" class="page-body" style="display:none">
-
   <div class="wizard-panel">
     <div class="panel-head">
       <div>
@@ -237,15 +220,12 @@ button, input, label { font: inherit; cursor: pointer; }
       <button class="btn sm ghost" onclick="refreshChecklist()">↺ Refresh</button>
     </div>
     <div class="panel-body">
-
       <div class="notice blue" style="margin-bottom:16px">
         <div>
           <strong>📌 Mandatory documents must be uploaded</strong>
           <span>This checklist is complete only when every mandatory document is submitted. Strength documents are recommended but optional.</span>
         </div>
       </div>
-
-      <!-- Progress bar -->
       <div class="q-prog-card" id="progressCard">
         <div class="q-prog-top">
           <span id="progressLabel"></span>
@@ -253,23 +233,19 @@ button, input, label { font: inherit; cursor: pointer; }
         </div>
         <div class="q-prog-bg"><div class="q-prog-fill" id="progressFill" style="width:0%"></div></div>
       </div>
-
-      <!-- Document list renders here -->
       <div id="docListRoot"></div>
-
     </div>
   </div>
-
 </div>
 
 <script>
-// ── Config (must match your Creator app) ──────────────────────────────────
-const APP_NAME    = "hiren-patel";
-const FORM_NAME   = "Portal_CRM_Request";
-const REPORT_NAME = "Portal_CRM_Request_Report";
+// ── Config ────────────────────────────────────────────────────────────────
+var APP_NAME    = "hiren-patel";
+var FORM_NAME   = "Portal_CRM_Request";
+var REPORT_NAME = "Portal_CRM_Request_Report";
 
 // ── Status → visual style map ─────────────────────────────────────────────
-const STATUS_META = {
+var STATUS_META = {
   "Not Submitted": { bg:"#f1f5f9", fg:"#64748b", dot:"#94a3b8" },
   "Submitted":     { bg:"#eff6ff", fg:"#1d4ed8", dot:"#3b82f6" },
   "Under Review":  { bg:"#fefce8", fg:"#a16207", dot:"#eab308" },
@@ -282,25 +258,29 @@ const STATUS_META = {
 function statusMeta(s) { return STATUS_META[s] || { bg:"#f1f5f9", fg:"#64748b", dot:"#94a3b8" }; }
 
 // ── State ─────────────────────────────────────────────────────────────────
-let params      = {};   // URL query params from the Creator page
-let docList     = [];   // flat array of all document items
-let uploadingId = null; // document ID currently being uploaded
-let uploadMsgs  = {};   // { docId: { ok, text } }
+var params      = {};
+var docList     = [];
+var uploadingId = null;
+var uploadMsgs  = {};
 
 // ── Phase helpers ─────────────────────────────────────────────────────────
 function showPhase(name) {
-  ["Loading","Invalid","Error","Ready"].forEach(p =>
-    document.getElementById("phase" + p).style.display = p === name ? "" : "none"
-  );
-  if (name === "Loading") document.getElementById("phase" + name).style.display = "flex";
+  ["Loading","Invalid","Error","Ready"].forEach(function(p) {
+    var el = document.getElementById("phase" + p);
+    el.style.display = p === name ? (p === "Loading" ? "flex" : "") : "none";
+  });
 }
 
 // ── Creator SDK wrappers ──────────────────────────────────────────────────
+// Using ZOHO.CREATOR.PUBLISH for public pages (no Creator account required).
+// Official docs: "Only Publish API tasks will work in published pages that
+// can be accessed by people who do not hold a Creator account."
+
 function addBridgeRecord(data) {
-  return ZOHO.CREATOR.DATA.addRecords({
+  return ZOHO.CREATOR.PUBLISH.addRecord({
     app_name:  APP_NAME,
     form_name: FORM_NAME,
-    payload:   { data }
+    payload:   { data: data }
   }).then(function(res) {
     if (res.code !== 3000) throw new Error("Bridge failed (" + res.code + "): " + (res.message || ""));
     return res.data.ID || res.data.id;
@@ -308,7 +288,7 @@ function addBridgeRecord(data) {
 }
 
 function getRecord(recordId) {
-  return ZOHO.CREATOR.DATA.getRecordById({
+  return ZOHO.CREATOR.PUBLISH.getRecordById({
     app_name:    APP_NAME,
     report_name: REPORT_NAME,
     id:          recordId
@@ -338,9 +318,7 @@ function pollRecord(recordId, attempts, intervalMs) {
   });
 }
 
-// ── Token validation via bridge ───────────────────────────────────────────
-// Requires a "Validate Doc Token" branch in your Portal_CRM_Request Deluge.
-// See the backend guide at the bottom of this file.
+// ── Token validation ──────────────────────────────────────────────────────
 function validateToken(docToken, travellerId) {
   return addBridgeRecord({
     Request_Type: "Validate Doc Token",
@@ -354,9 +332,7 @@ function validateToken(docToken, travellerId) {
   });
 }
 
-// ── Checklist load via bridge ─────────────────────────────────────────────
-// Re-uses the existing "Get Document Checklist" bridge.
-// Deluge should return all docs for the deal; we filter client-side by travellerId.
+// ── Checklist load ────────────────────────────────────────────────────────
 function loadChecklist(dealId, travellerId) {
   return addBridgeRecord({
     Request_Type: "Get Document Checklist",
@@ -373,7 +349,6 @@ function loadChecklist(dealId, travellerId) {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(function(d) {
-        // Keep only this traveller's docs (server-side filter fallback)
         var tid = d.traveller_id || d.travellerId || "";
         return !tid || tid === travellerId || String(tid) === String(travellerId);
       })
@@ -395,20 +370,20 @@ function loadChecklist(dealId, travellerId) {
   });
 }
 
-// ── File upload (mirrors portal's 2-step bridge exactly) ─────────────────
+// ── File upload ───────────────────────────────────────────────────────────
 function uploadFile(docId, file) {
   uploadingId = docId;
   uploadMsgs[docId] = null;
   renderDocs();
 
-  return addBridgeRecord({
+  addBridgeRecord({
     Request_Type:    "Upload Document",
     Status:          "Pending",
     Target_Record_ID: String(docId),
     Payload:         JSON.stringify({ documentId: docId, fileName: file.name })
   })
   .then(function(recordId) {
-    return ZOHO.CREATOR.FILE.uploadFile({
+    return ZOHO.CREATOR.PUBLISH.uploadFile({
       app_name:    APP_NAME,
       report_name: REPORT_NAME,
       id:          recordId,
@@ -423,8 +398,6 @@ function uploadFile(docId, file) {
     if (result._timedOut) throw new Error("Still processing — refresh and check status.");
     if (result.Status === "Failed") throw new Error(result.Error_Message || "Upload processing failed.");
     if (result.Status !== "Success") throw new Error("Unexpected status: " + result.Status);
-
-    // Update local doc entry
     docList = docList.map(function(d) {
       return d.id === docId ? Object.assign({}, d, { hasFile: true, status: "Submitted" }) : d;
     });
@@ -454,30 +427,26 @@ function reqBadgeHtml(isMandatory, isStrength) {
 }
 
 function docCardHtml(d) {
-  var meta     = statusMeta(d.status);
-  var isLocked = ["Not Required","Reviewed","Accepted"].includes(d.status);
-  var inputId  = "file-" + d.id;
+  var meta      = statusMeta(d.status);
+  var isLocked  = ["Not Required","Reviewed","Accepted"].includes(d.status);
+  var inputId   = "file-" + d.id;
   var uploading = uploadingId === d.id;
-  var msg      = uploadMsgs[d.id];
+  var msg       = uploadMsgs[d.id];
 
   var strengthHint = d.isStrength
     ? '<p class="doc-hint" style="color:#077753">Recommended — providing this document can strengthen your application.</p>' : "";
-
   var noteHtml = d.reviewComments
     ? '<div class="doc-note"><strong>Note from case officer:</strong> ' + escHtml(d.reviewComments) + '</div>' : "";
-
   var lockMsg = (isLocked && d.hasFile)
     ? '<p class="doc-hint" style="color:var(--muted)">🔒 ' + (d.status === "Reviewed" ? "Approved — this document can no longer be changed." : "Not required for this case.") + '</p>' : "";
-
   var uploadBtn = !isLocked
-    ? '<label class="btn ghost sm" for="' + inputId + '" style="' + (uploading ? 'opacity:.5;pointer-events:none' : '') + '">' +
+    ? '<label class="btn ghost sm" for="' + inputId + '" style="' + (uploading ? "opacity:.5;pointer-events:none" : "") + '">' +
         (uploading ? "Uploading…" : (d.hasFile ? "↻ Replace file" : "📎 Upload file")) +
       '</label>' +
       '<input type="file" id="' + inputId + '" style="display:none"' + (uploading ? " disabled" : "") +
         ' onchange="handleFileChange(\'' + d.id + '\', this)">' +
       (uploading ? '<span class="spin sm"></span>' : "")
     : "";
-
   var msgHtml = msg
     ? '<p class="upload-msg" style="color:' + (msg.ok ? "#15803d" : "#be123c") + '">' + escHtml(msg.text) + '</p>' : "";
 
@@ -498,7 +467,6 @@ function renderDocs() {
   var mandatory = docList.filter(function(d) { return d.isMandatory; });
   var strength  = docList.filter(function(d) { return !d.isMandatory && d.isStrength; });
   var optional  = docList.filter(function(d) { return !d.isMandatory && !d.isStrength; });
-
   var readyCount = mandatory.filter(function(d) {
     return ["Submitted","Collected","Reviewed","Accepted"].includes(d.status) || d.hasFile;
   }).length;
@@ -519,19 +487,13 @@ function renderDocs() {
     '</div>';
   }
 
-  var html = "";
-  if (docList.length === 0) {
-    html = '<div class="notice blue">No documents have been assigned yet. Please check back shortly.</div>';
-  } else {
-    html += sectionHtml("Mandatory documents",  mandatory);
-    html += sectionHtml("Strength documents",   strength);
-    html += sectionHtml("Optional documents",   optional);
-  }
+  var html = docList.length === 0
+    ? '<div class="notice blue">No documents have been assigned yet. Please check back shortly.</div>'
+    : sectionHtml("Mandatory documents", mandatory) + sectionHtml("Strength documents", strength) + sectionHtml("Optional documents", optional);
 
   document.getElementById("docListRoot").innerHTML = html;
 }
 
-// ── File input handler (called from inline onchange) ──────────────────────
 function handleFileChange(docId, input) {
   var file = input.files && input.files[0];
   if (!file) return;
@@ -539,160 +501,49 @@ function handleFileChange(docId, input) {
   uploadFile(docId, file);
 }
 
-// ── Refresh ───────────────────────────────────────────────────────────────
 function refreshChecklist() {
   var btn = document.querySelector("[onclick='refreshChecklist()']");
   if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
   loadChecklist(params.CRM_Deal_ID, params.Traveller_ID)
-    .then(function(docs) {
-      docList = docs;
-      renderDocs();
-    })
-    .finally(function() {
-      if (btn) { btn.disabled = false; btn.textContent = "↺ Refresh"; }
-    });
+    .then(function(docs) { docList = docs; renderDocs(); })
+    .finally(function() { if (btn) { btn.disabled = false; btn.textContent = "↺ Refresh"; } });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-// ZOHO SDK loads asynchronously — poll until it is defined before calling init()
-function startApp() {
-  if (typeof ZOHO === "undefined" || typeof ZOHO.CREATOR === "undefined") {
-    setTimeout(startApp, 150);
-    return;
-  }
+// DOMContentLoaded ensures the SDK script has been parsed before we call init()
+document.addEventListener("DOMContentLoaded", function() {
   ZOHO.CREATOR.init().then(function() {
     return ZOHO.CREATOR.UTIL.getQueryParams();
   })
-.then(function(queryParams) {
-  params = queryParams || {};
-  var docToken    = params.Doc_Token    || "";
-  var travellerId = params.Traveller_ID || "";
-  var dealId      = params.CRM_Deal_ID  || "";
+  .then(function(queryParams) {
+    params = queryParams || {};
+    var docToken    = params.Doc_Token    || "";
+    var travellerId = params.Traveller_ID || "";
+    var dealId      = params.CRM_Deal_ID  || "";
 
-  if (!docToken || !travellerId) { showPhase("Invalid"); return; }
+    if (!docToken || !travellerId) { showPhase("Invalid"); return; }
 
-  // 1. Validate the token
-  return validateToken(docToken, travellerId)
-    .then(function(valResult) {
-      if (!valResult.valid) { showPhase("Invalid"); return; }
-
-      // Show traveller name in nav
-      var nameEl = document.getElementById("navTraveller");
-      nameEl.textContent = "👤 " + valResult.travellerName;
-      nameEl.style.display = "";
-
-      // 2. Load the document checklist
-      return loadChecklist(dealId, travellerId);
-    })
-    .then(function(docs) {
-      if (!docs) return; // already showed Invalid phase
-      docList = docs;
-      showPhase("Ready");
-      renderDocs();
-    });
+    return validateToken(docToken, travellerId)
+      .then(function(valResult) {
+        if (!valResult.valid) { showPhase("Invalid"); return; }
+        var nameEl = document.getElementById("navTraveller");
+        nameEl.textContent = "👤 " + valResult.travellerName;
+        nameEl.style.display = "";
+        return loadChecklist(dealId, travellerId);
+      })
+      .then(function(docs) {
+        if (!docs) return;
+        docList = docs;
+        showPhase("Ready");
+        renderDocs();
+      });
   })
   .catch(function(err) {
     console.error("[DocUpload] init error:", err);
     document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
     showPhase("Error");
   });
-}
-
-document.addEventListener("DOMContentLoaded", startApp);
+});
 </script>
-
-<!--
-════════════════════════════════════════════════════════════════════════════════
-BACKEND — DELUGE CODE NEEDED IN Portal_CRM_Request (On Add workflow)
-════════════════════════════════════════════════════════════════════════════════
-
-You need ONE new branch in your existing Portal_CRM_Request "On Add" Deluge:
-
-──────────────────────────────────────────────────────────────────────────────
-BRANCH: "Validate Doc Token"
-──────────────────────────────────────────────────────────────────────────────
-
-if(input.Request_Type == "Validate Doc Token")
-{
-  payload      = input.Payload.toMap();
-  doc_token    = payload.get("Doc_Token");
-  traveller_id = payload.get("Traveller_ID");
-
-  trav_records = zoho.crm.searchRecords(
-    "Traveller_Info",
-    "id:equals:" + traveller_id,
-    1, 1,
-    "winny_connection"   // ← your CRM connection name
-  );
-
-  if(trav_records.size() == 0)
-  {
-    zoho.creator.updateRecord(
-      "hpatel_winnyedu", "hiren-patel", "Portal_CRM_Request_Report",
-      input.ID.toLong(),
-      {"Status": "Failed", "CRM_Response": "Traveller not found"},
-      "winny_connection"
-    );
-    return;
-  }
-
-  trav = trav_records.get(0);
-  if(trav.get("Doc_Token") != doc_token)
-  {
-    zoho.creator.updateRecord(
-      "hpatel_winnyedu", "hiren-patel", "Portal_CRM_Request_Report",
-      input.ID.toLong(),
-      {"Status": "Failed", "CRM_Response": "Invalid token"},
-      "winny_connection"
-    );
-    return;
-  }
-
-  full_name = trav.get("Full_Name").toString();
-  zoho.creator.updateRecord(
-    "hpatel_winnyedu", "hiren-patel", "Portal_CRM_Request_Report",
-    input.ID.toLong(),
-    {"Status": "Success", "CRM_Response": full_name},
-    "winny_connection"
-  );
-}
-
-──────────────────────────────────────────────────────────────────────────────
-BRANCH: "Get Document Checklist" — MODIFY to include traveller_id in each item
-──────────────────────────────────────────────────────────────────────────────
-
-Your existing Deluge for this branch builds a JSON array and writes it to
-Document_Checklist_JSON. Make sure each item includes the traveller lookup ID:
-
-  "traveller_id": doc.get("Traveller_Info").get("ID").toString()
-
-Example item structure:
-{
-  "id":                   doc.get("ID").toString(),
-  "requirement":          doc.get("Name").toString(),
-  "document_requirement": doc.get("Document_Requirement").toString(),
-  "status":               doc.get("Status").toString(),
-  "review_comments":      doc.get("Review_Comments").toString(),
-  "traveller_id":         doc.get("Traveller_Info").get("ID").toString(),
-  "has_file":             doc.get("Has_File").toString()
-}
-
-The widget filters client-side by Traveller_ID from the URL — so as long as
-traveller_id is in each item, each traveller only sees their own documents.
-
-──────────────────────────────────────────────────────────────────────────────
-HOW THE LINK URL IS BUILT (by the portal when case officer clicks "Generate Link")
-──────────────────────────────────────────────────────────────────────────────
-
-https://creatorapp.zoho.in/hpatel_winnyedu/hiren-patel/page/YourPageName
-  ?Doc_Token=<token>
-  &Traveller_ID=<CRM_traveller_info_record_id>
-  &CRM_Deal_ID=<crm_deal_id>
-  &Traveller_Name=<url-encoded name>
-
-Set VITE_DOC_UPLOAD_URL in your .env to this base URL (without the ?...).
-
-════════════════════════════════════════════════════════════════════════════════
--->
 </body>
 </html>
