@@ -554,11 +554,15 @@ function refreshChecklist() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-ZOHO.CREATOR.init().then(function() {
-  // ZOHO.CREATOR.UTIL.getQueryParams() reads the outer Creator page URL params.
-  // These are passed through the share link: ?Doc_Token=...&Traveller_ID=...&CRM_Deal_ID=...
-  return ZOHO.CREATOR.UTIL.getQueryParams();
-})
+// ZOHO SDK loads asynchronously — poll until it is defined before calling init()
+function startApp() {
+  if (typeof ZOHO === "undefined" || typeof ZOHO.CREATOR === "undefined") {
+    setTimeout(startApp, 150);
+    return;
+  }
+  ZOHO.CREATOR.init().then(function() {
+    return ZOHO.CREATOR.UTIL.getQueryParams();
+  })
 .then(function(queryParams) {
   params = queryParams || {};
   var docToken    = params.Doc_Token    || "";
@@ -586,12 +590,15 @@ ZOHO.CREATOR.init().then(function() {
       showPhase("Ready");
       renderDocs();
     });
-})
-.catch(function(err) {
-  console.error("[DocUpload] init error:", err);
-  document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
-  showPhase("Error");
-});
+  })
+  .catch(function(err) {
+    console.error("[DocUpload] init error:", err);
+    document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
+    showPhase("Error");
+  });
+}
+
+document.addEventListener("DOMContentLoaded", startApp);
 </script>
 
 <!--
