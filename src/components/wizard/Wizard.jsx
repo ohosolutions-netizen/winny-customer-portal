@@ -3,7 +3,7 @@ import { applicationData, state } from "../../store/runtime.js";
 import { steps } from "../../config/config.js";
 import { useApp } from "../../store/AppStore.jsx";
 import { isStepLocked, isStepDone, getCompletionPercent } from "../../core/derive.js";
-import { showStep, goToDashboard, nextStep, previousStep } from "../../core/navigation.js";
+import { showStep, nextStep, previousStep } from "../../core/navigation.js";
 import { toast } from "../../lib/ui.js";
 import WizardSidebar from "./WizardSidebar.jsx";
 import DealStep from "../deal/DealStep.jsx";
@@ -78,10 +78,7 @@ export default function Wizard() {
           </main>
 
           <footer id="wizardFooter" className="wizard-footer">
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn" type="button" onClick={() => goToDashboard()}>← Back to dashboard</button>
-              <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
-            </div>
+            <button className="btn" type="button" id="footerBack" disabled={backDisabled} onClick={() => previousStep()}>← Previous</button>
             <button className="btn primary" type="button" id="footerNext" disabled={nextDisabled} onClick={() => {
               if (applicationData.currentStep === 1 && state.dealSubStep === 2) {
                 const today = new Date().toISOString().slice(0, 10);

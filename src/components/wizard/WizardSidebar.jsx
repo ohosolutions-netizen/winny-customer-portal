@@ -32,7 +32,7 @@ export default function WizardSidebar() {
   return (
     <aside className="wz-sidebar">
       {/* ── Top: back link ── */}
-      <button className="wz-sidebar-back" type="button" onClick={() => goToDashboard()}>
+      <button className="btn ghost" type="button" style={{ marginBottom: 12, fontSize: 13, width: "100%" }} onClick={() => goToDashboard()}>
         ← All applications
       </button>
 
