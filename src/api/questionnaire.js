@@ -768,9 +768,21 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       try {
         const rows = await creatorQuery(`Q_Token == "${token}"`);
         if (rows.length) {
-          console.log(`[Winny] Found questionnaire record by Q_Token for unit ${unit.familyId}`);
-          applyRecord(rows[0], unit.familyId);
-          continue;
+          // Guard: Q_Tokens can be shared across family members — only apply if this
+          // record's Family_Group or Primary_Traveller_ID actually maps to this unit.
+          // Without this check a co-traveller falsely matches the primary's submission.
+          const r = rows[0];
+          const rFG = String(r.Family_Group || "").trim();
+          const rPT = String(r.Primary_Traveller_ID || "").trim();
+          const unitMemberIds = unit.travellers.flatMap(t => [t.id, t.familyId, t.crmId]).filter(Boolean);
+          const isThisUnit = !rFG || unitMemberIds.includes(rFG) || unitMemberIds.includes(rPT);
+          if (isThisUnit) {
+            console.log(`[Winny] Found questionnaire record by Q_Token for unit ${unit.familyId}`);
+            applyRecord(r, unit.familyId);
+            continue;
+          } else {
+            console.log(`[Winny] Q_Token matched a record for a different unit — skipping for ${unit.familyId}`);
+          }
         }
       } catch (e) {
         console.warn(`[Winny] Q_Token lookup failed for unit ${unit.familyId}:`, e);
