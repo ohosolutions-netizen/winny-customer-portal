@@ -598,7 +598,7 @@ function hydrateApplicationDetails(details) {
     // wholesale, so the older Creator savedPayload (saved at Payment Complete, before
     // subsequent syncs) overwrites crmId values and agreementSigned state.
     // Key by local id AND crmId so we can match after the array is replaced.
-    const travellerSnapshot = new Map(); // local id → { crmId, agreementSigned, agreementSignedAt, qFillMode, qToken, qLinkSent, qCreatorRecordId }
+    const travellerSnapshot = new Map(); // local id → { crmId, agreementSigned, agreementSignedAt, qFillMode, qToken, qLinkSent, qCreatorRecordId, docToken, docLinkSent }
     (applicationData.deal.travellers || []).forEach((t) => {
       const entry = {
         crmId: t.crmId || "",
@@ -608,6 +608,8 @@ function hydrateApplicationDetails(details) {
         qToken: t.qToken || "",
         qLinkSent: t.qLinkSent || false,
         qCreatorRecordId: t.qCreatorRecordId || "",
+        docToken: t.docToken || "",
+        docLinkSent: t.docLinkSent || false,
       };
       if (t.id) travellerSnapshot.set(String(t.id), entry);
       if (t.crmId) travellerSnapshot.set(String(t.crmId), entry);
@@ -635,6 +637,9 @@ function hydrateApplicationDetails(details) {
       if (snap.qToken) t.qToken = snap.qToken;
       if (snap.qLinkSent) t.qLinkSent = snap.qLinkSent;
       if (snap.qCreatorRecordId) t.qCreatorRecordId = snap.qCreatorRecordId;
+      // Restore portal-only document share-link state
+      if (snap.docToken) t.docToken = snap.docToken;
+      if (snap.docLinkSent) t.docLinkSent = snap.docLinkSent;
     });
 
     // If the saved externalPayer matches the primary applicant, the payer fields

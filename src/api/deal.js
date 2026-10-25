@@ -926,9 +926,62 @@ async function sendQuestionnaireEmail(toEmail, travellerName, linkUrl) {
   }
 }
 
+async function sendDocumentEmail(toEmail, travellerName, linkUrl) {
+  let sp;
+  try { sp = new URL(linkUrl).searchParams; } catch (_) { sp = new URLSearchParams(); }
+
+  const recordData = {
+    To_Email:       toEmail,
+    Traveller_Name: travellerName,
+    Doc_Token:      sp.get("Doc_Token")      || "",
+    CRM_Deal_ID:    sp.get("CRM_Deal_ID")    || "",
+    Traveller_ID:   sp.get("Traveller_ID")   || "",
+    Traveller_Type: sp.get("Traveller_Type") || "",
+  };
+  console.log("[Winny:DocumentEmail] sending — data:", recordData);
+  try {
+    if (window.ZOHO?.CREATOR?.DATA?.addRecords) {
+      const res = await ZOHO.CREATOR.DATA.addRecords({
+        app_name:  CONFIG.creator.appLinkName,
+        form_name: "Document_Link_Email",
+        payload:   { data: recordData },
+      });
+      console.log("[Winny:DocumentEmail] T1 response:", JSON.stringify(res));
+      if (res?.code !== 3000) throw new Error(`Creator error (${res?.code}): ${res?.error || res?.message}`);
+      return;
+    }
+    if (window.ZOHO?.CREATOR?.API?.addRecord) {
+      const res = await ZOHO.CREATOR.API.addRecord({
+        appName:  CONFIG.creator.appLinkName,
+        formName: "Document_Link_Email",
+        data:     { data: recordData },
+      });
+      console.log("[Winny:DocumentEmail] T2 response:", JSON.stringify(res));
+      if (res?.code !== 3000) throw new Error(`Creator error (${res?.code}): ${res?.message}`);
+      return;
+    }
+    if (window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const res = await ZOHO.CREATOR.API.invokeUrl({
+        url:            `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/form/Document_Link_Email`,
+        type:           "POST",
+        connectionName: CONFIG.crmConnectionName,
+        headers:        { "Content-Type": "application/json" },
+        data:           JSON.stringify({ data: recordData }),
+      });
+      console.log("[Winny:DocumentEmail] T3 response:", JSON.stringify(res));
+      if (res?.code !== 3000) throw new Error(`Creator error (${res?.code}): ${res?.message}`);
+      return;
+    }
+    throw new Error("ZOHO Creator SDK not available");
+  } catch (err) {
+    console.error("[Winny] Document email request failed:", err.message || err);
+    throw err;
+  }
+}
+
 export {
   goDealSubStep, validateDealSubStep, openZPayWidget, showPaymentConfirmedScreen,
   goToQuestionnaire, fetchAgreement, completePayment, createZohoPaymentLink,
   saveDealDetails, saveDealData, sendAgreementOtp, verifyAgreementOtp, sendAgreementEmail,
-  sendQuestionnaireEmail
+  sendQuestionnaireEmail, sendDocumentEmail
 };

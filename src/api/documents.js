@@ -15,6 +15,114 @@ import { toast } from "../lib/ui.js";
 import { documentStatusMeta, isMandatoryDocument, isStrengthDocument, isDocumentReady } from "../core/derive.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 import { deriveQuestionnaireUnits, getPortalUserFamilyId } from "../core/questionnaire.js";
+import { saveDraft } from "../core/drafts.js";
+import { sendDocumentEmail } from "./deal.js";
+
+// ── Document share-link helpers (mirrors questionnaire link pattern) ──────────
+// Replace this placeholder with your Creator form perma-link once the form is built.
+const DOC_UPLOAD_FORM_PERMA = "REPLACE_WITH_CREATOR_FORM_PERMA_LINK";
+
+function docGenToken() {
+  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+}
+
+function docBuildLink(token, traveller) {
+  const crmDealId = applicationData.deal?.crmDealId || "";
+  const clientName = traveller
+    ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim()
+    : "";
+  const params = new URLSearchParams({
+    Doc_Token:      token,
+    CRM_Deal_ID:    crmDealId,
+    ...(traveller?.crmId         ? { Traveller_ID:   traveller.crmId }         : {}),
+    ...(clientName               ? { Traveller_Name: clientName }               : {}),
+    ...(traveller?.type          ? { Traveller_Type: traveller.type }           : {}),
+  });
+  return `${DOC_UPLOAD_FORM_PERMA}?${params.toString()}`;
+}
+
+export function docGenerateLink(travellerId) {
+  (applicationData.deal.travellers || []).forEach(t => {
+    if (t.id === travellerId || t.crmId === travellerId) {
+      t.docToken = docGenToken();
+      t.docLinkSent = false;
+    }
+  });
+  saveDraft(false);
+  renderDocuments();
+}
+
+export function docCopyLink(travellerId) {
+  const traveller = (applicationData.deal.travellers || []).find(
+    t => t.id === travellerId || t.crmId === travellerId
+  );
+  if (!traveller?.docToken) return;
+  const url = docBuildLink(traveller.docToken, traveller);
+
+  traveller.docLinkSent = true;
+  if (!traveller.docLinkSentAt) traveller.docLinkSentAt = new Date().toISOString();
+  saveDraft(false);
+
+  const doFallback = () => {
+    try {
+      const el = document.createElement("textarea");
+      el.value = url;
+      el.style.cssText = "position:fixed;top:-9999px;left:-9999px";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      toast("Document link copied to clipboard.");
+    } catch (_) {
+      toast("Could not copy — select and copy the link manually.");
+    }
+    renderDocuments();
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(() => {
+      toast("Document link copied to clipboard.");
+      renderDocuments();
+    }).catch(doFallback);
+  } else {
+    doFallback();
+  }
+}
+
+export async function docEmailLink(travellerId) {
+  const traveller = (applicationData.deal.travellers || []).find(
+    t => t.id === travellerId || t.crmId === travellerId
+  );
+  if (!traveller?.docToken) { toast("Generate a link first."); return; }
+  if (!traveller.email)     { toast("No email on file for this traveller."); return; }
+
+  const url  = docBuildLink(traveller.docToken, traveller);
+  const name = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim() || "Traveller";
+  toast("Sending document link email…");
+  try {
+    await sendDocumentEmail(traveller.email, name, url);
+    traveller.docLinkSent = true;
+    if (!traveller.docLinkSentAt) traveller.docLinkSentAt = new Date().toISOString();
+    saveDraft(false);
+    toast(`Document link sent to ${traveller.email}`);
+  } catch (err) {
+    toast(`Failed to send email — copy the link manually.`);
+  }
+  renderDocuments();
+}
+
+export function docResetLink(travellerId) {
+  (applicationData.deal.travellers || []).forEach(t => {
+    if (t.id === travellerId || t.crmId === travellerId) {
+      t.docToken = "";
+      t.docLinkSent = false;
+      delete t.docLinkSentAt;
+    }
+  });
+  saveDraft(false);
+  renderDocuments();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── Family-unit isolation for Documents ───────────────────────────────────
 function docActiveFamilyTravellerIds() {
@@ -269,6 +377,32 @@ export function switchDocumentUnit(familyId) {
               group.docs.filter(d => !isMandatoryDocument(d) && !isStrengthDocument(d)).length ? `${group.docs.filter(d => !isMandatoryDocument(d) && !isStrengthDocument(d)).length} optional` : ""
             ].filter(Boolean).join(" · ")}</div></div>
           </div>
+          ${(() => {
+            // Show share-link card for travellers without portal access
+            if (_blockTrav?.portalAccess || travKey === "unassigned") return "";
+            const tid  = _blockTrav?.id || travKey;
+            const tok  = _blockTrav?.docToken  || "";
+            const sent = _blockTrav?.docLinkSent || false;
+            const linkUrl = tok ? escapeHtml(docBuildLink(tok, _blockTrav)) : "";
+            if (!tok) return `
+              <div style="margin-bottom:14px;padding:14px;background:#f0f9ff;border:1px solid #bfdbfe;border-radius:10px">
+                <div style="font-size:12.5px;font-weight:700;color:#1d4ed8;margin-bottom:6px">&#x1F517; Share Document Checklist</div>
+                <div style="font-size:12px;color:#475569;margin-bottom:10px">This traveller doesn't have portal access. Generate a link so they can upload their own documents directly.</div>
+                <button class="btn ghost" type="button" style="font-size:12.5px;padding:7px 13px" onclick="docGenerateLink('${escapeHtml(String(tid))}')">Generate Link</button>
+              </div>`;
+            return `
+              <div style="margin-bottom:14px;padding:14px;background:#f0f9ff;border:1px solid #bfdbfe;border-radius:10px">
+                <div style="font-size:12.5px;font-weight:700;color:#1d4ed8;margin-bottom:6px">&#x1F517; Share Document Checklist${sent ? ' <span style="margin-left:8px;padding:2px 8px;border-radius:99px;background:#dcfce7;color:#166534;font-size:10px;font-weight:800">&#x2713; Sent</span>' : ""}</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+                  <input readonly value="${linkUrl}" onclick="this.select()" style="flex:1;font-size:11px;padding:6px 8px;border:1px solid #bfdbfe;border-radius:6px;background:#fff;color:#1e3a5f;min-width:0" />
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn ghost" type="button" style="font-size:12px;padding:6px 12px" onclick="docCopyLink('${escapeHtml(String(tid))}')">&#x1F4CB; Copy Link</button>
+                  <button class="btn ghost" type="button" style="font-size:12px;padding:6px 12px" onclick="docEmailLink('${escapeHtml(String(tid))}')">&#x2709;&#xFE0F; Email Link</button>
+                  <button class="btn ghost" type="button" style="font-size:12px;padding:6px 12px;color:var(--muted)" onclick="docResetLink('${escapeHtml(String(tid))}')">&#x21BA; Reset</button>
+                </div>
+              </div>`;
+          })()}
           <div style="display:flex;flex-direction:column;gap:10px">
             ${group.docs.map((d) => {
               const meta = documentStatusMeta(d.status);

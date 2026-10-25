@@ -3,7 +3,7 @@ import * as Docs from "../../api/documents.js";
 import { loadDocumentChecklist, renderDocuments } from "../../api/documents.js";
 import { state } from "../../store/runtime.js";
 
-const DOC_HANDLERS = ["loadDocumentChecklist", "viewDocumentFile", "handleDocumentFileSelected", "switchDocumentUnit"];
+const DOC_HANDLERS = ["loadDocumentChecklist", "viewDocumentFile", "handleDocumentFileSelected", "switchDocumentUnit", "docGenerateLink", "docCopyLink", "docEmailLink", "docResetLink"];
 
 export default function Documents() {
   const ref = useRef(null);
