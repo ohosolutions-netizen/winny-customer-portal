@@ -13,13 +13,50 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { applicationData } from "../store/runtime.js";
 import { qs } from "../lib/dom.js";
-import { getByPath, escapeHtml, formatCurrency, formatDateTime } from "../lib/utils.js";
+import { getByPath, escapeHtml, formatCurrency, formatDateTime, safeJsonParse } from "../lib/utils.js";
 import { getCustomerName, getSelectedServiceNames, isVisitTravel } from "../core/derive.js";
 import { cifDestinationInstances, cifInstanceData, cifIsInstanceSaved } from "../core/cif.js";
+import { toast, showLoader, hideLoader, requestRender } from "../lib/ui.js";
+import { saveDraft } from "../core/drafts.js";
+import { submitPortalCrmRequest, pollCreatorRecord } from "./portal.js";
 
 export async function submitApplication() {
-  // Not implemented in the original source (see note above). No-op preserved.
-  console.warn("[Winny] submitApplication() was never implemented in the original widget.");
+  showLoader("Submitting your application...");
+  try {
+    const existingAppIds = applicationData.crmSync?.applicationIds || [];
+
+    // For non-visit-travel (CIF step was skipped) Application records haven't
+    // been created yet — call "Create Applications" now to create them in CRM
+    // linked to the Deal and each Traveller, exactly as the CIF step would.
+    if (existingAppIds.length === 0) {
+      const createReqId = await submitPortalCrmRequest("Create Applications");
+      if (!createReqId) throw new Error("CRM did not return a request record ID.");
+
+      const createResult = await pollCreatorRecord(createReqId, 15, 1500);
+      if (createResult._timedOut) throw new Error("Application creation timed out. Please try again.");
+      if (createResult.Status !== "Success") throw new Error(createResult.Error_Message || "Application creation failed.");
+
+      const crmResponse = safeJsonParse(createResult.CRM_Response || "{}") || {};
+      const applicationIds = Array.isArray(crmResponse.applicationIds) ? crmResponse.applicationIds : [];
+      if (!applicationIds.length) throw new Error("CRM did not return any Application record IDs.");
+
+      applicationData.crmSync.applicationIds = applicationIds;
+    }
+
+    // Mark submitted and advance to the Success step.
+    applicationData.stepStatus.submitted = true;
+    applicationData.review.submittedAt = new Date().toISOString();
+    applicationData.currentStep = 6;
+    saveDraft(false);
+    hideLoader();
+    toast("Application submitted successfully!");
+    requestRender();
+    window.scrollTo(0, 0);
+  } catch (error) {
+    hideLoader();
+    console.error("[Winny] submitApplication failed:", error);
+    toast(`Submission failed: ${error.message || error}. Please try again.`);
+  }
 }
 
     // ── reviewCard (source 14355-14363) ──
@@ -73,11 +110,7 @@ export async function submitApplication() {
             ], 4);
           })() : ""}
         </div>
-        <div class="wizard-panel" style="margin-top:16px">
-          <div class="panel-body" style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
-            <button class="btn primary" type="button" data-action="submit-application">Submit Application</button>
-          </div>
-        </div>`;
+`;
     }
 
     // ── renderSuccess (source 7851-7864) ──
