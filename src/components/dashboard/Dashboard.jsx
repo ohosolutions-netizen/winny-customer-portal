@@ -1,9 +1,8 @@
 import React from "react";
 import { applicationData, state } from "../../store/runtime.js";
 import {
-  hasApplicationInfo, getCurrentStage, getStageNote, getJourneyStageIndex, getCustomerName
+  hasApplicationInfo, getCurrentStage, getStageNote, getJourneyStageIndex, getCustomerName, isVisitTravel
 } from "../../core/derive.js";
-import { journeyStages } from "../../config/config.js";
 import { openApplication, startNewApplication } from "../../core/drafts.js";
 import ApplicationList from "./ApplicationList.jsx";
 
@@ -12,10 +11,13 @@ export default function Dashboard() {
   const waiting    = state.applicationsLoading && !hasInfo;
 
   const customerFirstName = applicationData.customer.firstName || "";
-  const stageIndex        = getJourneyStageIndex();
-  const totalStages       = journeyStages.length;
+  const rawStageIndex     = getJourneyStageIndex();
+  const visitTravel       = isVisitTravel();
+  const SIMPLE_STAGES     = ["Journey Begins", "Payment", "Review", "Submitted"];
+  const stageIndex        = visitTravel ? rawStageIndex : (rawStageIndex >= 5 ? 3 : rawStageIndex >= 2 ? 2 : rawStageIndex);
+  const totalStages       = visitTravel ? 6 : 4;
   const currentStageNum   = stageIndex + 1;
-  const currentStageName  = waiting ? "Loading…" : hasInfo ? getCurrentStage() : "—";
+  const currentStageName  = waiting ? "Loading…" : hasInfo ? (visitTravel ? getCurrentStage() : (SIMPLE_STAGES[stageIndex] || "—")) : "—";
   const stageNote         = waiting ? "Retrieving your portal data." : hasInfo ? getStageNote() : "Add a new application to begin.";
   const isSubmitted       = applicationData.stepStatus.submitted;
 
@@ -129,7 +131,9 @@ export default function Dashboard() {
               {customerFirstName && <p className="db-welcome">Welcome back, {customerFirstName}</p>}
               <h1>Your complete <span className="grad-text">Winny application journey</span></h1>
               <p className="db-main-subtitle">
-                Track payment, answer case questions, complete your customer information file, and submit the final application from one secure Winny Global customer portal.
+                {visitTravel
+                  ? "Track payment, answer case questions, complete your customer information file, and submit the final application from one secure Winny Global customer portal."
+                  : "Track payment and submit your final application from one secure Winny Global customer portal."}
               </p>
             </div>
             <button className="btn primary db-new-app-btn" onClick={() => startNewApplication()}>
