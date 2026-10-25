@@ -346,7 +346,7 @@ const contact = await findContactByEmail(loggedInEmail);
                 console.warn("[Winny] Could not hydrate contact details from CRM deal:", e);
               }
             }
-            toast("CRM applications loaded for this portal user.");
+            toast("Your application details have been loaded.");
           } else if (requestSucceeded) {
             toast("No CRM contact found for this portal email. A contact will be created when details are saved.");
           }
@@ -369,14 +369,14 @@ const contact = await findContactByEmail(loggedInEmail);
             const travellers = await findTravellersForDeal(dealId);
             if (travellers.length) hydrateTravellersFromCrm(travellers);
           }
-          toast("Latest CRM deal loaded for this portal user.");
+          toast("Your latest application has been loaded.");
         } else {
           toast("CRM contact found. No related deal yet.");
         }
       } catch (error) {
         console.error(error);
         applicationData.crmSync.lastError = error.message || "CRM load failed";
-        toast("Could not load CRM data for this portal user.");
+        toast("Could not load your application. Please try refreshing.");
       } finally {
         applicationData.crmSync.lastSyncAt = new Date().toISOString();
         hideLoader();
