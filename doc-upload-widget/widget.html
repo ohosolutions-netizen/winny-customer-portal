@@ -510,8 +510,20 @@ function refreshChecklist() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
-// DOMContentLoaded ensures the SDK script has been parsed before we call init()
+// The SDK script tag parses fast but widgetFramework loads async inside it,
+// so ZOHO.CREATOR.init may not be a function yet at DOMContentLoaded.
+// Poll until it becomes callable before invoking it.
 document.addEventListener("DOMContentLoaded", function() {
+  function tryInit() {
+    if (typeof ZOHO === "undefined" ||
+        typeof ZOHO.CREATOR === "undefined" ||
+        typeof ZOHO.CREATOR.init !== "function") {
+      setTimeout(tryInit, 150);
+      return;
+    }
+    run();
+  }
+  function run() {
   ZOHO.CREATOR.init().then(function() {
     return ZOHO.CREATOR.UTIL.getQueryParams();
   })
@@ -543,6 +555,8 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
     showPhase("Error");
   });
+  }
+  tryInit();
 });
 </script>
 </body>
