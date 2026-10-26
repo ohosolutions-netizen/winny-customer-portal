@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import { applicationData, state } from "../store/runtime.js";
 import { toast, requestRender } from "../lib/ui.js";
-import { isStepLocked, isVisitTravel } from "./derive.js";
+import { isStepLocked, isVisitTravel, isDocumentChecklistClear } from "./derive.js";
 import { saveDraft } from "./drafts.js";
 import { refreshCurrentDealFromCrm } from "../api/portal.js";
 import { loadDocumentChecklist } from "../api/documents.js";
@@ -64,7 +64,14 @@ export function nextStep() {
       return;
     }
   }
-  if (applicationData.currentStep === 5) { submitApplication(); return; }
+  if (applicationData.currentStep === 5) {
+    if (isVisitTravel() && !isDocumentChecklistClear()) {
+      toast("Please complete the document checklist before submitting your application.");
+      return;
+    }
+    submitApplication();
+    return;
+  }
   showStep(Math.min(applicationData.currentStep + 1, 6));
 }
 

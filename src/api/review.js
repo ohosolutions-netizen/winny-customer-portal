@@ -15,7 +15,7 @@ import { CONFIG } from "../config/config.js";
 import { applicationData } from "../store/runtime.js";
 import { qs } from "../lib/dom.js";
 import { getByPath, escapeHtml, formatCurrency, formatDateTime, safeJsonParse } from "../lib/utils.js";
-import { getCustomerName, getSelectedServiceNames, isVisitTravel } from "../core/derive.js";
+import { getCustomerName, getSelectedServiceNames, isVisitTravel, isDocumentChecklistClear } from "../core/derive.js";
 import { getGoalDefinition } from "../core/catalog.js";
 import { cifDestinationInstances, cifInstanceData, cifIsInstanceSaved } from "../core/cif.js";
 import { toast, showLoader, hideLoader, requestRender } from "../lib/ui.js";
@@ -106,7 +106,13 @@ export async function submitApplication() {
 
     // ── renderReview (source 7821-7849) ──
      function renderReview() {
+      const docsPending = isVisitTravel() && !isDocumentChecklistClear();
       qs("#stepReview").innerHTML = `
+        ${docsPending ? `<div style="display:flex;align-items:flex-start;gap:10px;background:#fff8e1;border:1.5px solid #f59e0b;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:14px;color:#7c5100;">
+          <span style="font-size:20px;line-height:1">&#x2139;&#xFE0F;</span>
+          <div><strong>CIF submitted &#x2713;</strong> — Your CIF forms have been saved and submitted successfully.<br>
+          Please complete the <strong>Document Checklist</strong> (Step 3) before submitting your application. The Submit button will remain locked until all required documents are uploaded.</div>
+        </div>` : ""}
         <div class="review-grid">
           ${reviewCard("Customer Information", [["Name",getCustomerName()],["Email",applicationData.customer.email],["Mobile",applicationData.customer.mobile],["Nationality",applicationData.customer.nationality]], 1)}
           ${reviewCard("Deal Information",     [["Deal",applicationData.deal.dealName||"Pending CRM creation"],["Destination",applicationData.deal.destination],["Services",getSelectedServiceNames()],["Travellers",applicationData.deal.travellers.length]], 1)}
