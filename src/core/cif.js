@@ -3868,7 +3868,8 @@ async function completeCIF() {
             if (validated.length < parts.length) {
               console.warn(`[CIF] multiselect ${key}: filtered out invalid options`, parts.filter(p => !fieldOptions.includes(p)));
             }
-            v = validated.join(","); // Creator expects comma-separated string, not JS array
+            payload[key] = validated; // Creator v2 API expects an array for checkbox/multiselect fields
+            return;
           }
           if (ftype === "date") v = toZohoDateCIF(v);
           if (ftype === "address") {
