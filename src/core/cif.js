@@ -238,6 +238,8 @@ const CIF_UK_SECTIONS = [
     ["Gender","f1","Gender","select",["Male","Female"],true],
     ["Marital / Relationship Status","f1","What_is_your_relationship_status","select",["Single","Married or civil partner","Unmarried partner","Divorced or partnership dissolved","Separated","Widowed or a surviving civil partner"],true],
     ["Date of Birth","f1","Date_of_Birth","date",null,true],
+    ["Place of Birth","f1","Place_of_Birth","text",null,true],
+    ["Country of Birth","f1","Country_of_Birth","select",UK_CIF_COUNTRIES,true],
     ["Country of Nationality","f1","Country_of_Nationality","select",UK_CIF_COUNTRIES,true],
   ]},
   { id:"contact", title:"Contact Details", icon:"&#x260E;&#xFE0F;", fields:[
