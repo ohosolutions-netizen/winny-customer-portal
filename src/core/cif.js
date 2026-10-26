@@ -3877,6 +3877,7 @@ async function completeCIF() {
             return;
           }
           if (ftype === "date") v = toZohoDateCIF(v);
+          if (ftype === "number") { const n = Number(v); if (isNaN(n)) return; v = n; }
           if (ftype === "address") {
             const addr = data[key] || {};
             v = addr; // address composite already stored as nested object via dot-paths
@@ -3909,7 +3910,12 @@ async function completeCIF() {
       });
       if (res?.code !== 3000) {
         const errFields = Array.isArray(res?.error)
-          ? res.error.map(e => String(e).replace(/^Invalid column value for /i, "").replace(/_/g, " ")).join(", ")
+          ? res.error.map(e => {
+              if (typeof e === "string") return e.replace(/^Invalid column value for /i, "").replace(/_/g, " ");
+              if (Array.isArray(e?.alert_message)) return e.alert_message.join("; ");
+              if (e?.message && e.message !== "Failed to add data.") return e.message;
+              return null;
+            }).filter(Boolean).join(", ")
           : null;
         const hint = errFields
           ? ` — please deselect and re-select the value for: ${errFields}`
@@ -3931,7 +3937,12 @@ async function completeCIF() {
       });
       if (res?.code !== undefined && res.code !== 3000) {
         const errFields = Array.isArray(res?.error)
-          ? res.error.map(e => String(e).replace(/^Invalid column value for /i, "").replace(/_/g, " ")).join(", ")
+          ? res.error.map(e => {
+              if (typeof e === "string") return e.replace(/^Invalid column value for /i, "").replace(/_/g, " ");
+              if (Array.isArray(e?.alert_message)) return e.alert_message.join("; ");
+              if (e?.message && e.message !== "Failed to add data.") return e.message;
+              return null;
+            }).filter(Boolean).join(", ")
           : null;
         const hint = errFields
           ? ` — please deselect and re-select the value for: ${errFields}`
