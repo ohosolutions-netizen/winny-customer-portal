@@ -1247,3 +1247,9 @@
   .invoice-line-dest { order: 3; }
 }
 
+
+/* Passport expiry inline warning */
+.pp-expiry-warn { align-items: flex-start; border-radius: 8px; display: none; font-size: 12.5px; gap: 8px; line-height: 1.45; margin-top: 6px; padding: 8px 12px; }
+.pp-expiry-warn.warn { background: #fff8e0; border: 1.5px solid var(--amber); color: #8a5f00; }
+.pp-expiry-warn.error { background: #fff0f3; border: 1.5px solid var(--red); color: #a0243c; }
+.pp-expiry-warn .wi { flex-shrink: 0; font-size: 14px; margin-top: 1px; }

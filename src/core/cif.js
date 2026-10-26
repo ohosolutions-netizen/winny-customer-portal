@@ -686,23 +686,26 @@ const CIF_UK_SECTIONS = [
       // For non-birth date fields, constrain the date picker based on semantic kind:
       // pastDate (issue dates, visit dates) → max = today; expiryDate → min = today
       let dateConstraintAttrs = "";
+      let isExpiryDate = false;
       if (inputType === "date" && !isBirthDate) {
         const today = new Date().toISOString().split("T")[0];
         const dateKind = classifyFieldValidation(path) || classifyFieldValidation(label);
         if (dateKind === "pastDate") dateConstraintAttrs = `min="1900-01-01" max="${today}"`;
-        else if (dateKind === "expiryDate") dateConstraintAttrs = `min="${today}" max="2100-12-31"`;
+        else if (dateKind === "expiryDate") { dateConstraintAttrs = `min="${today}" max="2100-12-31"`; isExpiryDate = true; }
         else dateConstraintAttrs = `min="1900-01-01" max="2100-12-31"`;
       }
 
       // Duration/count fields that must be at least 1 (entering 0 days makes no sense).
       const isPositiveOnlyNumber = inputType === "number" && /Number_of_Days|How_long_were_you/i.test(path);
       const numberAttrs = inputType === "number" ? `min="${isPositiveOnlyNumber ? "1" : "0"}"` : "";
+      const expiryWarnAttr = isExpiryDate ? ' data-expiry-warn="true"' : "";
       const inner = inputType === "textarea"
         ? `<textarea data-bind="${path}">${value}</textarea>`
-        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs || dateConstraintAttrs} ${numberAttrs}>`;
+        : `<input type="${inputType}" data-bind="${path}" value="${value}" ${placeholder} ${birthDateAttrs || dateConstraintAttrs} ${numberAttrs}${expiryWarnAttr}>`;
+      const expiryWarnDiv = isExpiryDate ? `<div class="pp-expiry-warn" style="display:none"></div>` : "";
       return `<div class="cifx-field${full}" data-field="${path}">
         <label>${escapeHtml(label)}${req ? ' <span class="req">*</span>' : ""}</label>
-        ${inner}
+        ${inner}${expiryWarnDiv}
       </div>`;
     }
 
@@ -3840,7 +3843,7 @@ async function completeCIF() {
           return;
         }
         section.fields.forEach(def => {
-          const [, form, key, ftype, , , showIf] = def;
+          const [, form, key, ftype, fieldOptions, , showIf] = def;
           if (form !== formTag) return;
           if (!cifShowIfMet(travId, showIf, instanceId)) return; // field individually hidden (e.g. detail box when its Yes/No isn't Yes)
           if (key.includes(".")) {
@@ -3853,11 +3856,19 @@ async function completeCIF() {
           }
           let v = data[key];
           if (v === undefined || v === null || v === "") return;
-          if (ftype === "yesnobool") v = (v === "Yes"); 
+          if (ftype === "yesnobool") v = (v === "Yes");
           if (ftype === "multiselect") {
             const parts = String(v).split(",").map(s => s.trim()).filter(Boolean);
-            if (!parts.length) return; // skip empty — [] causes Creator error 3001
-            v = parts.join(","); // Creator expects comma-separated string, not JS array
+            // Validate against the field's defined options — stale drafts or old code versions may
+            // have stored option text that no longer matches Creator, causing error 3001.
+            const validated = Array.isArray(fieldOptions) && fieldOptions.length
+              ? parts.filter(p => fieldOptions.includes(p))
+              : parts;
+            if (!validated.length) return; // skip empty / fully-invalid — [] causes Creator error 3001
+            if (validated.length < parts.length) {
+              console.warn(`[CIF] multiselect ${key}: filtered out invalid options`, parts.filter(p => !fieldOptions.includes(p)));
+            }
+            v = validated.join(","); // Creator expects comma-separated string, not JS array
           }
           if (ftype === "date") v = toZohoDateCIF(v);
           if (ftype === "address") {
@@ -3890,7 +3901,13 @@ async function completeCIF() {
         payload:   { data: payload }
       });
       if (res?.code !== 3000) {
-        throw new Error(`${formLinkName} save failed (${res?.code}): ${res?.message || JSON.stringify(res)}`);
+        const errFields = Array.isArray(res?.error)
+          ? res.error.map(e => String(e).replace(/^Invalid column value for /i, "").replace(/_/g, " ")).join(", ")
+          : null;
+        const hint = errFields
+          ? ` — please deselect and re-select the value for: ${errFields}`
+          : "";
+        throw new Error(`${formLinkName} save failed (${res?.code})${hint}: ${res?.message || JSON.stringify(res)}`);
       }
       return res?.data?.ID || res?.data?.id;
     }
@@ -3906,7 +3923,13 @@ async function completeCIF() {
         payload:     { data: payload }
       });
       if (res?.code !== undefined && res.code !== 3000) {
-        throw new Error(`${formLinkName} update failed (${res.code}): ${res.message || JSON.stringify(res)}`);
+        const errFields = Array.isArray(res?.error)
+          ? res.error.map(e => String(e).replace(/^Invalid column value for /i, "").replace(/_/g, " ")).join(", ")
+          : null;
+        const hint = errFields
+          ? ` — please deselect and re-select the value for: ${errFields}`
+          : "";
+        throw new Error(`${formLinkName} update failed (${res.code})${hint}: ${res.message || JSON.stringify(res)}`);
       }
       return res;
     }

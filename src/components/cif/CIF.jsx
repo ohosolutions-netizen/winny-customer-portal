@@ -46,6 +46,43 @@ function cifHandleInput(event) {
       toast(birthDateError);
     }
   }
+  // Passport expiry inline warning (matches HTML v9 checkPassportExpiry logic)
+  if (field.dataset.expiryWarn === "true" && field.type === "date") {
+    const warnEl = field.parentElement && field.parentElement.querySelector(".pp-expiry-warn");
+    if (warnEl) {
+      if (!field.value) {
+        warnEl.style.display = "none";
+        field.style.borderColor = "";
+      } else {
+        const expiry = new Date(field.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const sixMonths = new Date(today);
+        sixMonths.setMonth(sixMonths.getMonth() + 6);
+        field.style.borderColor = "";
+        if (expiry <= today) {
+          field.style.borderColor = "var(--red, #e53935)";
+          warnEl.className = "pp-expiry-warn error";
+          warnEl.style.display = "flex";
+          warnEl.innerHTML = '<span class="wi">🚫</span><span><strong>Passport has already expired.</strong> A valid passport is required to apply for a visa. Please renew before proceeding.</span>';
+        } else if (expiry < sixMonths) {
+          const daysLeft = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
+          const months = Math.floor(daysLeft / 30);
+          const days = daysLeft % 30;
+          const remaining = months > 0
+            ? months + " month" + (months > 1 ? "s" : "") + (days > 0 ? " " + days + " day" + (days > 1 ? "s" : "") : "")
+            : days + " day" + (days > 1 ? "s" : "");
+          field.style.borderColor = "var(--amber, #f59e0b)";
+          warnEl.className = "pp-expiry-warn warn";
+          warnEl.style.display = "flex";
+          warnEl.innerHTML = `<span class="wi">⚠️</span><span><strong>Passport expires in ${remaining}.</strong> Most countries require at least 6 months validity beyond your travel dates. We strongly recommend renewing your passport before applying.</span>`;
+        } else {
+          warnEl.style.display = "none";
+          field.style.borderColor = "var(--teal, #26c6da)";
+        }
+      }
+    }
+  }
   if (field.type === "tel") sanitizeMobileField(field);
   if (/\.U_S_Social_Security_Number$/.test(field.dataset.bind || "")) {
     const digits = field.value.replace(/\D/g, "").slice(0, 9);
