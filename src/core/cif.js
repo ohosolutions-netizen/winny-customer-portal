@@ -312,12 +312,12 @@ const CIF_UK_SECTIONS = [
   { id:"tripcost", title:"Cost of Trip", icon:"&#x1F4B5;", fields:[
     ["Total amount spent each month (INR)","f1","Total_amount_you_spent_each_month","number",null,true],
     ["Will anyone pay towards your visit?","f1","Will_anyone_be_paying_towards_the_cost_of_your_visit","yesno",null,false],
-    ["Who is paying?","f1","Who_is_paying_towards_the_cost_of_your_visit","select",["Someone I know (for example, family or friend)","My employer or company","Another company or organisation"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
+    ["Who is paying?","f1","Who_is_paying_towards_the_cost_of_your_visit","select",["Self-funded","Sponsor","Inviter","Both / Combined"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Why are they helping to pay?","f1","Why_are_they_helping_to_pay_for_your_visit","textarea",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Sponsor's Occupation","f1","Sponsor_Occupation","text",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Sponsor's Annual Income (INR)","f1","Sponsor_Annual_Income","number",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Sponsor's Savings (INR)","f1","Sponsor_Savings","number",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
-    ["Inviter's Immigration Status in UK","f1","Inviter_Immigration_Status_UK","select",["British Citizen","Settled (ILR/ILE)","Pre-settled (EU Settlement Scheme)","Work Visa","Student Visa","Visit Visa","Other"],false,{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Someone I know (for example, family or friend)"}],
+    ["Inviter's Immigration Status in UK","f1","Inviter_Immigration_Status_UK","select",["British Citizen","Settled (ILR/ILE)","Pre-settled (EU Settlement Scheme)","Work Visa","Student Visa","Visit Visa","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"}]}],
     ["Who will bear the expenses?","f1","Expenses_Bearing","multiselect",["Accommodation","Food & meals","Local transport","Flights","Pocket Money","Other"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
   ]},
   { id:"tripdetails", title:"Trip Details", icon:"&#x1F4C5;", fields:[
@@ -1196,12 +1196,12 @@ if (finance) {
     externalFunding[0] === "sponsor"
   ) {
     const ukPayerTypeMap = {
-      parent: "Someone I know (for example, family or friend)",
-      spouse: "Someone I know (for example, family or friend)",
-      sibling: "Someone I know (for example, family or friend)",
-      extended: "Someone I know (for example, family or friend)",
-      employer: "My employer or company",
-      event: "Another company or organisation"
+      parent: "Inviter",
+      spouse: "Inviter",
+      sibling: "Inviter",
+      extended: "Inviter",
+      employer: "Sponsor",
+      event: "Sponsor"
     };
 
     setIfEmpty(
