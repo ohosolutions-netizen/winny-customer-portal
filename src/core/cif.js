@@ -1228,9 +1228,9 @@ if (finance) {
         const matched = occMap.filter(([key]) => finance.multiAnswers[key]).map(([, label]) => label);
         if (matched.length) {
           setIfEmpty(
-  cifPath(travId, "f1", "What_is_your_employment_status"),
-  [...new Set(matched)]
-);
+            cifPath(travId, "f1", "What_is_your_employment_status"),
+            [...new Set(matched)].join(", ")
+          );
         }
       }
 
@@ -3895,6 +3895,7 @@ async function completeCIF() {
       if (!window.ZOHO?.CREATOR?.DATA?.addRecords) {
         throw new Error("Zoho transport unavailable — cannot save CIF right now.");
       }
+      console.log(`[CIF] addRecords ${formLinkName}`, JSON.parse(JSON.stringify(payload)));
       const res = await ZOHO.CREATOR.DATA.addRecords({
         app_name:  CONFIG.creator.appLinkName,
         form_name: formLinkName,
