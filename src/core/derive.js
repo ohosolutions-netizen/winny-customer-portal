@@ -408,8 +408,13 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
     }
 
     function isDocumentChecklistClear() {
+      const currentDealId = String(applicationData.deal.crmDealId || "").trim();
+      if (!currentDealId) return false;
       if (!state.documents.loaded || !state.documents.items.length) return false;
-      return state.documents.items.filter(isMandatoryDocument).every(isDocumentReady);
+      if (state.documents.loadedForDealId !== currentDealId) return false;
+      const mandatory = state.documents.items.filter(isMandatoryDocument);
+      if (!mandatory.length) return false;
+      return mandatory.every(isDocumentReady);
     }
 
 export {
