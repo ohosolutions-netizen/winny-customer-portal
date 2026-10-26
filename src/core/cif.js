@@ -233,17 +233,17 @@ function cifNormalizeCountry(country) {
 
 const CIF_UK_SECTIONS = [
   { id:"personal", title:"Personal Information", icon:"&#x1F464;", fields:[
-    ["First Name (as in passport)","f1","Your_name_as_printed_in_your_passport.first_name","text",null,true],
-    ["Last Name (as in passport)","f1","Your_name_as_printed_in_your_passport.last_name","text",null,true],
+    ["First Name (as in passport)","f1","Your_name_as_printed_in_your_passport.first_name","text",null,true,null,"e.g. Rahul"],
+    ["Last Name (as in passport)","f1","Your_name_as_printed_in_your_passport.last_name","text",null,true,null,"e.g. Shah"],
     ["Gender","f1","Gender","select",["Male","Female"],true],
     ["Marital / Relationship Status","f1","What_is_your_relationship_status","select",["Single","Married or civil partner","Unmarried partner","Divorced or partnership dissolved","Separated","Widowed or a surviving civil partner"],true],
     ["Date of Birth","f1","Date_of_Birth","date",null,true],
-    ["Place of Birth","f1","Place_of_Birth","text",null,true],
+    ["Place of Birth","f1","Place_of_Birth","text",null,true,null,"City, State (e.g. Ahmedabad, Gujarat)"],
     ["Country of Birth","f1","Country_of_Birth","select",UK_CIF_COUNTRIES,true],
     ["Country of Nationality","f1","Country_of_Nationality","select",UK_CIF_COUNTRIES,true],
   ]},
   { id:"contact", title:"Contact Details", icon:"&#x260E;&#xFE0F;", fields:[
-    ["Email address","f1","Provide_Email_address","text",null,true],
+    ["Email address","f1","Provide_Email_address","text",null,true,null,"e.g. rahul@example.com"],
     ["Telephone number","f1","Provide_your_telephone_number","phone",null,true],
   ]},
   { id:"address", title:"Address", icon:"&#x1F3E0;", fields:[
@@ -251,12 +251,12 @@ const CIF_UK_SECTIONS = [
   ]},
   { id:"passport", title:"Passport & Nationality", icon:"&#x1F4D8;", fields:[
     ["Passport Type","f1","Passport_Type","select",["Regular","Official","Diplomatic"],false],
-    ["Passport number","f1","Passport_number_or_travel_document_reference_number","text",null,true],
+    ["Passport number","f1","Passport_number_or_travel_document_reference_number","text",null,true,null,"e.g. A1234567"],
     ["Country of Issue","f1","Country_of_Issue","select",UK_CIF_COUNTRIES,false],
-    ["Issuing authority","f1","Issuing_authority_Your_passport","text",null,true],
+    ["Issuing authority","f1","Issuing_authority_Your_passport","text",null,true,null,"e.g. Ahmedabad RPO"],
     ["Issue date","f1","Passport_issue_date_Your_passport","date",null,true],
     ["Expiry date","f1","Passport_expiry_date_Your_passport","date",null,true],
-    ["National ID / Aadhaar Number","f1","National_ID_Aadhaar_Number","text",null,false],
+    ["National ID / Aadhaar Number","f1","National_ID_Aadhaar_Number","text",null,false,null,"e.g. 1234 5678 9012"],
     ["Do you have any previous passports?","f1","Have_Previous_Passports","yesno",null,false],
   ]},
   { id:"prevPassports", title:"Previous Passports", icon:"&#x1F4D7;", subform:true, form:"f1", key:"Previous_Passports",
@@ -268,14 +268,14 @@ const CIF_UK_SECTIONS = [
   ]},
   { id:"employment", title:"Employment", icon:"&#x1F4BC;", fields:[
     ["Employment status","f1","What_is_your_employment_status","multiselect",["Employed","Self-Employed","Business Owner","A Student","Retired","Unemployed"],true],
-    ["Employer's name","f1","Employer_s_name","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
+    ["Employer's name","f1","Employer_s_name","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"},"e.g. Tata Consultancy Services"],
     ["Employer's address","f1","Employer_s_address","address",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
     ["Employer's telephone number","f1","Employer_s_telephone_number","phone",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
     ["Date you started working","f1","Date_you_started_working","date",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
-    ["Your job title","f1","Your_job_title","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
+    ["Your job title","f1","Your_job_title","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"},"e.g. Software Engineer"],
     ["Monthly income amount (after tax, INR)","f1","Amount_earning_Employed","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
-    ["Describe your job","f1","Describe_your_job","textarea",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
-    ["Self-employed: What is your job?","f1","What_is_your_job","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Self-Employed"}],
+    ["Describe your job","f1","Describe_your_job","textarea",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"},"Briefly describe your role and main responsibilities"],
+    ["Self-employed: What is your job?","f1","What_is_your_job","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Self-Employed"},"e.g. Freelance Graphic Designer"],
     ["Self-employed: Annual income amount (INR)","f1","Amount_earning_Self_Employed","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Self-Employed"}],
     ["Type of Business","f1","Type_of_Business","select",["Sole Proprietorship (Sole Owner)","Partnership","Private Limited Company (Pvt Ltd)","Public Limited Company (Ltd)","Limited Liability Partnership (LLP)","Other"],false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
     ["Industry / Sector","f1","Industry_Sector","select",["Accounting & Audit","Advertising & Marketing","Agriculture & Farming","Automobiles & Auto Components","Aviation & Aerospace","Banking & Financial Services","Biotechnology & Life Sciences","Chemical & Pharma","Construction & Real Estate","Consulting & Management","Defence & Security","Diamond & Jewellery","Education & Training","Energy & Power (Oil, Gas, Renewables)","Engineering & Capital Goods","Export / Import / Trading","FMCG & Consumer Goods","Food Processing & Beverages","Government & Public Sector","Healthcare & Hospitals","Hospitality, Travel & Tourism","Insurance","IT & Software","Legal Services","Logistics & Supply Chain","Manufacturing (General)","Media & Entertainment","Mining & Metals","NGO / Non-Profit / Social Sector","Printing & Packaging","Real Estate Development","Retail & E-commerce","Shipping & Maritime","Sports & Fitness","Telecommunications","Textile & Apparel","Transport & Mobility","Other"],false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
@@ -300,7 +300,7 @@ const CIF_UK_SECTIONS = [
     ["Total Net Worth (INR)","f1","Total_Net_Worth","number",null,false],
     ["Life Insurance amount (INR)","f1","Life_Insurance_Amount","number",null,false],
     ["Number of Properties Owned","f1","Properties_Owned_Number","number",null,false],
-    ["Description of properties","f1","Properties_Owned_Description","textarea",null,false,{key:"Properties_Owned_Number",form:"f1",greaterThan:"0"}],
+    ["Description of properties","f1","Properties_Owned_Description","textarea",null,false,{key:"Properties_Owned_Number",form:"f1",greaterThan:"0"},"e.g. 2BHK flat in Ahmedabad, plot in Gandhinagar"],
     ["Other Investments (FD/MF/Stocks) amount (INR)","f1","Other_Investments_Amount","number",null,false],
     ["Any large credit entries to explain?","f1","Has_Large_Credit_Entries","yesno",null,false],
   ]},
@@ -315,8 +315,8 @@ const CIF_UK_SECTIONS = [
     ["Total amount spent each month (INR)","f1","Total_amount_you_spent_each_month","number",null,true],
     ["Will anyone pay towards your visit?","f1","Will_anyone_be_paying_towards_the_cost_of_your_visit","yesno",null,false],
     ["Who is paying?","f1","Who_is_paying_towards_the_cost_of_your_visit","select",["Self-funded","Sponsor","Inviter","Both / Combined"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
-    ["Why are they helping to pay?","f1","Why_are_they_helping_to_pay_for_your_visit","textarea",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
-    ["Sponsor's Occupation","f1","Sponsor_Occupation","text",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
+    ["Why are they helping to pay?","f1","Why_are_they_helping_to_pay_for_your_visit","textarea",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"},"e.g. My employer is sponsoring this business trip"],
+    ["Sponsor's Occupation","f1","Sponsor_Occupation","text",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"},"e.g. Business Owner"],
     ["Sponsor's Annual Income (INR)","f1","Sponsor_Annual_Income","number",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Sponsor's Savings (INR)","f1","Sponsor_Savings","number",null,false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Yes"}],
     ["Inviter's Immigration Status in UK","f1","Inviter_Immigration_Status_UK","select",["British Citizen","Settled (ILR/ILE)","Pre-settled (EU Settlement Scheme)","Work Visa","Student Visa","Visit Visa","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"}]}],
@@ -324,62 +324,62 @@ const CIF_UK_SECTIONS = [
   ]},
   { id:"tripdetails", title:"Trip Details", icon:"&#x1F4C5;", fields:[
     ["Purpose of Visit","f1","What_is_the_main_reason_for_your_visit_to_the_UK","select",["To meet Family Member / Relative","To attend family function","Tourism (customized itinerary)","Tourism (Group itinerary)","Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)","To meet Friend","To attend convocation","Transit","Medical Treatment","Other (Please Specify)"],false],
-    ["Brief reason for visit","f1","Brief_Reason_for_Visit","text",null,false],
+    ["Brief reason for visit","f1","Brief_Reason_for_Visit","text",null,false,null,"e.g. Tourism and sightseeing with family"],
     ["Date you plan to arrive in the UK","f1","Date_you_plan_to_arrive_in_the_UK","date",null,true],
     ["Date you plan to leave the UK","f1","Date_you_plan_to_leave_the_UK","date",null,true],
-    ["Port of Arrival","f1","Port_of_Arrival","text",null,false],
-    ["Next destination after UK","f1","Next_Destination_After_UK","text",null,false],
-    ["Planned Activities during your visit","f1","Planned_Activities","textarea",null,false],
+    ["Port of Arrival","f1","Port_of_Arrival","text",null,false,null,"e.g. Heathrow (LHR)"],
+    ["Next destination after UK","f1","Next_Destination_After_UK","text",null,false,null,"e.g. France (Schengen)"],
+    ["Planned Activities during your visit","f1","Planned_Activities","textarea",null,false,null,"e.g. Visiting London, Oxford; attending a family function in Manchester"],
   ]},
   { id:"ukaccommodation", title:"Accommodation in UK", icon:"&#x1F3E8;", fields:[
     ["Type of accommodation","f1","Accommodation_Type","select",["Hotel","Staying with Inviter / Host","Airbnb / Private Rental","Transit only"],false],
-    ["Hotel name","f1","Hotel_Name","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
+    ["Hotel name","f1","Hotel_Name","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"},"e.g. Premier Inn London City"],
     ["Hotel address","f1","Hotel_Address","address",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
-    ["Hotel city","f1","Hotel_City","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
-    ["Hotel booking reference","f1","Hotel_Booking_Reference","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
+    ["Hotel city","f1","Hotel_City","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"},"e.g. London"],
+    ["Hotel booking reference","f1","Hotel_Booking_Reference","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"},"e.g. BK123456"],
     ["Hotel check-in date","f1","Hotel_Check_In_Date","date",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
     ["Hotel check-out date","f1","Hotel_Check_Out_Date","date",null,false,{key:"Accommodation_Type",form:"f1",equals:"Hotel"}],
     ["Inviter / host address in UK","f1","Inviter_Host_Address","address",null,false,{key:"Accommodation_Type",form:"f1",equals:"Staying with Inviter / Host"}],
-    ["Inviter / host city","f1","Inviter_Host_City","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Staying with Inviter / Host"}],
-    ["Inviter / host phone / email","f1","Inviter_Host_Contact","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Staying with Inviter / Host"}],
+    ["Inviter / host city","f1","Inviter_Host_City","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Staying with Inviter / Host"},"e.g. Birmingham"],
+    ["Inviter / host phone / email","f1","Inviter_Host_Contact","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Staying with Inviter / Host"},"e.g. +44 7700 900123 / host@email.com"],
     ["Airbnb / rental property address","f1","Airbnb_Address","address",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
-    ["Airbnb / rental city","f1","Airbnb_City","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
-    ["Airbnb / rental booking reference","f1","Airbnb_Booking_Reference","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
+    ["Airbnb / rental city","f1","Airbnb_City","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"},"e.g. Edinburgh"],
+    ["Airbnb / rental booking reference","f1","Airbnb_Booking_Reference","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"},"e.g. HMXXXXXXXX"],
     ["Airbnb / rental check-in date","f1","Airbnb_Check_In_Date","date",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
     ["Airbnb / rental check-out date","f1","Airbnb_Check_Out_Date","date",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
     ["Accommodation booking confirmed?","f1","Accommodation_Booking_Confirmed","yesno",null,false],
     ["Is return ticket confirmed?","f1","Return_Ticket_Confirmed","yesno",null,false],
     ["Preferred language for UK officials","f1","UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use","select",["English","Hindi","Gujarati","Other"],true],
-    ["Which language?","f1","Which_language_would_you_prefer_to_use","text",null,false,{key:"UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use",form:"f1",equals:"Other"}],
+    ["Which language?","f1","Which_language_would_you_prefer_to_use","text",null,false,{key:"UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use",form:"f1",equals:"Other"},"e.g. Punjabi"],
   ]},
   { id:"ukdeclarations", title:"UK Declarations & History", icon:"&#x1F4DC;", fields:[
     ["UK visa refused or cancelled in the past?","f1","UK_Visa_Refused_Cancelled","yesno",null,false],
-    ["UK refusal details (reference, date, reasons)","f1","UK_Visa_Refused_Details","textarea",null,false,{key:"UK_Visa_Refused_Cancelled",form:"f1",equals:"Yes"}],
+    ["UK refusal details (reference, date, reasons)","f1","UK_Visa_Refused_Details","textarea",null,false,{key:"UK_Visa_Refused_Cancelled",form:"f1",equals:"Yes"},"e.g. Reference GWF012345678; refused Jan 2022 — insufficient funds"],
     ["Refused a visa by any other country?","f1","Other_Country_Visa_Refused","yesno",null,false],
-    ["Other refusal details (country, date, reason)","f1","Other_Country_Visa_Refused_Details","textarea",null,false,{key:"Other_Country_Visa_Refused",form:"f1",equals:"Yes"}],
+    ["Other refusal details (country, date, reason)","f1","Other_Country_Visa_Refused_Details","textarea",null,false,{key:"Other_Country_Visa_Refused",form:"f1",equals:"Yes"},"e.g. USA visa refused in Aug 2019 — incomplete documentation"],
     ["UK visa issued in the past 10 years?","f1","UK_Visa_Issued_Past_10_Years","yesno",null,false],
     ["Date of most recent UK visa","f1","UK_Visa_Last_Issued_Date","date",null,false,{key:"UK_Visa_Issued_Past_10_Years",form:"f1",equals:"Yes"}],
     ["Do you have a UK National Insurance number?","f1","Has_UK_National_Insurance_Number","yesno",null,false],
-    ["UK National Insurance number","f1","UK_National_Insurance_Number","text",null,false,{key:"Has_UK_National_Insurance_Number",form:"f1",equals:"Yes"}],
+    ["UK National Insurance number","f1","UK_National_Insurance_Number","text",null,false,{key:"Has_UK_National_Insurance_Number",form:"f1",equals:"Yes"},"e.g. AB 12 34 56 C"],
     ["Received UK public funds before?","f1","Received_UK_Public_Funds","yesno",null,false],
-    ["Public funds details","f1","UK_Public_Funds_Details","textarea",null,false,{key:"Received_UK_Public_Funds",form:"f1",equals:"Yes"}],
+    ["Public funds details","f1","UK_Public_Funds_Details","textarea",null,false,{key:"Received_UK_Public_Funds",form:"f1",equals:"Yes"},"e.g. Type of fund, amount, dates received"],
     ["Received medical treatment in UK before?","f1","Received_UK_Medical_Treatment","yesno",null,false],
-    ["Medical treatment details","f1","UK_Medical_Treatment_Details","textarea",null,false,{key:"Received_UK_Medical_Treatment",form:"f1",equals:"Yes"}],
+    ["Medical treatment details","f1","UK_Medical_Treatment_Details","textarea",null,false,{key:"Received_UK_Medical_Treatment",form:"f1",equals:"Yes"},"e.g. Hospital name, type of treatment, year"],
     ["Worked for armed forces, government, intelligence, judiciary, or media?","f1","Worked_For_Govt_Forces","yesno",null,false],
     ["Which organisations?","f1","Govt_Forces_Types","multiselect",["Armed Forces","Government","Intelligence","Police / Security","Media","Judiciary"],false,{key:"Worked_For_Govt_Forces",form:"f1",equals:"Yes"}],
-    ["Organisation role details (role, country, dates)","f1","Govt_Forces_Details","textarea",null,false,{key:"Worked_For_Govt_Forces",form:"f1",equals:"Yes"}],
+    ["Organisation role details (role, country, dates)","f1","Govt_Forces_Details","textarea",null,false,{key:"Worked_For_Govt_Forces",form:"f1",equals:"Yes"},"e.g. Indian Army, Infantry Officer, India, 2010–2015"],
     ["Visited UK in the past 10 years?","f1","Visited_UK_Past_10_Years","yesno",null,false],
     ["Most recent UK visit date","f1","UK_Last_Visit_Date","date",null,false,{key:"Visited_UK_Past_10_Years",form:"f1",equals:"Yes"}],
-    ["Reason for most recent UK visit","f1","UK_Last_Visit_Reason","text",null,false,{key:"Visited_UK_Past_10_Years",form:"f1",equals:"Yes"}],
+    ["Reason for most recent UK visit","f1","UK_Last_Visit_Reason","text",null,false,{key:"Visited_UK_Past_10_Years",form:"f1",equals:"Yes"},"e.g. Tourism, visiting family"],
   ]},
   { id:"family", title:"Family Information", icon:"&#x1F46A;", fields:[
-    ["Current partner/spouse - First Name","f2","Your_current_partner_Spouse.first_name","text",null,false],
-    ["Current partner/spouse - Last Name","f2","Your_current_partner_Spouse.last_name","text",null,false],
+    ["Current partner/spouse - First Name","f2","Your_current_partner_Spouse.first_name","text",null,false,null,"e.g. Priya"],
+    ["Current partner/spouse - Last Name","f2","Your_current_partner_Spouse.last_name","text",null,false,null,"e.g. Shah"],
     ["Spouse's Date of Birth","f2","Spouse_s_Date_of_Birth","date",null,false],
     ["Spouse's Country of nationality","f2","Spouse_s_Country_of_nationality","select",UK_CIF_COUNTRIES,false],
     ["Do they currently live with you?","f2","Do_they_currently_live_with_you","yesno",null,false],
     ["Will they travel with you to the UK?","f2","Will_they_be_travelling_with_you_to_the_UK","yesno",null,false],
-    ["Spouse's passport number","f2","Spouse_s_passport_number","text",null,false],
+    ["Spouse's passport number","f2","Spouse_s_passport_number","text",null,false,null,"e.g. A7654321"],
   ]},
   { id:"dependents", title:"Financial Dependents", icon:"&#x1F91D;", fields:[
     ["Does anyone rely on you for financial support?","f2","Does_anyone_rely_on_you_for_financial_support","yesno",null,true],
@@ -399,9 +399,9 @@ const CIF_UK_SECTIONS = [
     ["Passport number","Passport_number","text",null,false,{key:"Is_this_person_travelling_with_you_to_the_UK",equals:"Yes"}],
   ]},
   { id:"parents", title:"Parents' Details", icon:"&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F467;", fields:[
-    ["Father's name","f2","Your_father_s_name","text",null,true],
+    ["Father's name","f2","Your_father_s_name","text",null,true,null,"Full name as per records"],
     ["Father's date of birth","f2","Father_s_date_of_birth","date",null,true],
-    ["Mother's name","f2","Your_mother_s_name","text",null,true],
+    ["Mother's name","f2","Your_mother_s_name","text",null,true,null,"Full name as per records"],
     ["Mother's date of birth","f2","Mother_s_date_of_birth","date",null,true],
   ]},
   { id:"travelCompanion", title:"Travel Companions", icon:"&#x1F465;", fields:[
@@ -418,7 +418,7 @@ const CIF_UK_SECTIONS = [
   { id:"stayPlan", title:"Stay Plan (if no fixed address)", icon:"&#x1F5FA;&#xFE0F;",
     // FIX: section title always said "if no fixed address" but the condition was never wired in
     showIf:{key:"Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK",form:"f2",equals:"No"}, fields:[
-    ["Where do you plan to stay in the UK?","f2","Where_do_you_plan_to_stay_in_the_UK","textarea",null,false],
+    ["Where do you plan to stay in the UK?","f2","Where_do_you_plan_to_stay_in_the_UK","textarea",null,false,null,"e.g. Moving between hotels in London and Manchester; no fixed single address"],
   ]},
   { id:"ukHistory", title:"Previous Travel to the UK", icon:"&#x1F1EC;&#x1F1E7;", fields:[
     ["Been to the UK in the past 10 years?","f3","Have_you_been_to_the_UK_in_the_past_10_years","yesno",null,true],
@@ -491,7 +491,7 @@ const CIF_UK_SECTIONS = [
     ["Most recent visit - reason category","f3","What_was_the_reason_for_your_visit","select",["Tourism (including visiting family and friends)","Work","Study","Transit (travelling through the country)","Other reason"],false,
       {key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",notEquals:"Zero"}],
     ["Most recent visit - reason detail","f3","What_was_the_reason_for_your_most_recent_visit","text",null,false,
-      {key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",notEquals:"Zero"}],
+      {key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",notEquals:"Zero"},"e.g. Holiday with family"],
     ["Most recent visit - start date","f3","Date_of_your_most_recent_visit","date",null,false,
       {key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",notEquals:"Zero"}],
     ["Most recent visit - end date","f3","End_date_of_your_most_recent_visit","date",null,false,
@@ -502,7 +502,7 @@ const CIF_UK_SECTIONS = [
     ["Second recent visit - reason category","f3","What_was_the_reason_for_your_visit_to_second_country","select",["Tourism (including visiting family and friends)","Work","Study","Transit (travelling through the country)","Other reason"],false,
       {anyOf:[{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"2 to 5 times"},{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"6 or more times"}]}],
     ["Second recent visit - reason detail","f3","What_was_the_reason_for_your_second_recent_visit","text",null,false,
-      {anyOf:[{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"2 to 5 times"},{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"6 or more times"}]}],
+      {anyOf:[{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"2 to 5 times"},{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"6 or more times"}]},"e.g. Work conference"],
     ["Second recent visit - start date","f3","Date_of_your_second_recent_visit","date",null,false,
       {anyOf:[{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"2 to 5 times"},{key:"How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo",form:"f3",equals:"6 or more times"}]}],
     ["Second recent visit - end date","f3","End_date_of_your_second_recent_visit","date",null,false,
@@ -603,7 +603,7 @@ const CIF_UK_SECTIONS = [
     ["Details: Media organisations","f3","Provide_further_information_Media_organisations","textarea",null,false,{key:"Have_you_ever_worked_for_Media_organisations",form:"f3",equals:"Yes"}],
     ["Worked for Judiciary?","f3","Have_you_ever_worked_for_Judiciary_including_work_as_a_judge_or_magistrate","yesno",null,false,{key:"Have_you_ever_worked_for_Armed_Forces_Any_government_Intelligence_services_Security_organisations",form:"f3",equals:"Yes"}],
     ["Details: Judiciary","f3","Provide_further_information_Judiciary","textarea",null,false,{key:"Have_you_ever_worked_for_Judiciary_including_work_as_a_judge_or_magistrate",form:"f3",equals:"Yes"}],
-    ["Additional/other important information","f3","Additional_Other_important_information_related_to_applicant","textarea",null,false],
+    ["Additional/other important information","f3","Additional_Other_important_information_related_to_applicant","textarea",null,false,null,"Any other information relevant to your application"],
   ]},
 ];
 
@@ -659,7 +659,7 @@ const CIF_UK_SECTIONS = [
     }
 
     function cifRenderField(travId, def) {
-      const [label, form, key, ftype, extra, req, showIf] = def;
+      const [label, form, key, ftype, extra, req, showIf, placeholder] = def;
       if (!cifShowIfMet(travId, showIf)) return "";
       const path = cifPath(travId, form, key);
       if (ftype === "yesno" || ftype === "yesnobool") return cifYesNoField(label, path, req);
@@ -671,13 +671,13 @@ const CIF_UK_SECTIONS = [
       if (ftype === "multiselect") return cifMultiSelectField(label, path, extra, req);
       if (ftype === "address")     return cifAddressField(label, path, req);
       const inputType = ftype === "date" ? "date" : ftype === "phone" ? "tel" : ftype === "number" ? "number" : ftype === "textarea" ? "textarea" : "text";
-      return cifTextField(label, path, inputType, req);
+      return cifTextField(label, path, inputType, req, placeholder);
     }
 
-    function cifTextField(label, path, inputType, req) {
+    function cifTextField(label, path, inputType, req, hint) {
       const value = escapeHtml(getByPath(applicationData, path) || "");
       const full = inputType === "textarea" ? " full" : "";
-      const placeholder = inputType === "tel" ? 'placeholder="e.g. +91 9820000000"' : "";
+      const placeholder = hint ? `placeholder="${escapeHtml(hint)}"` : inputType === "tel" ? 'placeholder="e.g. +91 9820000000"' : "";
       const isBirthDate = inputType === "date" && (isBirthDateField(path) || isBirthDateField(label));
       const birthDateBounds = isBirthDate ? birthDateInputBounds() : null;
       const birthDateAttrs = isBirthDate ? `data-birth-date="true" min="${birthDateBounds.min}"` : "";
