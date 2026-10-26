@@ -28,6 +28,7 @@ import {
   getResponseRows, getCreatorRecordId, readZohoValue, readZohoId, hasCreatorRestTransport
 } from "../api/zoho.js";
 import { submitPortalCrmRequest, pollCreatorRecord } from "../api/portal.js";
+import { crmUpdateRecord } from "../api/zoho.js";
 import { saveDraft } from "./drafts.js";
 import { showStep } from "./navigation.js";
 import { isQuestionnaireChild, qQuestionnaireCountries, deriveQuestionnaireUnits, unitHasConsent } from "./questionnaire.js";
@@ -3734,6 +3735,13 @@ async function completeCIF() {
     applicationData.stepStatus.cifCompleted = true;
 
     saveDraft(false);
+
+    // Persist stage to CRM so the dashboard reflects this milestone even if
+    // localStorage is cleared in a later session.
+    const cifDealId = String(applicationData.deal.crmDealId || "").trim();
+    if (cifDealId) {
+      crmUpdateRecord(CONFIG.modules.deals, cifDealId, { Stage: "Review & Confirm" }).catch(() => {});
+    }
 
     toast(
       `Application${

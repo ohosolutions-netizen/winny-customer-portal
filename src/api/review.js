@@ -66,6 +66,14 @@ export async function submitApplication() {
     applicationData.review.submittedAt = new Date().toISOString();
     applicationData.currentStep = 6;
     saveDraft(false);
+
+    // Persist stage to CRM so the dashboard reflects "Submitted" even if
+    // localStorage is cleared in a later session.
+    const submitDealId = String(applicationData.deal.crmDealId || "").trim();
+    if (submitDealId) {
+      crmUpdateRecord(CONFIG.modules.deals, submitDealId, { Stage: "Submitted" }).catch(() => {});
+    }
+
     hideLoader();
     toast("Application submitted successfully!");
     requestRender();
