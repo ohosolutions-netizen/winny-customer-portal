@@ -381,51 +381,11 @@ const CIF_UK_SECTIONS = [
     ["Will they travel with you to the UK?","f2","Will_they_be_travelling_with_you_to_the_UK","yesno",null,false],
     ["Spouse's passport number","f2","Spouse_s_passport_number","text",null,false,null,"e.g. A7654321"],
   ]},
-  { id:"dependents", title:"Financial Dependents", icon:"&#x1F91D;", fields:[
-    ["Does anyone rely on you for financial support?","f2","Does_anyone_rely_on_you_for_financial_support","yesno",null,true],
-  ]},
-  // FIX: added section-level showIf — this subform previously rendered unconditionally
-  { id:"dependentsList", title:"Dependent Details", icon:"&#x1F91D;", subform:true, form:"f2", key:"Dependent_details",
-    showIf:{key:"Does_anyone_rely_on_you_for_financial_support",form:"f2",equals:"Yes"}, rowFields:[
-    ["Relationship to you","What_is_this_person_s_relationship_to_you","text",null,false],
-["Prefix","Name.prefix","select",["Mr.","Mrs.","Ms."],false],
-["First Name","Name.first_name","text",null,false],
-["Last Name","Name.last_name","text",null,false],
-    ["Date of Birth","date_of_birth","date",null,false],
-    ["Currently lives with you?","Does_this_person_currently_live_with_you","yesno",null,false],
-    ["Address","Address","address",null,false,{key:"Does_this_person_currently_live_with_you",equals:"No"}],
-    ["Travelling with you to the UK?","Is_this_person_travelling_with_you_to_the_UK","yesno",null,false],
-    ["Country of nationality","Country_of_nationality","select",UK_CIF_COUNTRIES,false,{key:"Is_this_person_travelling_with_you_to_the_UK",equals:"Yes"}],
-    ["Passport number","Passport_number","text",null,false,{key:"Is_this_person_travelling_with_you_to_the_UK",equals:"Yes"}],
-  ]},
   { id:"parents", title:"Parents' Details", icon:"&#x1F468;&#x200D;&#x1F469;&#x200D;&#x1F467;", fields:[
     ["Father's name","f2","Your_father_s_name","text",null,true,null,"Full name as per records"],
     ["Father's date of birth","f2","Father_s_date_of_birth","date",null,true],
     ["Mother's name","f2","Your_mother_s_name","text",null,true,null,"Full name as per records"],
     ["Mother's date of birth","f2","Mother_s_date_of_birth","date",null,true],
-  ]},
-  { id:"relativesUK", title:"Family in the UK", icon:"&#x1F1EC;&#x1F1E7;", fields:[
-    ["Do you have any family in the UK?","f2","Do_you_have_any_family_in_the_UK","yesno",null,true],
-  ]},
-  { id:"adultsTravelling", title:"Adults on Your Visa", icon:"&#x1F9D1;&#x200D;&#x1F91D;&#x200D;&#x1F9D1;", fields:[
-    ["How many adults do you want to list on your visa?","f2","How_many_adults_do_you_want_to_list_on_your_visa","number",null,true],
-  ]},
-  { id:"travelCompanion", title:"Travel Companions", icon:"&#x1F465;", fields:[
-    ["Have an address for UK accommodation?","f2","Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK","yesno",null,true],
-    ["Travelling as part of an organised group?","f2","Will_you_be_travelling_to_the_UK_as_part_of_an_organised_group","yesno",null,true],
-  ]},
-  // FIX: added section-level showIf — this subform previously rendered unconditionally
-  { id:"accommodation", title:"Accommodation in the UK", icon:"&#x1F3E8;", subform:true, form:"f2", key:"Accommodation_in_UK",
-    showIf:{key:"Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK",form:"f2",equals:"Yes"}, rowFields:[
-    ["Where are you planning to stay?","Where_are_you_planning_to_stay_in_the_UK","text",null,false],
-    ["Address","Address","address",null,false],
-    ["Arrival date","When_will_you_arrive_there","date",null,false],
-    ["Departure date","When_will_you_leave_there","date",null,false],
-  ]},
-  { id:"stayPlan", title:"Stay Plan (if no fixed address)", icon:"&#x1F5FA;&#xFE0F;",
-    // FIX: section title always said "if no fixed address" but the condition was never wired in
-    showIf:{key:"Do_you_have_an_address_for_where_you_are_going_to_stay_in_the_UK",form:"f2",equals:"No"}, fields:[
-    ["Where do you plan to stay in the UK?","f2","Where_do_you_plan_to_stay_in_the_UK","textarea",null,false,null,"e.g. Moving between hotels in London and Manchester; no fixed single address"],
   ]},
   { id:"ukHistory", title:"Previous Travel to the UK", icon:"&#x1F1EC;&#x1F1E7;", fields:[
     ["Been to the UK in the past 10 years?","f3","Have_you_been_to_the_UK_in_the_past_10_years","yesno",null,true],
@@ -627,7 +587,7 @@ const CIF_UK_SECTIONS = [
       { id:"passport_cat",   title:"Passport & Nationality",          icon:"&#x1F4D8;", sections:["passport","prevPassports"] },
       { id:"finance_cat",    title:"Employment & Finances",           icon:"&#x1F4BC;", sections:["employment","employmentHistory","income","largeCreditEntries","tripcost"] },
       { id:"trip_cat",       title:"Trip & Purpose",                  icon:"&#x1F3AF;", sections:["tripdetails","ukaccommodation","ukdeclarations"] },
-      { id:"family_cat",     title:"Family",                          icon:"&#x1F46A;", sections:["family","dependents","dependentsList","parents","relativesUK","adultsTravelling","travelCompanion","accommodation","stayPlan"] },
+      { id:"family_cat",     title:"Family",                          icon:"&#x1F46A;", sections:["family","parents"] },
       { id:"history_cat",    title:"Travel & Immigration History",   icon:"&#x1F6C2;", sections:["ukHistory","ukVisits","ukMedical","ukMedicalDetails","ukMisc","publicFunds","visaHistory","worldTravel","immigrationHist","immigrationProblems","breachHist","breachDetails","convictionsHist","convictionsDetails"] },
       { id:"character_cat",  title:"Character & Security",           icon:"&#x1F6E1;&#xFE0F;", sections:["character"] }
     ];
