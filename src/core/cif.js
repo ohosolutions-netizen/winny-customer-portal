@@ -3852,7 +3852,10 @@ async function completeCIF() {
           let v = data[key];
           if (v === undefined || v === null || v === "") return;
           if (ftype === "yesnobool") v = (v === "Yes"); 
-          if (ftype === "multiselect") v = String(v).split(",").map(s => s.trim()).filter(Boolean);
+          if (ftype === "multiselect") {
+            v = String(v).split(",").map(s => s.trim()).filter(Boolean);
+            if (!v.length) return; // skip — sending [] causes Creator error 3001 (same guard as cifGenericBuildPayload)
+          }
           if (ftype === "date") v = toZohoDateCIF(v);
           if (ftype === "address") {
             const addr = data[key] || {};
