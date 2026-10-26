@@ -987,6 +987,11 @@ const setIfEmpty = (path, value) => {
       setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.postal_Code"), applicationData.customer.mailingZip);
       setIfEmpty(cifPath(travId, "f1", "Your_current_residence_address.country"), applicationData.customer.mailingCountry);
 
+      // UK accommodation addresses always default to United Kingdom
+      setIfEmpty(cifPath(travId, "f1", "Hotel_Address.country"), "United Kingdom");
+      setIfEmpty(cifPath(travId, "f1", "Inviter_Host_Address.country"), "United Kingdom");
+      setIfEmpty(cifPath(travId, "f1", "Airbnb_Address.country"), "United Kingdom");
+
       // ── From Questionnaire (Step 2) ─────────────────────────────────────
       // Autofills categorical facts that map cleanly: purpose, employment,
       // marital status, travel dates, history declarations. All use setIfEmpty
