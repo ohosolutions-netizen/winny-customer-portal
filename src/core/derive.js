@@ -350,7 +350,7 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
       if (step === 1) return applicationData.stepStatus.dealCompleted;
       if (step === 2) return applicationData.stepStatus.questionnaireCompleted;
       if (step === 3) return isDocumentChecklistClear();
-      if (step === 4) return applicationData.stepStatus.cifCompleted;
+      if (step === 4) return applicationData.stepStatus.cifCompleted && isDocumentChecklistClear();
       if (step === 5) return applicationData.stepStatus.submitted;
       if (step === 6) return applicationData.stepStatus.submitted;
       return false;
