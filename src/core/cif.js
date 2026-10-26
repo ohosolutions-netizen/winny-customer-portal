@@ -233,17 +233,11 @@ function cifNormalizeCountry(country) {
 
 const CIF_UK_SECTIONS = [
   { id:"personal", title:"Personal Information", icon:"&#x1F464;", fields:[
-    ["Prefix","f1","Your_name_as_printed_in_your_passport.prefix","select",["Mr.","Mrs.","Ms."],false],
     ["First Name (as in passport)","f1","Your_name_as_printed_in_your_passport.first_name","text",null,true],
     ["Last Name (as in passport)","f1","Your_name_as_printed_in_your_passport.last_name","text",null,true],
-    ["Are you known by another name?","f1","Are_you_now_or_have_you_ever_been_known_by_another_name","yesno",null,true],
-    ["Other name - First","f1","Your_other_name.first_name","text",null,false,{key:"Are_you_now_or_have_you_ever_been_known_by_another_name",form:"f1",equals:"Yes"}],
-    ["Other name - Last","f1","Your_other_name.last_name","text",null,false,{key:"Are_you_now_or_have_you_ever_been_known_by_another_name",form:"f1",equals:"Yes"}],
     ["Gender","f1","Gender","select",["Male","Female"],true],
     ["Marital / Relationship Status","f1","What_is_your_relationship_status","select",["Single","Married or civil partner","Unmarried partner","Divorced or partnership dissolved","Separated","Widowed or a surviving civil partner"],true],
     ["Date of Birth","f1","Date_of_Birth","date",null,true],
-    ["Place of Birth","f1","Place_of_Birth","text",null,true],
-    ["Country of Birth","f1","Country_of_Birth","select",UK_CIF_COUNTRIES,true],
     ["Country of Nationality","f1","Country_of_Nationality","select",UK_CIF_COUNTRIES,true],
   ]},
   { id:"contact", title:"Contact Details", icon:"&#x260E;&#xFE0F;", fields:[
