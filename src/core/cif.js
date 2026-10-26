@@ -3873,6 +3873,7 @@ async function completeCIF() {
             // checkbox type (tested by seeing 3001 with string but success with array).
             const CREATOR_CHECKBOX_FIELDS = new Set([
               "What_is_your_employment_status",
+              "What_kind_of_regular_additional_income_do_you_have",
             ]);
             payload[key] = CREATOR_CHECKBOX_FIELDS.has(key) ? validated : validated.join(",");
             return;
