@@ -54,9 +54,23 @@ export function docGenerateLink(travellerId) {
   });
   saveDraft(false);
   renderDocuments();
-  if (targetTraveller?.crmId) {
-    crmUpdateRecord(CONFIG.modules.travellers, targetTraveller.crmId, { Doc_Token: token })
-      .catch(err => console.warn("[Winny] Failed to push Doc_Token to CRM:", err));
+  if (targetTraveller?.crmId && window.ZOHO?.CREATOR?.DATA?.addRecords) {
+    // crmUpdateRecord requires invokeUrl which is unavailable in the portal widget context.
+    // Use the Portal_CRM_Request bridge instead (fire-and-forget — no poll needed).
+    ZOHO.CREATOR.DATA.addRecords({
+      app_name:  CONFIG.creator.appLinkName,
+      form_name: CONFIG.creator.formLinkNames.portalCrmRequest,
+      payload: {
+        data: {
+          Request_Type:     "Update Doc Token",
+          Status:           "Pending",
+          Customer_Email:   applicationData.customer.email || applicationData.crmSync.loggedInEmail || "",
+          CRM_Deal_ID:      applicationData.deal.crmDealId || "",
+          Target_Record_ID: String(targetTraveller.crmId),
+          Payload:          JSON.stringify({ docToken: token })
+        }
+      }
+    }).catch(err => console.warn("[Winny] Failed to push Doc_Token to CRM bridge:", err));
   }
 }
 

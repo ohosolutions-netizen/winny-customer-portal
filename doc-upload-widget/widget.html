@@ -6,10 +6,53 @@
 <title>Winny Global — Document Upload</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-<!-- Zoho Creator Widget SDK v2 — correct CDN URL from official docs -->
+<!-- Capture ALL postMessages + URL params BEFORE the SDK loads -->
+<script>
+  // 1. Capture URL before SDK overwrites it
+  window.__INITIAL_SEARCH__ = window.location.search;
+  window.__INITIAL_HREF__   = window.location.href;
+
+  // 2. Capture document.referrer (may contain parent page URL with params)
+  window.__REFERRER__ = document.referrer || "";
+
+  // 3. Capture every postMessage from parent — Zoho SDK uses this channel
+  window.__MSG_PARAMS__ = {};
+  window.addEventListener('message', function(evt) {
+    try {
+      var d = evt.data;
+      console.log("[DocUpload] postMessage from:", evt.origin, JSON.stringify(d).slice(0, 400));
+      if (!d || typeof d !== 'object') return;
+      // Zoho SDK wraps query params in various shapes — capture all candidates
+      // Handle explicit DOC_UPLOAD_PARAMS message from the Creator parent page script
+      if (d.type === 'DOC_UPLOAD_PARAMS' && d.Doc_Token) {
+        window.__MSG_PARAMS__ = d;
+        console.log("[DocUpload] DOC_UPLOAD_PARAMS captured:", JSON.stringify(d));
+        return;
+      }
+      var candidates = [d, d.data, d.queryParams, d.params, d.query];
+      for (var i = 0; i < candidates.length; i++) {
+        var c = candidates[i];
+        if (c && typeof c === 'object' && (c.Doc_Token || c.Traveller_ID || c.CRM_Deal_ID)) {
+          window.__MSG_PARAMS__ = c;
+          console.log("[DocUpload] postMessage params captured:", JSON.stringify(c));
+          break;
+        }
+      }
+    } catch(e) { /* ignore */ }
+  }, false);
+
+  // 4. Diagnostic snapshot
+  console.log("[DocUpload] PRE-SDK href:",           window.__INITIAL_HREF__);
+  console.log("[DocUpload] PRE-SDK search:",         window.__INITIAL_SEARCH__);
+  console.log("[DocUpload] PRE-SDK referrer:",       window.__REFERRER__);
+  console.log("[DocUpload] PRE-SDK same as parent:", window === window.parent);
+  try   { console.log("[DocUpload] PRE-SDK parent.search:", window.parent.location.search); }
+  catch (e) { console.log("[DocUpload] PRE-SDK parent.search blocked (cross-origin):", e.message); }
+</script>
+<!-- Zoho Creator Widget SDK v2 -->
 <script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
 <style>
-/* ── Design tokens (mirrors portal.css exactly) ──────────────────────────── */
+/* ── Design tokens ──────────────────────────────────────────────────────── */
 :root {
   --blue:       #0561f4;
   --teal:       #06c9b5;
@@ -240,9 +283,12 @@ button, input, label { font: inherit; cursor: pointer; }
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────
-var APP_NAME    = "hiren-patel";
-var FORM_NAME   = "Portal_CRM_Request";
-var REPORT_NAME = "Portal_CRM_Request_Report";
+var APP_NAME          = "hiren-patel";
+var FORM_NAME         = "Portal_CRM_Request";
+var REPORT_NAME       = "Portal_CRM_Request_Report";
+// Paste your form and report publish private links below:
+var FORM_PRIVATE_LINK   = "Y7KwzCY2aVOmmEfT3MnN5CvZPfBhH60DY6Jym7FjFsZrhaYjuEVG6WE9NUOpz44EnCGpydpfR9978quFOrwtrfCRp6FFMbtdh7vn";
+var REPORT_PRIVATE_LINK = "Fx1bJdXaj3rayUJAqtAKRn3yWXYaBuyZE7b6P8gzrVJjuYadPQ8tptrCeMdk1nRTRgazTGuJBGhkd48SrdKhQmm5v3bPbV9A2Rqz";
 
 // ── Status → visual style map ─────────────────────────────────────────────
 var STATUS_META = {
@@ -272,27 +318,29 @@ function showPhase(name) {
 }
 
 // ── Creator SDK wrappers ──────────────────────────────────────────────────
-// Using ZOHO.CREATOR.PUBLISH for public pages (no Creator account required).
-// Official docs: "Only Publish API tasks will work in published pages that
-// can be accessed by people who do not hold a Creator account."
-
 function addBridgeRecord(data) {
-  return ZOHO.CREATOR.PUBLISH.addRecord({
-    app_name:  APP_NAME,
-    form_name: FORM_NAME,
-    payload:   { data: data }
+  console.log("[DocUpload] addBridgeRecord →", data.Request_Type);
+  return ZOHO.CREATOR.PUBLISH.addRecords({
+    app_name:     APP_NAME,
+    form_name:    FORM_NAME,
+    private_link: FORM_PRIVATE_LINK,
+    payload:      { data: data }
   }).then(function(res) {
-    if (res.code !== 3000) throw new Error("Bridge failed (" + res.code + "): " + (res.message || ""));
+    console.log("[DocUpload] addBridgeRecord ← code:", res.code, JSON.stringify(res).slice(0,200));
+    if (res.code !== 3000) throw new Error("Bridge failed (" + res.code + "): " + (res.message || JSON.stringify(res)));
     return res.data.ID || res.data.id;
   });
 }
 
 function getRecord(recordId) {
   return ZOHO.CREATOR.PUBLISH.getRecordById({
-    app_name:    APP_NAME,
-    report_name: REPORT_NAME,
-    id:          recordId
+    app_name:     APP_NAME,
+    report_name:  REPORT_NAME,
+    private_link: REPORT_PRIVATE_LINK,
+    id:           recordId,
+    field_config: "all"
   }).then(function(res) {
+    console.log("[DocUpload] getRecord ← code:", res.code, "id:", recordId);
     if (res.code !== 3000) return null;
     return res.data;
   });
@@ -328,7 +376,7 @@ function validateToken(docToken, travellerId) {
     return pollRecord(id, 15, 1500);
   }).then(function(result) {
     if (result._timedOut || result.Status !== "Success") return { valid: false };
-    return { valid: true, travellerName: result.CRM_Response || "Traveller" };
+    return { valid: true, travellerName: result.CRM_Response || "Traveller", customerEmail: result.Customer_Email || "" };
   });
 }
 
@@ -344,15 +392,16 @@ function loadChecklist(dealId, travellerId) {
   }).then(function(result) {
     if (result._timedOut || result.Status === "Failed") return [];
     var raw = result.Document_Checklist_JSON || result.CRM_Response || "[]";
+    // Deluge's List.toString() strips outer [] — restore them so JSON.parse works
+    var trimmed = String(raw).trim();
+    if (trimmed.charAt(0) === '{') raw = '[' + raw + ']';
     var parsed;
     try { parsed = JSON.parse(raw); } catch(e) { return []; }
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(function(d) {
+    if (!Array.isArray(parsed)) parsed = (parsed && typeof parsed === 'object') ? [parsed] : [];
+    return parsed.filter(function(d) {
         var tid = d.traveller_id || d.travellerId || "";
         return !tid || tid === travellerId || String(tid) === String(travellerId);
-      })
-      .map(function(d) {
+      }).map(function(d) {
         var reqRaw = String(d.document_requirement || d.documentRequirement || d.Document_Requirement || "").trim().toLowerCase();
         var isMandatory = reqRaw !== "" && reqRaw !== "optional" && reqRaw !== "strength" && reqRaw !== "not mandatory" && reqRaw !== "no";
         var isStrength  = reqRaw === "strength";
@@ -380,15 +429,17 @@ function uploadFile(docId, file) {
     Request_Type:    "Upload Document",
     Status:          "Pending",
     Target_Record_ID: String(docId),
+    Customer_Email:  params.Customer_Email || "",
     Payload:         JSON.stringify({ documentId: docId, fileName: file.name })
   })
   .then(function(recordId) {
     return ZOHO.CREATOR.PUBLISH.uploadFile({
-      app_name:    APP_NAME,
-      report_name: REPORT_NAME,
-      id:          recordId,
-      field_name:  "Document_File",
-      file:        file
+      app_name:     APP_NAME,
+      report_name:  REPORT_NAME,
+      private_link: REPORT_PRIVATE_LINK,
+      id:           recordId,
+      field_name:   "Document_File",
+      file:         file
     }).then(function(uploadRes) {
       if (uploadRes.code !== 3000) throw new Error("File upload failed (" + uploadRes.code + ")");
       return pollRecord(recordId, 15, 2000);
@@ -439,6 +490,9 @@ function docCardHtml(d) {
     ? '<div class="doc-note"><strong>Note from case officer:</strong> ' + escHtml(d.reviewComments) + '</div>' : "";
   var lockMsg = (isLocked && d.hasFile)
     ? '<p class="doc-hint" style="color:var(--muted)">🔒 ' + (d.status === "Reviewed" ? "Approved — this document can no longer be changed." : "Not required for this case.") + '</p>' : "";
+  var viewBtn = (d.hasFile && d.id && !uploading)
+    ? '<button class="btn sm" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0" onclick="viewDocument(\'' + escHtml(d.id) + '\')">👁 View</button>'
+    : "";
   var uploadBtn = !isLocked
     ? '<label class="btn ghost sm" for="' + inputId + '" style="' + (uploading ? "opacity:.5;pointer-events:none" : "") + '">' +
         (uploading ? "Uploading…" : (d.hasFile ? "↻ Replace file" : "📎 Upload file")) +
@@ -458,7 +512,7 @@ function docCardHtml(d) {
       '</span>' +
     '</div>' +
     strengthHint + noteHtml + lockMsg +
-    '<div class="doc-actions">' + uploadBtn + '</div>' +
+    '<div class="doc-actions">' + viewBtn + uploadBtn + '</div>' +
     msgHtml +
   '</div>';
 }
@@ -501,6 +555,71 @@ function handleFileChange(docId, input) {
   uploadFile(docId, file);
 }
 
+function guessMimeType(name) {
+  var ext = (String(name || "").split(".").pop() || "").toLowerCase();
+  var map = {
+    pdf:"application/pdf", png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg",
+    gif:"image/gif", webp:"image/webp",
+    doc:"application/msword",
+    docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls:"application/vnd.ms-excel",
+    xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    txt:"text/plain"
+  };
+  return map[ext] || "application/octet-stream";
+}
+
+function openBase64InTab(base64, fileName) {
+  var mime = guessMimeType(fileName);
+  var dataUrl = "data:" + mime + ";base64," + base64;
+  var win = window.open("", "_blank");
+  if (!win) { alert("Popup blocked — please allow popups and try again."); return; }
+  var previewHtml;
+  if (mime === "application/pdf") {
+    previewHtml = '<iframe src="' + dataUrl + '" style="width:100%;height:calc(100vh - 52px);border:0"></iframe>';
+  } else if (mime.indexOf("image/") === 0) {
+    previewHtml = '<div style="padding:24px"><img src="' + dataUrl + '" alt="' + escHtml(fileName) + '" style="max-width:100%;max-height:calc(100vh - 52px);object-fit:contain;display:block;margin:auto"></div>';
+  } else {
+    previewHtml = '<div style="padding:24px;font-family:Arial,sans-serif;color:#334155"><p>Preview not available for this file type.</p><a style="display:inline-flex;align-items:center;padding:6px 14px;border-radius:8px;background:#0561f4;color:#fff;text-decoration:none;font-size:13px;margin-top:8px" download="' + escHtml(fileName) + '" href="' + dataUrl + '">Download file</a></div>';
+  }
+  win.document.write('<!doctype html><html><head><title>Document Preview</title>' +
+    '<style>html,body{margin:0;background:#f8fafc}' +
+    '.bar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:#fff;border-bottom:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:14px;font-weight:800}' +
+    'a.dl{display:inline-flex;align-items:center;padding:6px 14px;border-radius:8px;background:#0561f4;color:#fff;text-decoration:none;font-size:13px}' +
+    '</style></head><body>' +
+    '<div class="bar"><span>Document Preview</span>' +
+    '<a class="dl" download="' + escHtml(fileName) + '" href="' + dataUrl + '">Download</a></div>' +
+    previewHtml +
+    '</body></html>');
+  win.document.close();
+}
+
+function viewDocument(docId) {
+  addBridgeRecord({
+    Request_Type:    "Get Document View URL",
+    Status:          "Pending",
+    Target_Record_ID: String(docId),
+    Customer_Email:  params.Customer_Email || "",
+    Payload:         "{}"
+  }).then(function(recordId) {
+    return pollRecord(recordId, 15, 1500);
+  }).then(function(result) {
+    if (result._timedOut) throw new Error("Request timed out — please try again.");
+    if (result.Status === "Failed") {
+      if (result.Error_Message === "FILE_TOO_LARGE") throw new Error("File is too large to preview here.");
+      throw new Error(result.Error_Message || "Could not fetch this file.");
+    }
+    if (result.Status !== "Success") throw new Error("Still processing — please try again.");
+    var b64  = result.View_File_Base64;
+    var name = result.View_File_Name || "document";
+    if (!b64) throw new Error("No file content returned — the file may not have been processed yet.");
+    openBase64InTab(b64, name);
+  }).catch(function(err) {
+    console.error("[DocUpload] viewDocument error:", err);
+    alert("Could not open file: " + (err.message || "please try again."));
+  });
+}
+
 function refreshChecklist() {
   var btn = document.querySelector("[onclick='refreshChecklist()']");
   if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
@@ -509,53 +628,156 @@ function refreshChecklist() {
     .finally(function() { if (btn) { btn.disabled = false; btn.textContent = "↺ Refresh"; } });
 }
 
+// ── URL param parsing ─────────────────────────────────────────────────────
+function parseSearch(search) {
+  var p = {};
+  try {
+    new URLSearchParams(search).forEach(function(v, k) { p[k] = v; });
+  } catch(e) {
+    (search || "").replace(/^\?/, "").split("&").forEach(function(pair) {
+      var kv = pair.split("=");
+      if (kv[0]) p[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || "").replace(/\+/g, " "));
+    });
+  }
+  return p;
+}
+
+function parseURLParams() {
+  // 1. postMessage captured before SDK — this is the most reliable source
+  if (window.__MSG_PARAMS__ && (window.__MSG_PARAMS__.Doc_Token || window.__MSG_PARAMS__.Traveller_ID)) {
+    console.log("[DocUpload] params from postMessage");
+    return window.__MSG_PARAMS__;
+  }
+  // 2. URL captured before SDK overwrote window.location.search
+  var initial = parseSearch(window.__INITIAL_SEARCH__ || "");
+  if (initial.Doc_Token || initial.Traveller_ID) {
+    console.log("[DocUpload] params from __INITIAL_SEARCH__");
+    return initial;
+  }
+  // 3. document.referrer (parent page URL — may contain the params)
+  if (window.__REFERRER__) {
+    try {
+      var refSearch = window.__REFERRER__.split("?")[1] || "";
+      var refParams = parseSearch("?" + refSearch);
+      if (refParams.Doc_Token || refParams.Traveller_ID) {
+        console.log("[DocUpload] params from document.referrer");
+        return refParams;
+      }
+    } catch(e) { /* ignore */ }
+  }
+  // 4. Try parent URL (same-origin only — will throw cross-origin)
+  try {
+    var parentParams = parseSearch(window.parent.location.search);
+    if (parentParams.Doc_Token || parentParams.Traveller_ID) {
+      console.log("[DocUpload] params from parent URL");
+      return parentParams;
+    }
+  } catch(e) { /* cross-origin */ }
+  // 5. Current window.location (last resort — likely only has serviceOrigin)
+  return parseSearch(window.location.search);
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
-// The SDK script tag parses fast but widgetFramework loads async inside it,
-// so ZOHO.CREATOR.init may not be a function yet at DOMContentLoaded.
-// Poll until it becomes callable before invoking it.
 document.addEventListener("DOMContentLoaded", function() {
+
   function tryInit() {
     if (typeof ZOHO === "undefined" ||
         typeof ZOHO.CREATOR === "undefined" ||
-        typeof ZOHO.CREATOR.init !== "function") {
+        typeof ZOHO.CREATOR.PUBLISH === "undefined" ||
+        typeof ZOHO.CREATOR.PUBLISH.addRecords !== "function") {
       setTimeout(tryInit, 150);
       return;
     }
     run();
   }
+
   function run() {
-  ZOHO.CREATOR.init().then(function() {
-    return ZOHO.CREATOR.UTIL.getQueryParams();
-  })
-  .then(function(queryParams) {
-    params = queryParams || {};
-    var docToken    = params.Doc_Token    || "";
-    var travellerId = params.Traveller_ID || "";
-    var dealId      = params.CRM_Deal_ID  || "";
+    console.log("[DocUpload] PUBLISH SDK ready");
+    console.log("[DocUpload] POST-SDK window.location.search:", window.location.search);
+    console.log("[DocUpload] __INITIAL_SEARCH__:", window.__INITIAL_SEARCH__);
+    console.log("[DocUpload] __REFERRER__:", window.__REFERRER__);
+    console.log("[DocUpload] __MSG_PARAMS__:", JSON.stringify(window.__MSG_PARAMS__));
+    console.log("[DocUpload] ZOHO.CREATOR.UTIL exists?", typeof ZOHO.CREATOR.UTIL);
 
-    if (!docToken || !travellerId) { showPhase("Invalid"); return; }
+    // Try SDK getQueryParams first (uses postMessage channel with parent)
+    var qpPromise;
+    try {
+      qpPromise = ZOHO.CREATOR.UTIL.getQueryParams();
+    } catch(e) {
+      console.warn("[DocUpload] getQueryParams threw:", e.message);
+      qpPromise = Promise.resolve({});
+    }
 
-    return validateToken(docToken, travellerId)
-      .then(function(valResult) {
-        if (!valResult.valid) { showPhase("Invalid"); return; }
-        var nameEl = document.getElementById("navTraveller");
-        nameEl.textContent = "👤 " + valResult.travellerName;
-        nameEl.style.display = "";
-        return loadChecklist(dealId, travellerId);
+    qpPromise
+      .then(function(sdkParams) {
+        console.log("[DocUpload] SDK getQueryParams result:", JSON.stringify(sdkParams));
+        params = sdkParams || {};
+
+        // If SDK returned empty, try URL/referrer fallbacks first
+        if (!params.Doc_Token && !params.Traveller_ID) {
+          console.log("[DocUpload] SDK params empty — trying URL fallback sources");
+          params = parseURLParams();
+        }
+
+        // If still empty, wait up to 5s for parent page postMessage
+        // (the parent page HTML component sends DOC_UPLOAD_PARAMS after it loads)
+        if (!params.Doc_Token && !params.Traveller_ID) {
+          console.log("[DocUpload] all URL sources empty — waiting for postMessage from parent page…");
+          return new Promise(function(resolve) {
+            var waited = 0;
+            function poll() {
+              var mp = window.__MSG_PARAMS__;
+              if (mp && (mp.Doc_Token || mp.Traveller_ID)) {
+                console.log("[DocUpload] postMessage arrived after", waited, "ms");
+                resolve(mp);
+              } else if (waited >= 5000) {
+                console.warn("[DocUpload] gave up waiting for postMessage");
+                resolve({});
+              } else {
+                waited += 200;
+                setTimeout(poll, 200);
+              }
+            }
+            poll();
+          }).then(function(mp) { params = mp; });
+        }
       })
-      .then(function(docs) {
-        if (!docs) return;
-        docList = docs;
-        showPhase("Ready");
-        renderDocs();
+      .then(function() {
+        console.log("[DocUpload] FINAL params:", JSON.stringify(params));
+
+        var docToken    = params.Doc_Token    || "";
+        var travellerId = params.Traveller_ID || "";
+        var dealId      = params.CRM_Deal_ID  || "";
+
+        if (!docToken || !travellerId) {
+          console.warn("[DocUpload] missing Doc_Token or Traveller_ID after all sources");
+          showPhase("Invalid");
+          return;
+        }
+
+        return validateToken(docToken, travellerId)
+          .then(function(valResult) {
+            if (!valResult.valid) { showPhase("Invalid"); return; }
+            params.Customer_Email = valResult.customerEmail || "";
+            var nameEl = document.getElementById("navTraveller");
+            nameEl.textContent = "👤 " + valResult.travellerName;
+            nameEl.style.display = "";
+            return loadChecklist(dealId, travellerId);
+          })
+          .then(function(docs) {
+            if (!docs) return;
+            docList = docs;
+            showPhase("Ready");
+            renderDocs();
+          });
+      })
+      .catch(function(err) {
+        console.error("[DocUpload] error:", err);
+        document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
+        showPhase("Error");
       });
-  })
-  .catch(function(err) {
-    console.error("[DocUpload] init error:", err);
-    document.getElementById("errorMsg").textContent = err.message || "Failed to initialise — please refresh.";
-    showPhase("Error");
-  });
   }
+
   tryInit();
 });
 </script>
