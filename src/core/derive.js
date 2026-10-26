@@ -276,7 +276,7 @@ applicationData.stepStatus.dealCompleted || applicationData.stepStatus.questionn
         data?.stepStatus?.dealCompleted,
         data?.stepStatus?.questionnaireCompleted,
         data?.stepStatus?.cifCompleted,
-        Number(data?.currentStep || 1) >= 5 && data?.stepStatus?.cifCompleted,
+        data?.stepStatus?.submitted || (Number(data?.currentStep || 1) >= 5 && !!data?.stepStatus?.cifCompleted),
         data?.stepStatus?.submitted
       ].filter(Boolean).length;
       return Math.round((complete / 5) * 100);
