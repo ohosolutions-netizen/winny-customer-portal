@@ -3868,7 +3868,13 @@ async function completeCIF() {
             if (validated.length < parts.length) {
               console.warn(`[CIF] multiselect ${key}: filtered out invalid options`, parts.filter(p => !fieldOptions.includes(p)));
             }
-            payload[key] = validated; // Creator v2 API expects an array for checkbox/multiselect fields
+            // Creator checkbox fields (true multi-select) need arrays; text/dropdown fields need
+            // comma-separated strings. Add a field's Creator link name here when confirmed to be a
+            // checkbox type (tested by seeing 3001 with string but success with array).
+            const CREATOR_CHECKBOX_FIELDS = new Set([
+              "What_is_your_employment_status",
+            ]);
+            payload[key] = CREATOR_CHECKBOX_FIELDS.has(key) ? validated : validated.join(",");
             return;
           }
           if (ftype === "date") v = toZohoDateCIF(v);
