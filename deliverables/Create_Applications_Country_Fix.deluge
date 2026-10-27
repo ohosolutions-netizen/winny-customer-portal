@@ -1,0 +1,70 @@
+// ── ROOT CAUSE ────────────────────────────────────────────────────────────────
+// The "Create Applications" branch in the Portal_CRM_Request workflow looks up
+// the deal destination in the CRM Countries module by Name. "United Kingdom"
+// does not exist in that module (only 201 records — the module has "Northern
+// Ireland" but no "United Kingdom"). The lookup returns empty, causing the
+// "Country record was not found in CRM: <name>" error.
+//
+// ── FIX OPTION A (recommended, one-time) ─────────────────────────────────────
+// Create the missing "United Kingdom" record in the CRM Countries module.
+// Run this snippet once (e.g. as a standalone Deluge function or in the console):
+//
+//   newCountryMap = Map();
+//   newCountryMap.put("Name", "United Kingdom");
+//   createResp = zoho.crm.createRecord("Countries", newCountryMap);
+//   info "Created: " + createResp.toString();
+//
+// After running this once, the "Create Applications" workflow will succeed for
+// all UK applications without any further code changes.
+//
+// ── FIX OPTION B (defensive code change) ─────────────────────────────────────
+// In the "Create Applications" branch of the Portal_CRM_Request workflow, wrap
+// the country lookup so that a missing record is auto-created instead of
+// failing. Find the block that does the country search (it will look similar to
+// the pattern below) and replace it with the guarded version.
+//
+// BEFORE (the failing pattern — exact variable names may differ):
+//
+//   countrySearch = zoho.crm.searchRecords("Countries", "(Name:equals:" + destinationName + ")");
+//   if (countrySearch.isEmpty())
+//   {
+//       input.Status = "Failed";
+//       input.Error_Message = "Country record was not found in CRM: " + destinationName;
+//       return;
+//   }
+//   countryId = countrySearch.get(0).get("id");
+//
+// AFTER (auto-create the record if missing):
+//
+countrySearch = zoho.crm.searchRecords("Countries", "(Name:equals:" + destinationName + ")");
+if (countrySearch.isEmpty())
+{
+    // Country not in CRM — create it so this application (and future ones)
+    // can proceed without manual intervention.
+    newCountryMap = Map();
+    newCountryMap.put("Name", destinationName);
+    createCountryResp = zoho.crm.createRecord("Countries", newCountryMap);
+    info "Auto-created Countries record for: " + destinationName + " → " + createCountryResp.toString();
+    if (createCountryResp == null || createCountryResp.get("id") == null)
+    {
+        input.Status = "Failed";
+        input.Error_Message = "Country record was not found in CRM and could not be auto-created: " + destinationName;
+        return;
+    }
+    countryId = createCountryResp.get("id").toString();
+}
+else
+{
+    countryId = countrySearch.get(0).get("id").toString();
+}
+//
+// ── KNOWN MISSING COUNTRIES (as of 2026-10-27) ───────────────────────────────
+// Verified via MCP query against the live CRM Countries module (201 records).
+// These country names used by the portal are NOT present in the module and
+// will trigger the same error if used as a deal destination:
+//
+//   "United Kingdom"  ← reported; fix above covers this
+//
+// Countries confirmed present: United States, Australia, Canada, New Zealand,
+// France, Germany, Italy, Spain, Portugal, Netherlands, and 190+ others.
+// ─────────────────────────────────────────────────────────────────────────────
