@@ -420,17 +420,14 @@ async function submitQuestionnaire(familyId = "family-1", travellerIndex) {
     return false;
   }
 
-  // Check if this specific traveller has already been submitted
+  // Check if this specific traveller (by index) has already been submitted
   const submittedTravellers = ((applicationData.questionnaire.submittedTravellers || {})[familyId]) || {};
   const units = deriveQuestionnaireUnits();
   const unit = units.find(u => u.familyId === familyId) || units[0];
-  if (travellerIndex !== undefined && unit) {
-    const trav = unit.travellers[travellerIndex];
-    if (trav && submittedTravellers[trav.id]) {
-      toast("This traveller's questionnaire has already been submitted.");
-      rerenderQuestionnaire();
-      return false;
-    }
+  if (travellerIndex !== undefined && submittedTravellers[travellerIndex]) {
+    toast("This traveller's questionnaire has already been submitted.");
+    rerenderQuestionnaire();
+    return false;
   }
 
   // If no travellerIndex, fall back to whole-unit submit (legacy path)
@@ -475,12 +472,17 @@ async function submitQuestionnaire(familyId = "family-1", travellerIndex) {
   try {
     travellerResults = await saveQuestionnaire(familyId, travellerIndex);
 
-    // Track per-traveller submissions
+    // Track per-traveller submissions by index (index is always defined; .id may be undefined)
     if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
     if (!applicationData.questionnaire.submittedTravellers[familyId]) applicationData.questionnaire.submittedTravellers[familyId] = {};
-    travellerResults.forEach(r => {
-      applicationData.questionnaire.submittedTravellers[familyId][r.travellerId] = true;
-    });
+    if (travellerIndex !== undefined) {
+      applicationData.questionnaire.submittedTravellers[familyId][travellerIndex] = true;
+    } else {
+      // Legacy whole-unit path: mark all indices
+      (unit?.travellers || []).forEach((_, i) => {
+        applicationData.questionnaire.submittedTravellers[familyId][i] = true;
+      });
+    }
 
     // Store record IDs
     if (!applicationData.questionnaire.creatorRecordIds) {
@@ -501,12 +503,13 @@ async function submitQuestionnaire(familyId = "family-1", travellerIndex) {
       applicationData.questionnaire.creatorRecordId = primaryResult.creatorRecordId;
     }
 
-    // Check if all travellers in this unit have now been submitted
+    // Check if all travellers in this unit have now been submitted (by index)
     const allUnits = deriveQuestionnaireUnits();
     const thisUnit = allUnits.find(u => u.familyId === familyId) || allUnits[0];
-    const unitTravIds = (thisUnit?.travellers || []).map(t => t.id);
+    const unitTravCount = (thisUnit?.travellers || []).length;
     const submittedForUnit = applicationData.questionnaire.submittedTravellers[familyId] || {};
-    const unitAllDone = unitTravIds.length > 0 && unitTravIds.every(id => submittedForUnit[id]);
+    const unitAllDone = unitTravCount > 0 &&
+      Array.from({ length: unitTravCount }, (_, i) => i).every(i => submittedForUnit[i]);
 
     if (unitAllDone) {
       // All travellers in this unit submitted — mark unit as complete
@@ -535,8 +538,8 @@ async function submitQuestionnaire(familyId = "family-1", travellerIndex) {
       scheduleDocumentChecklistRefresh();
     } else {
       saveDraft(false);
-      const travellerName = travellerResults[0] ? (() => {
-        const t = (thisUnit?.travellers || []).find(tv => tv.id === travellerResults[0].travellerId);
+      const travellerName = travellerIndex !== undefined ? (() => {
+        const t = (thisUnit?.travellers || [])[travellerIndex];
         return t ? `${t.firstName || ""} ${t.lastName || ""}`.trim() : "";
       })() : "";
       toast(`${travellerName ? travellerName + "'s" : "Questionnaire"} profile submitted ✓`);
@@ -556,9 +559,9 @@ async function submitQuestionnaire(familyId = "family-1", travellerIndex) {
   } catch (error) {
     console.error("[Winny] Questionnaire submit failed:", error);
     // Roll back optimistic per-traveller state
-    if (travellerResults) {
-      const stMap = (applicationData.questionnaire.submittedTravellers || {})[familyId] || {};
-      travellerResults.forEach(r => { delete stMap[r.travellerId]; });
+    if (travellerIndex !== undefined) {
+      const stMap = (applicationData.questionnaire.submittedTravellers || {})[familyId];
+      if (stMap) delete stMap[travellerIndex];
     }
     // Roll back unit completion if we set it
     if (applicationData.questionnaire.submittedUnits) {
