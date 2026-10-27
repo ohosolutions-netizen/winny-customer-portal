@@ -34,16 +34,27 @@ function cifHandleInput(event) {
   const isBirthDate = field.type === "date" && (
     field.dataset.birthDate === "true" || isBirthDateField(field.dataset.bind)
   );
-  if (isBirthDate && field.value) {
-    const birthDateError = validators.birthDate(field.value);
+  if (field.type === "date" && field.value) {
+    // Reject any date whose year is not exactly four digits (browser allows typing
+    // arbitrary-length years into <input type="date">).
+    const yearMatch = /^(\d+)-/.exec(field.value);
+    if (yearMatch && yearMatch[1].length !== 4) {
+      field.value = "";
+      validateFieldFormat(field);
+      if (event.type === "change") toast("Enter a valid date with a four-digit year");
+      setByPath(applicationData, field.dataset.bind, "");
+      cifMarkInstanceDirtyFromPath(field.dataset.bind);
+      markAutoSavePending();
+      return;
+    }
+    const dateValidator = isBirthDate ? validators.birthDate : validators.date;
+    const dateError = dateValidator(field.value);
     validateFieldFormat(field);
-    // Only toast on the final "change" event (not intermediate "input" events),
-    // and deduplicate so the same message never appears more than once per edit.
-    if (birthDateError && event.type === "change" && birthDateError !== _lastBirthDateToast) {
-      _lastBirthDateToast = birthDateError;
+    if (dateError && event.type === "change" && dateError !== _lastBirthDateToast) {
+      _lastBirthDateToast = dateError;
       clearTimeout(_lastBirthDateToastTimer);
       _lastBirthDateToastTimer = setTimeout(() => { _lastBirthDateToast = ""; }, 3000);
-      toast(birthDateError);
+      toast(dateError);
     }
   }
   // Passport expiry inline warning (matches HTML v9 checkPassportExpiry logic)

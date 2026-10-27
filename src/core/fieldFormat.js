@@ -13,7 +13,7 @@ export function sanitizeMobileField(field) {
 export function validateFieldFormat(field) {
   const kind = field.dataset.birthDate === "true"
     ? "birthDate"
-    : classifyFieldValidation(field.dataset.bind);
+    : (classifyFieldValidation(field.dataset.bind) || (field.type === "date" ? "date" : null));
   if (!kind) return;
   const msg = validators[kind](field.value);
 

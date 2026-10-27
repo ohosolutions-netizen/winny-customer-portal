@@ -46,10 +46,12 @@ export const validators = {
   },
   date(value)     {
     if (!value) return "";
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+    if (!match) return "Enter a valid date (use a four-digit year)";
+    const yr = Number(match[1]);
+    if (yr < 1900 || yr > 2100) return "Enter a valid date";
     const d = new Date(`${value}T00:00:00`);
     if (Number.isNaN(d.getTime())) return "Enter a valid date";
-    const yr = d.getFullYear();
-    if (yr < 1900 || yr > 2100) return "Enter a valid date";
     return "";
   },
   pastDate(value) {
