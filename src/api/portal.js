@@ -86,6 +86,10 @@ const requestEmail = isPortalReadRequest
               relationship: deriveTravellerRelationship(
                 traveller,
                 applicationData.deal.travellers
+              ),
+              Traveller_Relation: deriveTravellerRelationship(
+                traveller,
+                applicationData.deal.travellers
               )
             };
           }),
@@ -1255,7 +1259,7 @@ const stale =
         try { const r = await ZOHO.CRM.API.getRelatedRecords({ Entity: CONFIG.modules.deals, RecordID: dealId, RelatedList: "Traveller_Details", page: 1, per_page: 100 }); const rows = getResponseRows(r); if (rows.length) return rows; } catch(e) { console.warn(e); }
       }
       if (canUseCrmSdk() && window.ZOHO?.CRM?.API?.getAllRecords) {
-        const r = await crmGetRecords(CONFIG.modules.travellers, "id,Name,First_Name,Last_Name,Email,Mobile,Date_of_Birth,Destination_Name,Service_Type,Traveller_Type,Family_Group,Deal_Name,Created_Time");
+        const r = await crmGetRecords(CONFIG.modules.travellers, "id,Name,First_Name,Last_Name,Email,Mobile,Date_of_Birth,Destination_Name,Service_Type,Traveller_Type,Traveller_Relation,Family_Group,Deal_Name,Created_Time");
         return getResponseRows(r).filter((row) => readZohoId(row.Deal_Name) === String(dealId));
       }
       return [];
