@@ -74,9 +74,22 @@ function cifNormalizeCountry(country) {
     }
 
     function cifDestinationInstances() {
-      const countries = qQuestionnaireCountries();
+      // When multiple family units exist, scope to the active unit's travellers'
+      // assigned countries so each group only sees its own destination CIF(s).
+      const units = deriveQuestionnaireUnits();
+      let countryList;
+      if (units.length > 1) {
+        const unitTravs = activeFamilyUnitTravellers();
+        const unitCountries = [...new Set(
+          unitTravs.flatMap(t => Array.isArray(t.countries) ? t.countries : [])
+            .map(c => String(c).trim()).filter(Boolean)
+        )];
+        countryList = unitCountries.length ? unitCountries : qQuestionnaireCountries();
+      } else {
+        countryList = qQuestionnaireCountries();
+      }
       const seen = new Set();
-      return countries.map(country => cifNormalizeCountry(country)).filter(country => {
+      return countryList.map(country => cifNormalizeCountry(country)).filter(country => {
         const key = country.toLowerCase();
         if (!country || seen.has(key)) return false;
         seen.add(key);
@@ -203,12 +216,13 @@ function cifNormalizeCountry(country) {
     }
 
     function cifRenderDestinationTabs(instances) {
+      const unitTravs = activeFamilyUnitTravellers();
       return `<div class="cifx-travtabs" style="margin-bottom:18px">${instances.map(instance => {
-        const savedCount = applicationData.deal.travellers.filter(t => cifIsInstanceSaved(t.id, instance.id)).length;
+        const savedCount = unitTravs.filter(t => cifIsInstanceSaved(t.id, instance.id)).length;
         const active = instance.id === state.activeCifInstance;
         return `<button type="button" class="cifx-tabbtn ${active ? "on" : ""}" onclick="cifSwitchInstance('${instance.id}')">
           ${instance.definition.icon} ${escapeHtml(instance.country)}
-          <span class="badge">${escapeHtml(instance.definition.title)} · ${savedCount}/${applicationData.deal.travellers.length}</span>
+          <span class="badge">${escapeHtml(instance.definition.title)} · ${savedCount}/${unitTravs.length}</span>
         </button>`;
       }).join("")}</div>`;
     }
@@ -3012,6 +3026,10 @@ const traveller = travellers.find(t => t.id === travId);
     export function cifSwitchFamilyUnit(familyId) {
       state.activeFamilyUnit = familyId;
       state.activeCifTraveller = null;
+      // Reset instance so cifEnsureDataModel picks the first one for the new unit
+      state.activeCifInstance = null;
+      state.activeCifCategory = null;
+      state.activeCifStage = null;
       renderCIF();
     }
     // ─────────────────────────────────────────────────────────────────────
