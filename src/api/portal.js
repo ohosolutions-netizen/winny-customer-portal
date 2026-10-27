@@ -322,6 +322,20 @@ const contact = await findContactByEmail(loggedInEmail);
                 if (String(applicationData.deal.crmDealId || "").trim() !== targetDeal) return;
                 if (details) {
                   hydrateApplicationDetails(details);
+                  // Sync traveller type/relationship from CRM — the savedPayload may have
+                  // a stale generic type (e.g. "Additional Traveller") if CRM was updated
+                  // manually after the application was originally saved.
+                  const _dealIdForSync = applicationData.deal.crmDealId || targetDeal;
+                  if (_dealIdForSync) {
+                    findTravellersForDeal(_dealIdForSync)
+                      .then(freshRows => {
+                        if (freshRows.length) {
+                          reconcileTravellerCrmRows(freshRows);
+                          requestRender();
+                        }
+                      })
+                      .catch(e => console.warn("[Winny] Traveller CRM sync failed:", e));
+                  }
                   // If traveller submitted via external link, detect and mark as completed
                   if (!applicationData.stepStatus.questionnaireCompleted && applicationData.deal.crmDealId) {
                     checkExternalQuestionnaireSubmission(applicationData.deal.crmDealId)
