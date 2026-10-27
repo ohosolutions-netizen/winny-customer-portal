@@ -1279,7 +1279,7 @@ export function qResetLink(familyId) {
       const allTravellers = _activeUnitTravellers;
       const pas = allTravellers.filter(t => t.type === "Primary Applicant");
       const primaryTraveller = pas[0] || allTravellers[0] || {};
-      const spouseTraveller = allTravellers.find(t => t.type === "Spouse");
+      const spouseTraveller = allTravellers.find(t => t.type === "Spouse" || String(t.relationship || "").toLowerCase() === "spouse");
       if (!applicationData.questionnaire.maritalStatus && spouseTraveller) {
         applicationData.questionnaire.maritalStatus = "married";
       }
