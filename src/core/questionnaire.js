@@ -2556,26 +2556,15 @@ markAutoSavePending();
 
       if (activeUnit) qSaveUnitSharedData(familyId);
 
-      // Submit this unit's records immediately; submitQuestionnaire handles the
-      // "all units done → step complete" check internally.
-      submitQuestionnaire(familyId);
+      // Submit only the current traveller's record; submitQuestionnaire handles
+      // "all travellers done → unit complete → all units done → step complete".
+      submitQuestionnaire(familyId, qState.activeTravellerIndex);
     }
 
     function qAdvanceTraveller() {
-      const sections = qQuestionnaireSectionOrder();
-      const lastSec = sections[sections.length - 1];
-      const error = validateQuestionnaireSection(lastSec);
-      if (error) { qState.validationSection = lastSec; toast(error); return; }
-      if (!qState.completedSections.includes(lastSec)) qState.completedSections.push(lastSec);
-      // Return to unit overview so the next traveller can start their own questionnaire
-      // independently from the overview panel, rather than jumping directly into their form.
-      qState.viewMode = "auto";
-      qState.activeTravellerIndex = 0;
-      qState.currentSection = 0;
-      qState.completedSections = [];
-      rerenderQuestionnaire();
-      window.scrollTo(0, 0);
-      saveDraft(false);
+      // Non-last travellers also submit their individual record to Zoho, then
+      // return to the unit overview so the next traveller can start independently.
+      qSubmitFinal();
     }
 
     function qIsBlank(value) {
@@ -2800,13 +2789,15 @@ markAutoSavePending();
 
 
     // ── validateQuestionnaireForCreator (source 8953-9036) ──
-    function validateQuestionnaireForCreator() {
+    // Pass onlyIndex to validate a single traveller; omit to validate all.
+    function validateQuestionnaireForCreator(onlyIndex) {
       const units = deriveQuestionnaireUnits();
       const activeUnit = units[qState.activeUnitIndex] || units[0];
       const travellers = activeUnit ? activeUnit.travellers : (applicationData.deal.travellers || []);
       const savedIndex = qState.activeTravellerIndex;
+      const indices = (onlyIndex !== undefined) ? [onlyIndex] : travellers.map((_, i) => i);
       try {
-        for (let i = 0; i < travellers.length; i++) {
+        for (const i of indices) {
           qState.activeTravellerIndex = i;
           for (const sectionId of qQuestionnaireSectionOrder()) {
             // Shared sections (trip/inviter) are only validated once (for first traveller)

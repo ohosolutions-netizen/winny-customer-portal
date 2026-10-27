@@ -142,8 +142,9 @@ async function submitSingleRecord(recordData) {
 
 // ── saveQuestionnaire ──────────────────────────────────────────────────────
 // Builds and submits one Creator record per traveller in the given unit.
+// Pass travellerIndex to save only that traveller; omit for all.
 // Returns an array of { travellerId, creatorRecordId }.
-async function saveQuestionnaire(familyId) {
+async function saveQuestionnaire(familyId, travellerIndex) {
   if (!applicationData.deal.crmDealId) {
     throw new Error("CRM Deal ID is missing. Questionnaire cannot be linked to the correct Deal.");
   }
@@ -242,8 +243,11 @@ async function saveQuestionnaire(familyId) {
 
   // ── Build one record per traveller in this unit ─────────────────────────
   const results = [];
+  const travellersToSave = travellerIndex !== undefined
+    ? [unit.travellers[travellerIndex]].filter(Boolean)
+    : unit.travellers;
 
-  for (const traveller of unit.travellers) {
+  for (const traveller of travellersToSave) {
     const tId      = traveller.id;
     const tFin     = fin[tId]  || {};
     const tHist    = hist[tId] || {};
@@ -402,17 +406,11 @@ async function saveQuestionnaire(familyId) {
 }
 
 // ── submitQuestionnaire ────────────────────────────────────────────────────
-// Per-unit submit. Marks step complete only when all units have been saved.
-async function submitQuestionnaire(familyId = "family-1") {
+// Per-traveller submit. travellerIndex scopes the save to one traveller.
+// Marks unit complete once all travellers in the unit have been submitted.
+async function submitQuestionnaire(familyId = "family-1", travellerIndex) {
   if (applicationData.stepStatus.questionnaireCompleted) {
     toast("This questionnaire has already been submitted and is locked.");
-    rerenderQuestionnaire();
-    return false;
-  }
-
-  const submittedUnits = applicationData.questionnaire.submittedUnits || {};
-  if (submittedUnits[familyId]) {
-    toast("This family's questionnaire has already been submitted.");
     rerenderQuestionnaire();
     return false;
   }
@@ -422,9 +420,30 @@ async function submitQuestionnaire(familyId = "family-1") {
     return false;
   }
 
+  // Check if this specific traveller has already been submitted
+  const submittedTravellers = ((applicationData.questionnaire.submittedTravellers || {})[familyId]) || {};
+  const units = deriveQuestionnaireUnits();
+  const unit = units.find(u => u.familyId === familyId) || units[0];
+  if (travellerIndex !== undefined && unit) {
+    const trav = unit.travellers[travellerIndex];
+    if (trav && submittedTravellers[trav.id]) {
+      toast("This traveller's questionnaire has already been submitted.");
+      rerenderQuestionnaire();
+      return false;
+    }
+  }
+
+  // If no travellerIndex, fall back to whole-unit submit (legacy path)
+  const submittedUnits = applicationData.questionnaire.submittedUnits || {};
+  if (travellerIndex === undefined && submittedUnits[familyId]) {
+    toast("This family's questionnaire has already been submitted.");
+    rerenderQuestionnaire();
+    return false;
+  }
+
   state.submittingQuestionnaire = true;
 
-  const validationError = validateQuestionnaireForCreator();
+  const validationError = validateQuestionnaireForCreator(travellerIndex);
   if (validationError) {
     state.submittingQuestionnaire = false;
     showQuestionnaireValidationSection();
@@ -452,27 +471,27 @@ async function submitQuestionnaire(familyId = "family-1") {
 
   showLoader("Saving questionnaire…");
 
+  let travellerResults = [];
   try {
-    const travellerResults = await saveQuestionnaire(familyId);
+    travellerResults = await saveQuestionnaire(familyId, travellerIndex);
 
-    // Persist unit completion
-    if (!applicationData.questionnaire.submittedUnits) {
-      applicationData.questionnaire.submittedUnits = {};
-    }
-    applicationData.questionnaire.submittedUnits[familyId] = true;
-    if (!applicationData.questionnaire.submittedUnitsAt) {
-      applicationData.questionnaire.submittedUnitsAt = {};
-    }
-    applicationData.questionnaire.submittedUnitsAt[familyId] = new Date().toISOString();
-
-    // Mirror into qState so renderUnitOverviewHTML shows the done badge immediately
-    qState.unitCompletions[familyId] = true;
+    // Track per-traveller submissions
+    if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
+    if (!applicationData.questionnaire.submittedTravellers[familyId]) applicationData.questionnaire.submittedTravellers[familyId] = {};
+    travellerResults.forEach(r => {
+      applicationData.questionnaire.submittedTravellers[familyId][r.travellerId] = true;
+    });
 
     // Store record IDs
     if (!applicationData.questionnaire.creatorRecordIds) {
       applicationData.questionnaire.creatorRecordIds = {};
     }
-    applicationData.questionnaire.creatorRecordIds[familyId] = travellerResults.map(r => r.creatorRecordId);
+    if (!applicationData.questionnaire.creatorRecordIds[familyId]) {
+      applicationData.questionnaire.creatorRecordIds[familyId] = [];
+    }
+    travellerResults.forEach(r => {
+      applicationData.questionnaire.creatorRecordIds[familyId].push(r.creatorRecordId);
+    });
 
     // Backward-compat: set creatorRecordId to the primary applicant's record
     const primaryResult = travellerResults.find(r =>
@@ -482,14 +501,29 @@ async function submitQuestionnaire(familyId = "family-1") {
       applicationData.questionnaire.creatorRecordId = primaryResult.creatorRecordId;
     }
 
+    // Check if all travellers in this unit have now been submitted
+    const allUnits = deriveQuestionnaireUnits();
+    const thisUnit = allUnits.find(u => u.familyId === familyId) || allUnits[0];
+    const unitTravIds = (thisUnit?.travellers || []).map(t => t.id);
+    const submittedForUnit = applicationData.questionnaire.submittedTravellers[familyId] || {};
+    const unitAllDone = unitTravIds.length > 0 && unitTravIds.every(id => submittedForUnit[id]);
+
+    if (unitAllDone) {
+      // All travellers in this unit submitted — mark unit as complete
+      if (!applicationData.questionnaire.submittedUnits) applicationData.questionnaire.submittedUnits = {};
+      applicationData.questionnaire.submittedUnits[familyId] = true;
+      if (!applicationData.questionnaire.submittedUnitsAt) applicationData.questionnaire.submittedUnitsAt = {};
+      applicationData.questionnaire.submittedUnitsAt[familyId] = new Date().toISOString();
+      qState.unitCompletions[familyId] = true;
+    }
+
     // Mark that at least one unit has been submitted (unlocks Documents step)
     applicationData.stepStatus.anyQuestionnaireSubmitted = true;
 
     // Check if all units are now done
-    const allUnits = deriveQuestionnaireUnits();
-    const allDone  = allUnits.every(u => applicationData.questionnaire.submittedUnits[u.familyId]);
+    const allUnitsDone = allUnits.every(u => applicationData.questionnaire.submittedUnits?.[u.familyId]);
 
-    if (allDone) {
+    if (allUnitsDone) {
       applicationData.questionnaire.countriesText = applicationData.questionnaire.applyingCountries || applicationData.deal.destination || "";
       applicationData.stepStatus.questionnaireCompleted = true;
       state.documents.items = [];
@@ -500,22 +534,33 @@ async function submitQuestionnaire(familyId = "family-1") {
       showStep(3);
       scheduleDocumentChecklistRefresh();
     } else {
-      const remaining = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]).length;
       saveDraft(false);
-      toast(`Questionnaire submitted ✓ Document checklist unlocked. ${remaining} group${remaining === 1 ? "" : "s"} remaining.`);
+      const travellerName = travellerResults[0] ? (() => {
+        const t = (thisUnit?.travellers || []).find(tv => tv.id === travellerResults[0].travellerId);
+        return t ? `${t.firstName || ""} ${t.lastName || ""}`.trim() : "";
+      })() : "";
+      toast(`${travellerName ? travellerName + "'s" : "Questionnaire"} profile submitted ✓`);
       // Reset document list so it reloads fresh when user navigates to Documents
       state.documents.items = [];
       state.documents.loaded = false;
       state.documents.loadedForDealId = null;
-      // Return to unit overview so the next unit can be started
+      // Return to unit overview so the next traveller can start
       qState.viewMode = "auto";
+      qState.activeTravellerIndex = 0;
+      qState.currentSection = 0;
+      qState.completedSections = [];
       rerenderQuestionnaire();
     }
 
     return true;
   } catch (error) {
     console.error("[Winny] Questionnaire submit failed:", error);
-    // Roll back optimistic state
+    // Roll back optimistic per-traveller state
+    if (travellerResults) {
+      const stMap = (applicationData.questionnaire.submittedTravellers || {})[familyId] || {};
+      travellerResults.forEach(r => { delete stMap[r.travellerId]; });
+    }
+    // Roll back unit completion if we set it
     if (applicationData.questionnaire.submittedUnits) {
       delete applicationData.questionnaire.submittedUnits[familyId];
     }
