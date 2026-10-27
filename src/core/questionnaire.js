@@ -289,41 +289,38 @@ function renderUnitOverviewHTML(units) {
     const _sline = (filled) => `<span style="flex:1;height:1.5px;background:${filled?"var(--teal)":"var(--line)"};min-width:10px;margin-bottom:9px;align-self:center"></span>`;
     const stepperHTML = `<div style="display:flex;align-items:flex-end;gap:4px;margin-top:10px"><span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[0])}${_slbl(_stepStates[0],_stepLabels[0])}</span>${_sline(_stepStates[0]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[1])}${_slbl(_stepStates[1],_stepLabels[1])}</span>${_sline(_stepStates[1]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[2])}${_slbl(_stepStates[2],_stepLabels[2])}</span></div>`;
 
-    // Action buttons — hidden once the unit is done (View answers handles review)
+    // Per-traveller action rows — each traveller gets their own [I fill it] and [Send link] buttons
     const _unitMembers = u.travellers;
-    const _adultMembers = _unitMembers.filter(t => isAdultTraveller(t));
-    const showPerTraveller = !u.minorOnly && !done && unitFillMode !== "link" && _unitMembers.length > 1;
-    const perTravellerRows = showPerTraveller
-      ? _unitMembers.map((t) => {
-          const travIdx = _unitMembers.indexOf(t);
-          const tName = escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim() || "Traveller");
-          const tType = escapeHtml(t.type || t.relationship || "");
-          return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:8px">
-            <div style="min-width:0;flex:1"><span style="font-weight:600;font-size:13px;color:var(--navy)">${tName}</span>${tType ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${tType}</span>` : ""}</div>
-            <button class="btn primary" type="button" style="font-size:12px;padding:3px 10px;flex-shrink:0;white-space:nowrap"
-              onclick="qSetUnitFillMode('${fid}','owner');qStartTraveller(${u.index},${travIdx})"
-            >&#x270F;&#xFE0F; Fill</button>
-          </div>`;
-        }).join("")
+    const travRows = (!u.minorOnly && !done)
+      ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+          ${_unitMembers.map((t, travIdx) => {
+            const tName = escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim() || "Traveller");
+            const tType = escapeHtml(t.type || t.relationship || "");
+            const tLinkSent = !!t.qLinkSent;
+            const isAdult = isAdultTraveller(t);
+            const fillLabel = isAdult ? "&#x270F;&#xFE0F; I fill it" : "&#x270F;&#xFE0F; Fill on behalf of child";
+            const sendBtn = isAdult
+              ? `<button class="btn ghost" type="button" style="font-size:12px;padding:3px 10px;white-space:nowrap"
+                   onclick="qSendLinkToTraveller('${fid}')"
+                 >${tLinkSent ? "&#x21A9; Resend link" : "&#x1F517; Send link to traveller"}</button>`
+              : "";
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:8px">
+              <div style="min-width:0;flex:1">
+                <span style="font-weight:600;font-size:13px;color:var(--navy)">${tName}</span>
+                ${tType ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${tType}</span>` : ""}
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+                <button class="btn primary" type="button" style="font-size:12px;padding:3px 10px;white-space:nowrap"
+                  onclick="qSetUnitFillMode('${fid}','owner');qStartTraveller(${u.index},${travIdx})"
+                >${fillLabel}</button>
+                ${sendBtn}
+              </div>
+            </div>`;
+          }).join("")}
+        </div>`
       : "";
-    const fillModeToggle = (u.minorOnly || done) ? "" : `
-      <div style="margin-top:10px">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <button
-            class="btn${unitFillMode === "link" ? " ghost" : " primary"}"
-            type="button" style="font-size:12px;padding:3px 10px"
-            onclick="qSetUnitFillMode('${fid}','owner')${showPerTraveller ? "" : `;qStartUnit(${u.index})`}"
-          >&#x270F;&#xFE0F; I fill it</button>
-          <button
-            class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
-            type="button" style="font-size:12px;padding:3px 10px"
-            onclick="qSendLinkToTraveller('${fid}')"
-          >&#x1F517; Send link to traveller</button>
-        </div>
-        ${showPerTraveller ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${perTravellerRows}</div>` : ""}
-      </div>`;
 
-    // Link section — shown below the toggle when mode is "link" and not yet submitted
+    // Link section — shown below traveller rows when a link has been generated/sent
     let linkSection = "";
     if (!u.minorOnly && !done && unitFillMode === "link") {
       if (!unitToken) {
@@ -375,7 +372,7 @@ function renderUnitOverviewHTML(units) {
               onclick="qSetUnitFillMode('${fid}','owner');qStartUnit(${u.index})"
             >&#x270F;&#xFE0F; Fill on behalf of minor</button>
           </div>`)
-      : fillModeToggle + linkSection;
+      : travRows + linkSection;
 
     // "View answers" is only available to the portal user's own family group
     const _portalFamilyId = getPortalUserFamilyId();
