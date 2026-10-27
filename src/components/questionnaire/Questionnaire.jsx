@@ -14,7 +14,7 @@ const Q_HANDLERS = [
   "qFinSel", "qFinTogFunding", "qFinTogM", "qFinSetField", "qTieTogM",
   "qChiSel", "qHistSel", "qHistSetField", "qGoNext", "qGoPrev", "qSubmitFinal", "qAdvanceTraveller",
   // Multi-unit navigation
-  "qStartUnit", "qBackToOverview",
+  "qStartUnit", "qStartTraveller", "qBackToOverview",
   // Part A — common questions
   "qSetCommonField", "qSubmitCommon", "qGoToCommon",
   // Per-unit fill mode toggle + send-link flow

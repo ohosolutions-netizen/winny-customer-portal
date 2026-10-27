@@ -166,6 +166,29 @@ export function qBackToOverview() {
   rerenderQuestionnaire();
 }
 
+export function qStartTraveller(unitIdx, travIdx) {
+  const units = deriveQuestionnaireUnits();
+  if (unitIdx < 0 || unitIdx >= units.length) return;
+  const unit = units[unitIdx];
+  if (!unit || travIdx < 0 || travIdx >= unit.travellers.length) return;
+  const currentUnit = units[qState.activeUnitIndex];
+  if (currentUnit && units.length > 1 && qState.activeUnitIndex !== unitIdx) {
+    qSaveUnitSharedData(currentUnit.familyId);
+  }
+  qState.activeUnitIndex = unitIdx;
+  qState.activeTravellerIndex = travIdx;
+  qState.viewMode = "form";
+  qState.currentSection = 0;
+  qState.completedSections = [];
+  if (units.length > 1) qLoadUnitSharedData(unit.familyId);
+  const trav = unit.travellers[travIdx];
+  if (trav && !trav.qStartedAt) {
+    trav.qStartedAt = new Date().toISOString();
+    markAutoSavePending();
+  }
+  rerenderQuestionnaire();
+}
+
 // ── Consent helper ─────────────────────────────────────────────────────────
 // Returns true if the coordinator may see this unit's data.
 // Only gated for friends/corporate multi-unit applications.
@@ -267,18 +290,37 @@ function renderUnitOverviewHTML(units) {
     const stepperHTML = `<div style="display:flex;align-items:flex-end;gap:4px;margin-top:10px"><span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[0])}${_slbl(_stepStates[0],_stepLabels[0])}</span>${_sline(_stepStates[0]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[1])}${_slbl(_stepStates[1],_stepLabels[1])}</span>${_sline(_stepStates[1]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[2])}${_slbl(_stepStates[2],_stepLabels[2])}</span></div>`;
 
     // Action buttons — hidden once the unit is done (View answers handles review)
+    const _unitMembers = u.travellers;
+    const _adultMembers = _unitMembers.filter(t => isAdultTraveller(t));
+    const showPerTraveller = !u.minorOnly && !done && unitFillMode !== "link" && _unitMembers.length > 1;
+    const perTravellerRows = showPerTraveller
+      ? _unitMembers.map((t) => {
+          const travIdx = _unitMembers.indexOf(t);
+          const tName = escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim() || "Traveller");
+          const tType = escapeHtml(t.type || t.relationship || "");
+          return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:8px">
+            <div style="min-width:0;flex:1"><span style="font-weight:600;font-size:13px;color:var(--navy)">${tName}</span>${tType ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${tType}</span>` : ""}</div>
+            <button class="btn primary" type="button" style="font-size:12px;padding:3px 10px;flex-shrink:0;white-space:nowrap"
+              onclick="qSetUnitFillMode('${fid}','owner');qStartTraveller(${u.index},${travIdx})"
+            >&#x270F;&#xFE0F; Fill</button>
+          </div>`;
+        }).join("")
+      : "";
     const fillModeToggle = (u.minorOnly || done) ? "" : `
-      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap">
-        <button
-          class="btn${unitFillMode === "link" ? " ghost" : " primary"}"
-          type="button" style="font-size:12px;padding:3px 10px"
-          onclick="qSetUnitFillMode('${fid}','owner');qStartUnit(${u.index})"
-        >&#x270F;&#xFE0F; I fill it</button>
-        <button
-          class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
-          type="button" style="font-size:12px;padding:3px 10px"
-          onclick="qSendLinkToTraveller('${fid}')"
-        >&#x1F517; Send link to traveller</button>
+      <div style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <button
+            class="btn${unitFillMode === "link" ? " ghost" : " primary"}"
+            type="button" style="font-size:12px;padding:3px 10px"
+            onclick="qSetUnitFillMode('${fid}','owner')${showPerTraveller ? "" : `;qStartUnit(${u.index})`}"
+          >&#x270F;&#xFE0F; I fill it</button>
+          <button
+            class="btn${unitFillMode === "link" ? " primary" : " ghost"}"
+            type="button" style="font-size:12px;padding:3px 10px"
+            onclick="qSendLinkToTraveller('${fid}')"
+          >&#x1F517; Send link to traveller</button>
+        </div>
+        ${showPerTraveller ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${perTravellerRows}</div>` : ""}
       </div>`;
 
     // Link section — shown below the toggle when mode is "link" and not yet submitted
