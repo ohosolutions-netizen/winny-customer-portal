@@ -1311,6 +1311,22 @@ const stale =
         // Restore family group from CRM if the local traveller doesn't have one yet
         const crmFamilyGroup = readZohoValue(matchingRow.Family_Group);
         if (crmFamilyGroup && !traveller.familyId) traveller.familyId = crmFamilyGroup;
+        // Sync type and relationship from CRM — savedPayload may have a stale generic
+        // "Additional Traveller" type even if CRM has since been updated to "Spouse" etc.
+        const crmRelation = String(readZohoValue(matchingRow.Traveller_Relation) || "").trim();
+        const crmTravType = String(readZohoValue(matchingRow.Traveller_Type) || "").trim();
+        if (crmTravType === "Primary Applicant") {
+          traveller.type = "Primary Applicant";
+          traveller.relationship = "Self";
+        } else if (crmRelation === "Spouse") {
+          traveller.type = "Spouse";
+          traveller.relationship = "Spouse";
+        } else if (["Child 1", "Child 2", "Child 3"].includes(crmRelation)) {
+          traveller.type = "Child";
+          traveller.relationship = crmRelation;
+        } else if (crmRelation && crmRelation !== "Additional Traveller" && crmRelation !== "Co-Traveller") {
+          traveller.relationship = crmRelation;
+        }
         matchedCount += 1;
       });
 
