@@ -295,7 +295,8 @@ function renderUnitOverviewHTML(units) {
       ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
           ${_unitMembers.map((t, travIdx) => {
             const tName = escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim() || "Traveller");
-            const tType = escapeHtml(t.relationship || t.type || "");
+            const _tRel = t.relationship || t.type || "";
+            const tType = escapeHtml(["Additional Traveller", "Co-Traveller", "additional traveller"].includes(_tRel) ? "" : _tRel);
             const tLinkSent = !!t.qLinkSent;
             const isAdult = isAdultTraveller(t);
             const fillLabel = isAdult ? "&#x270F;&#xFE0F; I fill it" : "&#x270F;&#xFE0F; Fill on behalf of child";
@@ -1428,7 +1429,8 @@ if (isChildTraveller) {
         )
         .forEach(t => {
           if (questionnaireTravellerSlots.length < 4) {
-            questionnaireTravellerSlots.push({ trav: t, relation: t.relationship || t.type || "" });
+            const _r = t.relationship || t.type || "";
+            questionnaireTravellerSlots.push({ trav: t, relation: ["Additional Traveller", "Co-Traveller", "additional traveller"].includes(_r) ? "" : _r });
           }
         });
       const companionCount = allTravellers.filter(t => t.id !== (primaryTraveller.id || "")).length;
