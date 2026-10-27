@@ -1288,43 +1288,57 @@ const stale =
       );
       let matchedCount = 0;
 
+      // Build a map of CRM rows by their id for fast lookup
+      const crmRowById = new Map();
+      rows.forEach((row) => {
+        const id = String(row.id || row.ID || "");
+        if (id) crmRowById.set(id, row);
+      });
+
       applicationData.deal.travellers.forEach((traveller) => {
-        if (traveller.crmId) return;
-        const localEmail = String(traveller.email || "").trim().toLowerCase();
-        const localName = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim().toLowerCase();
-        const localDob = String(traveller.dob || "").trim();
-        const localFamilyGroup = String(traveller.familyId || traveller.Family_Group || "").trim();
-        // Normalize portal type ("Additional Traveller") to CRM value ("Co-Traveller") for comparison
-        const rawLocalType = String(traveller.type || "").trim().toLowerCase();
-        const localType = rawLocalType === "additional traveller" ? "co-traveller" : rawLocalType;
+        // For travellers that already have a crmId, find their CRM row by id
+        // and update type/relationship from live CRM data.
+        let matchingRow = traveller.crmId ? crmRowById.get(String(traveller.crmId)) : null;
 
-        const matchingRow = rows.find((row) => {
-          const crmId = String(row.id || row.ID || "");
-          if (!crmId || usedCrmIds.has(crmId)) return false;
-          const crmEmail = String(readZohoValue(row.Email) || "").trim().toLowerCase();
-          const crmName = String(
-            readZohoValue(row.Name) ||
-            readZohoValue(row.Full_Name) ||
-            `${readZohoValue(row.First_Name) || ""} ${readZohoValue(row.Last_Name) || ""}`
-          ).trim().toLowerCase();
-          const crmDob = String(readZohoValue(row.Date_of_Birth) || "").trim();
+        if (!matchingRow) {
+          // No crmId yet — match by email / name / family+type
+          const localEmail = String(traveller.email || "").trim().toLowerCase();
+          const localName = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim().toLowerCase();
+          const localDob = String(traveller.dob || "").trim();
+          const localFamilyGroup = String(traveller.familyId || traveller.Family_Group || "").trim();
+          const rawLocalType = String(traveller.type || "").trim().toLowerCase();
+          const localType = rawLocalType === "additional traveller" ? "co-traveller" : rawLocalType;
 
-          if (localEmail && crmEmail && localEmail === crmEmail) return true;
-          if (localName && crmName === localName && (!localDob || !crmDob || localDob === crmDob)) return true;
-          // Fallback: match by Family_Group + Traveller_Type for travellers without email/name
-          const crmFamilyGroup = String(readZohoValue(row.Family_Group) || "").trim();
-          const crmType = String(readZohoValue(row.Traveller_Type) || "").trim().toLowerCase();
-          if (localFamilyGroup && crmFamilyGroup && localFamilyGroup === crmFamilyGroup &&
-              localType && crmType && localType === crmType) return true;
-          return false;
-        });
+          matchingRow = rows.find((row) => {
+            const crmId = String(row.id || row.ID || "");
+            if (!crmId || usedCrmIds.has(crmId)) return false;
+            const crmEmail = String(readZohoValue(row.Email) || "").trim().toLowerCase();
+            const crmName = String(
+              readZohoValue(row.Name) ||
+              readZohoValue(row.Full_Name) ||
+              `${readZohoValue(row.First_Name) || ""} ${readZohoValue(row.Last_Name) || ""}`
+            ).trim().toLowerCase();
+            const crmDob = String(readZohoValue(row.Date_of_Birth) || "").trim();
+
+            if (localEmail && crmEmail && localEmail === crmEmail) return true;
+            if (localName && crmName === localName && (!localDob || !crmDob || localDob === crmDob)) return true;
+            const crmFamilyGroup = String(readZohoValue(row.Family_Group) || "").trim();
+            const crmType = String(readZohoValue(row.Traveller_Type) || "").trim().toLowerCase();
+            if (localFamilyGroup && crmFamilyGroup && localFamilyGroup === crmFamilyGroup &&
+                localType && crmType && localType === crmType) return true;
+            return false;
+          });
+
+          if (matchingRow) {
+            traveller.crmId = String(matchingRow.id || matchingRow.ID);
+            usedCrmIds.add(traveller.crmId);
+            const crmFamilyGroup = readZohoValue(matchingRow.Family_Group);
+            if (crmFamilyGroup && !traveller.familyId) traveller.familyId = crmFamilyGroup;
+          }
+        }
 
         if (!matchingRow) return;
-        traveller.crmId = String(matchingRow.id || matchingRow.ID);
-        usedCrmIds.add(traveller.crmId);
-        // Restore family group from CRM if the local traveller doesn't have one yet
-        const crmFamilyGroup = readZohoValue(matchingRow.Family_Group);
-        if (crmFamilyGroup && !traveller.familyId) traveller.familyId = crmFamilyGroup;
+
         // Sync type and relationship from CRM — savedPayload may have a stale generic
         // "Additional Traveller" type even if CRM has since been updated to "Spouse" etc.
         const crmRelation = String(readZohoValue(matchingRow.Traveller_Relation) || "").trim();
