@@ -383,7 +383,7 @@ const CIF_UK_SECTIONS = [
     ["Mother's date of birth","f2","Mother_s_date_of_birth","date",null,true],
   ]},
   { id:"ukHistory", title:"Previous Travel to the UK", icon:"&#x1F1EC;&#x1F1E7;", fields:[
-    ["Been to the UK in the past 10 years?","f3","Have_you_been_to_the_UK_in_the_past_10_years","yesno",null,true],
+    ["Been to the UK in the past 10 years?","f3","Have_you_been_to_the_UK_in_the_past_10_years","yesno",null,false],
     // FIX: was unconditional — only relevant if been to UK = Yes
     ["How many times in past 10 years?","f3","How_many_times_have_you_been_to_the_UK_in_the_past_10_years","number",null,false,
       {key:"Have_you_been_to_the_UK_in_the_past_10_years",form:"f3",equals:"Yes"}],
@@ -891,7 +891,7 @@ const CIF_UK_SECTIONS = [
         const v = getByPath(applicationData, cifPath(travId, form, key));
         return v !== undefined && v !== null && v !== "";
       }).length;
-      return visibleFields.length ? Math.round((filled / visibleFields.length) * 100) : 0;
+      return visibleFields.length ? Math.round((filled / visibleFields.length) * 100) : 100;
     }
 
     function cifCategoryProgress(travId, category) {
