@@ -266,6 +266,9 @@ const CIF_UK_SECTIONS = [
     ["Issue Date","Prev_Passport_Issue_Date","date",null,false],
     ["Expiry Date","Prev_Passport_Expiry_Date","date",null,false],
     ["Country of Issue","Prev_Passport_Country_of_Issue","select",UK_CIF_COUNTRIES,false],
+    ["Issuing Authority (RPO)","Prev_Passport_Issuing_Authority","text",null,false],
+    ["Status","Prev_Passport_Status","select",["Expired","Cancelled / Surrendered","Lost / Stolen"],false],
+    ["Visas stamped in this passport","Prev_Passport_Visas_Stamped","text",null,false],
   ]},
   { id:"employment", title:"Employment", icon:"&#x1F4BC;", fields:[
     ["Employment status","f1","What_is_your_employment_status","multiselect",["Employed","Self-Employed","Business Owner","A Student","Retired","Unemployed"],true],
