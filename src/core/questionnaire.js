@@ -1259,14 +1259,22 @@ export function qResetLink(familyId) {
   const _activeUnit = _units[Math.max(0, qState.activeUnitIndex)];
   const _activeUnitTravellers = _activeUnit ? _activeUnit.travellers : (applicationData.deal.travellers || []);
 
-  // Keep applying-for-countries in sync with Step 1's destination — merge in
-      // any destination country not already present, without clobbering manual
-      // additions/removals the person made here. A one-time "seed only if empty"
-      // check isn't enough: if destination changes (or wasn't set yet) after the
-      // first render, it would never pick up new countries.
-      const destCountries = (applicationData.deal.destination || "").split(",").map(s => s.trim()).filter(Boolean);
+  // Keep applying-for-countries in sync with this unit's assigned destinations.
+      // Each traveller has a .countries array (set in "Assign travellers to destinations").
+      // Use the union of the active unit's travellers' countries. Fall back to all deal
+      // destinations only when no per-traveller assignment exists (older data).
+      const unitCountries = [...new Set(
+        _activeUnitTravellers.flatMap(t => Array.isArray(t.countries) ? t.countries : [])
+          .map(c => String(c).trim()).filter(Boolean)
+      )];
+      const destCountries = unitCountries.length
+        ? unitCountries
+        : (applicationData.deal.destination || "").split(",").map(s => s.trim()).filter(Boolean);
       const curCountries  = (applicationData.questionnaire.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean);
-      const mergedCountries = [...new Set([...curCountries, ...destCountries])];
+      // When unit assignments exist, remove any curCountries that are not in this unit's
+      // assignment (strips countries added by old all-destinations logic), then merge.
+      const baseCountries = unitCountries.length ? curCountries.filter(c => unitCountries.includes(c)) : curCountries;
+      const mergedCountries = [...new Set([...baseCountries, ...destCountries])];
       if (mergedCountries.length && mergedCountries.join(", ") !== applicationData.questionnaire.applyingCountries) {
         applicationData.questionnaire.applyingCountries = mergedCountries.join(", ");
       }
