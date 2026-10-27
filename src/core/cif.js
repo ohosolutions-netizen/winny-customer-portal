@@ -1227,7 +1227,7 @@ if (finance) {
     // UK-only for now, matching the current build; a Schengen/multi-country
     // version of the route visual can be added once that phase starts.
     function cifRenderOverview(instance) {
-      const travellers = applicationData.deal.travellers;
+      const travellers = activeFamilyUnitTravellers();
       const destinations = (applicationData.questionnaire.applyingCountries || applicationData.deal.destination || "")
         .split(",").map(s => s.trim()).filter(Boolean);
       const rawPurpose = applicationData.questionnaire.purpose;
@@ -1272,7 +1272,7 @@ if (finance) {
             const name = `${t.firstName || ""} ${t.lastName || ""}`.trim() || "Traveller";
             const avClass = t.type === "Spouse" ? "sp" : t.type === "Child" ? "ch" : "";
             const initials = `${(t.firstName || "")[0] || ""}${(t.lastName || "")[0] || ""}`.toUpperCase() || "T";
-            const tFamilyId = t.id || t.familyId || "family-1";
+            const tFamilyId = t.familyId || "family-1";
             if (!unitHasConsent(tFamilyId)) {
               return `<div class="cifx-mc" style="opacity:0.65;cursor:not-allowed">
                 <div class="cifx-mc-top">
@@ -3588,7 +3588,9 @@ async function cifSaveTraveller(travId) {
     }
 
     function cifSwitchTraveller(travId) {
-      if (!unitHasConsent(travId)) {
+      const trav = (applicationData.deal.travellers || []).find(t => t.id === travId);
+      const tFamilyId = (trav && trav.familyId) || "family-1";
+      if (!unitHasConsent(tFamilyId)) {
         toast("This traveller hasn't consented to data sharing yet.");
         return;
       }
