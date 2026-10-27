@@ -286,15 +286,6 @@ const CIF_UK_SECTIONS = [
     ["Your Designation","f1","Designation_Business","select",["Director","Managing Director","Proprietor","Partner","CEO / Managing Partner","Chairman","Trustee","Other"],false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
     ["Annual Turnover (INR)","f1","Annual_Turnover","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
   ]},
-  { id:"employmentHistory", title:"10-Year Employment History", icon:"&#x1F4CB;", subform:true, form:"f1", key:"Employment_History",
-    rowFields:[
-    ["From Date","Emp_From_Date","date",null,false],
-    ["To Date","Emp_To_Date","date",null,false],
-    ["Employer Name","Emp_Employer_Name","text",null,false],
-    ["Job Title","Emp_Job_Title","text",null,false],
-    ["Country","Emp_Country","select",UK_CIF_COUNTRIES,false],
-    ["Reason for Leaving","Emp_Reason_for_Leaving","text",null,false],
-  ]},
   { id:"income", title:"Income & Savings", icon:"&#x1F4B0;", fields:[
     ["Any other income or savings?","f1","Do_you_have_another_income_or_any_savings","yesno",null,true],
     ["Which applies to you?","f1","Please_choose_appropriate_option_for_you_from_below","multiselect",["Other regular additional income","Savings"],false,{key:"Do_you_have_another_income_or_any_savings",form:"f1",equals:"Yes"}],
@@ -589,7 +580,7 @@ const CIF_UK_SECTIONS = [
     const CIF_CATEGORIES = [
       { id:"personal_cat",   title:"Personal & Contact",              icon:"&#x1F464;", sections:["personal","contact","address"] },
       { id:"passport_cat",   title:"Passport & Nationality",          icon:"&#x1F4D8;", sections:["passport","prevPassports"] },
-      { id:"finance_cat",    title:"Employment & Finances",           icon:"&#x1F4BC;", sections:["employment","employmentHistory","income","largeCreditEntries","tripcost"] },
+      { id:"finance_cat",    title:"Employment & Finances",           icon:"&#x1F4BC;", sections:["employment","income","largeCreditEntries","tripcost"] },
       { id:"trip_cat",       title:"Trip & Purpose",                  icon:"&#x1F3AF;", sections:["tripdetails","ukaccommodation","ukdeclarations"] },
       { id:"family_cat",     title:"Family",                          icon:"&#x1F46A;", sections:["family","parents"] },
       { id:"history_cat",    title:"Travel & Immigration History",   icon:"&#x1F6C2;", sections:["ukHistory","ukVisits","ukMedical","ukMedicalDetails","ukMisc","publicFunds","visaHistory","worldTravel","immigrationHist","immigrationProblems","breachHist","breachDetails","convictionsHist","convictionsDetails"] },
