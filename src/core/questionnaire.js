@@ -2114,7 +2114,7 @@ const finAssetBlocks = primaryFinanceTravellers.map(t => {
         ? `${nextTraveller.firstName||""} ${nextTraveller.lastName||""}`.trim() || (nextTraveller.type || "Next Person")
         : "";
       const lastSectionButton = hasMoreTravellers
-        ? `<button class="btn-qnext" onclick="qAdvanceTraveller()">Continue — ${escapeHtml(nextTravellerName)} &#x2192;</button>`
+        ? `<button class="btn-qnext" onclick="qAdvanceTraveller()">&#x2713; Done — Back to Overview &#x2192;</button>`
         : `<button class="btn-qnext submit-q" onclick="qSubmitFinal()">&#x2713; Submit my profile &#x2192;</button>`;
       const sec6 = `<div class="q-page ${curId==="sec-history"?"active":""}" id="sec-history">
         <div class="q-sec-card">
@@ -2567,7 +2567,10 @@ markAutoSavePending();
       const error = validateQuestionnaireSection(lastSec);
       if (error) { qState.validationSection = lastSec; toast(error); return; }
       if (!qState.completedSections.includes(lastSec)) qState.completedSections.push(lastSec);
-      qState.activeTravellerIndex += 1;
+      // Return to unit overview so the next traveller can start their own questionnaire
+      // independently from the overview panel, rather than jumping directly into their form.
+      qState.viewMode = "auto";
+      qState.activeTravellerIndex = 0;
       qState.currentSection = 0;
       qState.completedSections = [];
       rerenderQuestionnaire();
