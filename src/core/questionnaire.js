@@ -295,7 +295,7 @@ function renderUnitOverviewHTML(units) {
       ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
           ${_unitMembers.map((t, travIdx) => {
             const tName = escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim() || "Traveller");
-            const tType = escapeHtml(t.type || t.relationship || "");
+            const tType = escapeHtml(t.relationship || t.type || "");
             const tLinkSent = !!t.qLinkSent;
             const isAdult = isAdultTraveller(t);
             const fillLabel = isAdult ? "&#x270F;&#xFE0F; I fill it" : "&#x270F;&#xFE0F; Fill on behalf of child";
