@@ -3541,6 +3541,7 @@ function cifGetFormatIssues(travId, instance) {
 //   • the first conditional rule failure from that stage's dedicated validator
 function cifRunAllGenericValidations(travId, instance) {
   const issues = [];
+  const catConfig = GENERIC_CATEGORY_CONFIG[instance.type] || null;
   for (const stage of instance.definition.stages) {
     const metadata = state.cifMetadata[stage.form];
     if (!metadata) continue;
@@ -3558,9 +3559,11 @@ function cifRunAllGenericValidations(travId, instance) {
         return value === undefined || value === null || String(value).trim() === "";
       })
       .forEach(field => {
+        const categoryId = catConfig ? (catConfig.fieldMap[field.link_name] || null) : null;
         issues.push({
           paths: [cifPath(travId, stage.tag, field.link_name, instance.id)],
-          message: `${stage.title}: Required field — "${field.display_name}"`
+          message: `${stage.title}: Required field — "${field.display_name}"`,
+          categoryId
         });
       });
 
@@ -3580,9 +3583,11 @@ function cifRunAllGenericValidations(travId, instance) {
     }
     if (conditionalError) {
       const failedField = instance.type === "schengen" ? state.__schengenValidationField : null;
+      const categoryId = (catConfig && failedField) ? (catConfig.fieldMap[failedField] || null) : null;
       issues.push({
         paths: failedField ? [cifPath(travId, stage.tag, failedField, instance.id)] : [],
-        message: `${stage.title}: ${conditionalError}`
+        message: `${stage.title}: ${conditionalError}`,
+        categoryId
       });
     }
   }
@@ -3624,6 +3629,8 @@ async function cifSaveTraveller(travId) {
         }
         if (issues.length) {
           cifClearValidationHighlights();
+          const firstCat = issues.find(i => i.categoryId)?.categoryId;
+          if (firstCat) state.activeCifCategory = firstCat;
           renderCIF();
           setTimeout(() => cifHighlightAllIssues(issues), 60);
           cifShowValidationSummary(issues);
@@ -4020,13 +4027,20 @@ async function completeCIF() {
     }
 
     function cifCommonPayload(type, context) {
-      if (type === "schengen") return {
-        App_ID:context.appIdNumber,
-        Client_Name:context.travellerName,
-        Applying_for_Country:context.country,
-        Case_officer_name:context.officerName,
-        Case_officer_s_email:context.officerEmail
-      };
+      if (type === "schengen") {
+        const p = {
+          App_ID:context.appIdNumber,
+          Client_Name:context.travellerName,
+          Case_officer_name:context.officerName,
+          Case_officer_s_email:context.officerEmail
+        };
+        // "Schengen" is the zone name, not a country — the Creator dropdown only accepts
+        // actual country names (France, Germany…). Omit the field when it's the zone.
+        if (context.country && context.country.toLowerCase() !== "schengen") {
+          p.Applying_for_Country = context.country;
+        }
+        return p;
+      }
       if (type === "australia") return {
         App_iD:applicationData.applicationId || context.appIdDigits,
         Cilent_Name:context.travellerName,

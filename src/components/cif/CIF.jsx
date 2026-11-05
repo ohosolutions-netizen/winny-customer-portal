@@ -104,14 +104,43 @@ function cifHandleInput(event) {
       : digits;
     if (formatted !== field.value) field.value = formatted;
   }
+  // Passport number fields: uppercase only, strip lowercase
+  if (/Passport_Number|passport_number|Passport_number_or_travel_document|Prev_Passport_Number|Spouse_s_passport_number/i.test(field.dataset.bind || "")) {
+    const upper = field.value.replace(/[^A-Z0-9]/g, s => s === s.toUpperCase() ? s : s.toUpperCase()).toUpperCase();
+    if (upper !== field.value) {
+      const pos = field.selectionStart;
+      field.value = upper;
+      field.setSelectionRange(pos, pos);
+    }
+  }
   setByPath(applicationData, field.dataset.bind, field.type === "checkbox" ? field.checked : field.value);
   cifMarkInstanceDirtyFromPath(field.dataset.bind);
   markAutoSavePending();
+  // Clear required-empty highlight as soon as the user starts typing / selecting
+  if (field.value !== "" && field.value !== null && field.value !== undefined) {
+    const wrapper = field.closest(".cifx-field");
+    if (wrapper && wrapper.classList.contains("invalid")) {
+      wrapper.classList.remove("invalid");
+      const errEl = wrapper.querySelector(".cifx-err");
+      if (errEl) errEl.remove();
+    }
+  }
 }
 
 function cifHandleBlur(event) {
   const field = event.target.closest("[data-bind]");
-  if (field) validateFieldFormat(field);
+  if (!field) return;
+  validateFieldFormat(field);
+  // Clear the "required but empty" highlight once the user fills the field
+  const wrapper = field.closest(".cifx-field");
+  if (wrapper && wrapper.classList.contains("invalid")) {
+    const val = field.type === "checkbox" ? field.checked : field.value;
+    if (val !== "" && val !== null && val !== undefined) {
+      wrapper.classList.remove("invalid");
+      const errEl = wrapper.querySelector(".cifx-err");
+      if (errEl) errEl.remove();
+    }
+  }
 }
 
 export default function CIF() {
