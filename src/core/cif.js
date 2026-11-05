@@ -2719,7 +2719,12 @@ function cifSchengenFundingOptions(data) {
       if (field.type === 2 || field.type === 4) return cifTextField(label, path, "textarea", field.mandatory);
       if (field.type === 10) return cifTextField(label, path, "date", field.mandatory);
       if (field.type === 11) return cifTextField(label, path, "datetime-local", field.mandatory);
-      if ([5,6,7,8].includes(field.type)) return cifTextField(label, path, "number", field.mandatory);
+      // Passport/document number fields must accept alphanumeric (e.g. AJ798797) even
+      // when Zoho Creator defines them as Number type — force text input.
+      if ([5,6,7,8].includes(field.type)) {
+        const isPassportField = /passport.*number|document.*number|visa.*number|reference.*number/i.test(field.link_name) || /passport.*number|document.*number/i.test(label);
+        return cifTextField(label, path, isPassportField ? "text" : "number", field.mandatory);
+      }
       if (field.type === 27) return cifTextField(label, path, "tel", field.mandatory);
       if ([14,15].includes(field.type)) {
         if (CIF_COUNTRY_DROPDOWN_FIELDS.has(field.link_name)) return cifCountryMultiSelectField(label, path, choices, field.mandatory);
@@ -4026,7 +4031,7 @@ async function completeCIF() {
       };
     }
 
-    function cifCommonPayload(type, context) {
+    function cifCommonPayload(type, context, applyingCountry) {
       if (type === "schengen") {
         const p = {
           App_ID:context.appIdNumber,
@@ -4034,10 +4039,12 @@ async function completeCIF() {
           Case_officer_name:context.officerName,
           Case_officer_s_email:context.officerEmail
         };
-        // "Schengen" is the zone name, not a country — the Creator dropdown only accepts
-        // actual country names (France, Germany…). Omit the field when it's the zone.
-        if (context.country && context.country.toLowerCase() !== "schengen") {
-          p.Applying_for_Country = context.country;
+        // Use the country where the applicant stays longest (from the CIF form) as
+        // Applying_for_Country — that is the correct embassy to apply to. Fall back
+        // to instance.country, but skip the zone name "Schengen" (not a valid dropdown value).
+        const country = applyingCountry || context.country;
+        if (country && country.toLowerCase() !== "schengen") {
+          p.Applying_for_Country = country;
         }
         return p;
       }
@@ -5664,7 +5671,12 @@ if (instance?.type === "schengen") {
       const ids = Object.assign({}, existing?.ids || {});
       for (const stage of instance.definition.stages) {
         const payload = cifGenericBuildPayload(travId, instance, stage);
-        if (stage.tag === "f1") Object.assign(payload, cifCommonPayload(instance.type, context));
+        if (stage.tag === "f1") {
+          const longestStayCountry = instance.type === "schengen"
+            ? (getByPath(applicationData, cifPath(travId, "f1", "Please_select_Schengen_country_you_will_stay_for_most_of_the_time", instance.id)) || "")
+            : "";
+          Object.assign(payload, cifCommonPayload(instance.type, context, longestStayCountry));
+        }
         Object.assign(payload, cifChainLinks(instance, ids, stage.tag));
         if (ids[stage.tag]) {
           await cifUpdateRecord(stage.form, stage.report, ids[stage.tag], payload);
