@@ -88,6 +88,34 @@ export default function TermsPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-set the acceptor to the Primary Applicant for every requirement so the
+  // "Choose adult acceptor" dropdown is not needed — every adult signs via OTP anyway.
+  useEffect(() => {
+    const reqs = getTermsRequirements();
+    let changed = false;
+    reqs.forEach((req) => {
+      const record = getTermsAcceptance(req);
+      if (!record.acceptorId && req.eligibleAdults.length > 0) {
+        const primary = req.eligibleAdults.find((a) => a.type === "Primary Applicant") || req.eligibleAdults[0];
+        setTermsAcceptor(req, primary.id);
+        changed = true;
+      }
+    });
+    for (const sf of getSignatureOnlyFamilies()) {
+      const key = termsAcceptanceKey(sf.id, GENERIC_AGREEMENT_COUNTRY);
+      const fakeReq = { key, familyId: sf.id, familyLabel: sf.label, country: GENERIC_AGREEMENT_COUNTRY };
+      const record = getTermsAcceptance(fakeReq);
+      if (!record.acceptorId) {
+        const allT = applicationData.deal.travellers || [];
+        const adults = allT.filter((t) => (t.familyId || "family-1") === sf.id && isAdultTraveller(t));
+        const primary = adults.find((t) => t.type === "Primary Applicant") || adults[0];
+        if (primary) { setTermsAcceptor(fakeReq, primary.id); changed = true; }
+      }
+    }
+    if (changed) requestRender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countriesKey]);
+
   // Restore termsAcceptances from agreementSigned when draft was lost after reload.
   // termsAcceptances lives only in localStorage; agreementSigned is saved to CRM.
   // If the primary applicant already signed (Step 4), Step 3 must have been complete too.
@@ -163,7 +191,7 @@ export default function TermsPane() {
       <div className="panel-head">
         <div>
           <h3>Terms &amp; Conditions</h3>
-          <p>Choose one adult to accept each country agreement for every family.</p>
+          <p>Read each country agreement, sign, and each adult verifies via OTP.</p>
         </div>
         <div className="terms-total">Total: {formatCurrency(applicationData.payment.grandTotal)}</div>
       </div>
@@ -181,8 +209,8 @@ export default function TermsPane() {
           </div>
           <ol className="terms-instructions">
             <li><span>1</span><div><strong>Read</strong><small>Review the country agreement</small></div></li>
-            <li><span>2</span><div><strong>Choose</strong><small>Select one eligible adult</small></div></li>
-            <li><span>3</span><div><strong>Sign &amp; accept</strong><small>Type the name and confirm</small></div></li>
+            <li><span>2</span><div><strong>Sign &amp; accept</strong><small>Type your name and confirm</small></div></li>
+            <li><span>3</span><div><strong>OTP sign</strong><small>Each adult verifies via OTP</small></div></li>
           </ol>
         </div>
 
@@ -205,7 +233,7 @@ export default function TermsPane() {
 
         <div className="notice amber terms-intro">
           <strong>⚠️ Separate acceptance is required</strong>
-          <span>Each family must nominate one adult to accept every country agreement (Steps 1–3), then every adult traveller in that family must individually sign via OTP (Step 4).</span>
+          <span>Read and accept each country agreement (Steps 1–2), then every adult traveller in that family must individually sign via OTP (Step 3). Children/minors are excluded from OTP signing.</span>
         </div>
 
         {!requirements.length ? (
@@ -290,22 +318,7 @@ export default function TermsPane() {
                         <div className="terms-acceptance-fields">
                           <div className="terms-action-heading">
                             <span>Step 2</span>
-                            <div><strong>Choose the adult acceptor</strong><small>One adult accepts for this family and country.</small></div>
-                          </div>
-                          <label className="field" style={{ gridColumn: "1 / -1" }}>
-                            <span>Adult terms acceptor <em>*</em></span>
-                            <select value={record.acceptorId || ""} onChange={(event) => setTermsAcceptor(requirement, event.target.value)}>
-                              <option value="">— Select one adult —</option>
-                              {requirement.eligibleAdults.map((adult) => (
-                                <option value={adult.id} key={adult.id}>{adult.name} — {adult.type}</option>
-                              ))}
-                            </select>
-                            <small>An adult in {family.label} accepts this agreement for all family members{isGeneric ? "" : ` applying to ${requirement.country}`}.</small>
-                          </label>
-
-                          <div className="terms-action-heading">
-                            <span>Step 3</span>
-                            <div><strong>Full legal name (signature)</strong><small>Type the selected adult's name exactly as it appears on their ID.</small></div>
+                            <div><strong>Full legal name (signature)</strong><small>Type your full name exactly as it appears on your ID.</small></div>
                           </div>
                           <label className="field" style={{ gridColumn: "1 / -1" }}>
                             <span>Full legal name (signature) <em>*</em></span>
@@ -313,20 +326,19 @@ export default function TermsPane() {
                               type="text"
                               value={record.signature || ""}
                               onChange={(event) => setTermsSignature(requirement, event.target.value)}
-                              placeholder="Type the selected adult's full legal name"
-                              disabled={!record.acceptorId}
+                              placeholder="Type your full legal name"
                             />
                           </label>
 
-                          <label className={`check-row terms-accept-check${!record.acceptorId || !String(record.signature || "").trim() ? " disabled" : ""}`}>
+                          <label className={`check-row terms-accept-check${!String(record.signature || "").trim() ? " disabled" : ""}`}>
                             <input
                               type="checkbox"
                               checked={!!record.accepted}
-                              disabled={!record.acceptorId || !String(record.signature || "").trim()}
+                              disabled={!String(record.signature || "").trim()}
                               onChange={(event) => setTermsAccepted(requirement, event.target.checked)}
                             />
                             <span>
-                              I, <strong>{record.acceptorName || "the selected adult"}</strong>, have read and accept the <strong>{displayCountry} agreement</strong> for <strong>{family.label}</strong>.
+                              I, <strong>{record.acceptorName || "the primary applicant"}</strong>, have read and accept the <strong>{displayCountry} agreement</strong> for <strong>{family.label}</strong>.
                             </span>
                           </label>
                         </div>
@@ -357,7 +369,7 @@ export default function TermsPane() {
                 return (
                   <div className="agreement-signing-section">
                     <div className="terms-action-heading agreement-signing-heading">
-                      <span>Step 4</span>
+                      <span>Step 3</span>
                       <div>
                         <strong>Digital Agreement Signature</strong>
                         <small>
@@ -370,8 +382,8 @@ export default function TermsPane() {
                     {!allFamilyTermsComplete ? (
                       <div className="notice amber agreement-otp-waiting">
                         {pendingRequirements.length === 1
-                          ? `Complete the ${pendingRequirements[0]._isGeneric ? "Service Agreement" : pendingRequirements[0].country} agreement above before the digital signature step.`
-                          : `Complete all country agreements before the digital signature step. Still pending: ${pendingRequirements.map((r) => r._isGeneric ? "Service Agreement" : r.country).join(", ")}.`}
+                          ? `Complete Steps 1–2 for the ${pendingRequirements[0]._isGeneric ? "Service Agreement" : pendingRequirements[0].country} agreement above before signing.`
+                          : `Complete Steps 1–2 for all country agreements first. Still pending: ${pendingRequirements.map((r) => r._isGeneric ? "Service Agreement" : r.country).join(", ")}.`}
                       </div>
                     ) : (
                       familyAdults.map((adult) => (
