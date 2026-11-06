@@ -451,12 +451,12 @@
         ]
       },
       uk: {
-        title: "General / UK CIF",
-        icon: "🇬🇧",
+        title: "General CIF",
+        icon: "📋",
         stages: [
-          { tag:"f1", form:"UK_CIF_1", report:"UK_Customer_Information", title:"UK CIF 1" },
-          { tag:"f2", form:"UK_CIF_2", report:"UK_CIF_2_Report", title:"UK CIF 2" },
-          { tag:"f3", form:"UK_CIF_3", report:"UK_CIF_3_Report", title:"UK CIF 3" }
+          { tag:"f1", form:"UK_CIF_1", report:"UK_Customer_Information", title:"CIF Part 1" },
+          { tag:"f2", form:"UK_CIF_2", report:"UK_CIF_2_Report", title:"CIF Part 2" },
+          { tag:"f3", form:"UK_CIF_3", report:"UK_CIF_3_Report", title:"CIF Part 3" }
         ]
       }
     };
