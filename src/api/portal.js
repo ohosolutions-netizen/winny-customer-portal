@@ -54,6 +54,10 @@ const requestEmail = isPortalReadRequest
         },
         deal: {
           ...applicationData.deal,
+          // Strip large client-only HTML blobs — they break Deluge's JSON parser
+          agreementHtml: undefined,
+          agreementHtmlByCountry: undefined,
+          agreementHtmlByTraveller: undefined,
           crmDealId: requestDealId,
           serviceNames:   getSelectedServiceNames(),
           serviceType:    selectedServiceType,
