@@ -2791,7 +2791,7 @@ function cifSchengenFundingOptions(data) {
     function cifGenericRenderSubform(travId, instance, stage, field) {
       const rows = cifGenericRows(travId, instance, stage, field);
       const basePath = cifPath(travId, stage.tag, field.link_name, instance.id);
-      return `<div class="cifx-field full"><label>${escapeHtml(field.display_name)}${field.mandatory ? ' <span class="req">*</span>' : ""}</label>
+      return `<div class="cifx-field full" data-field="${basePath}"><label>${escapeHtml(field.display_name)}${field.mandatory ? ' <span class="req">*</span>' : ""}</label>
         ${rows.map((row, index) => `<div class="cifx-rep"><div class="cifx-rep-lbl">Entry ${index + 1}</div>
           <button type="button" class="cifx-rep-rm" onclick="cifGenericRemoveRow('${travId}','${instance.id}','${stage.tag}','${field.link_name}',${index})">&#x1F5D1;&#xFE0F; Remove</button>
           <div class="cifx-fg">${
@@ -2831,7 +2831,7 @@ function cifSchengenFundingOptions(data) {
     .join("")
 }</div>
         </div>`).join("")}
-        <button type="button" class="cifx-add-btn" onclick="cifGenericAddRow('${travId}','${instance.id}','${stage.tag}','${field.link_name}')">&#x2795; Add ${escapeHtml(field.display_name)}</button>
+        <button type="button" class="cifx-add-btn" onclick="cifGenericAddRow('${travId}','${instance.id}','${stage.tag}','${field.link_name}')">&#x2795; Add ${escapeHtml(field.display_name.replace(/^add\s+/i, ""))}</button>
       </div>`;
     }
 
