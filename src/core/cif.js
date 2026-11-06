@@ -2737,9 +2737,9 @@ function cifSchengenFundingOptions(data) {
       // Name pattern: Zoho sometimes returns Yes/No question fields as type 1
       // (plain text) — catch those by their link_name prefix.
       const isYesNoByName = /^(Does_the_|Does_your_|Have_you_|Has_your_|Has_the_|Is_the_applicant_|Is_your_|Do_you_|Did_you_|Are_you_|Was_|Were_|Had_you_)/i.test(field.link_name);
+      const isGenericTrigger = instance?.type === "usa" || instance?.type === "australia" || instance?.type === "schengen";
       if (field.type === 9 || ([12,13].includes(field.type) && !choices.length) || (field.type === 1 && isYesNoByName)) {
-        return cifSelectField(label, path, ["", "Yes", "No"], field.mandatory, false,
-          instance?.type === "usa" || instance?.type === "australia");
+        return cifSelectField(label, path, ["", "Yes", "No"], field.mandatory, false, isGenericTrigger);
       }
       if ([12,13].includes(field.type) && choices.length) {
   const effectiveChoices = (instance?.type === "schengen" && field.link_name === "How_will_you_be_funding_your_trip")
@@ -2751,7 +2751,7 @@ function cifSchengenFundingOptions(data) {
     ["", ...effectiveChoices],
     field.mandatory,
     false,
-    instance?.type === "usa" || instance?.type === "australia"
+    isGenericTrigger
   );
 }
       if (cifIsCountrySelectorField(field)) {
