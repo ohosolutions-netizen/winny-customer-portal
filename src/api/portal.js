@@ -918,8 +918,22 @@ if (questionnaireSubmitted) {
         return tBuilt && (tBuilt === nameLower || nameLower.includes(tBuilt) || tBuilt.includes(nameLower));
       });
       if (matched) {
+        // Only mark the individual traveller's id — do NOT mark familyId here.
+        // familyId is only set once ALL travellers in that family have submitted
+        // (see the family-level check below). Marking familyId for a single member
+        // would make every other member in the same family appear "done" prematurely.
         if (matched.id) applicationData.questionnaire.submittedUnits[matched.id] = true;
-        if (matched.familyId) applicationData.questionnaire.submittedUnits[matched.familyId] = true;
+      }
+    });
+    // After marking all individual submitted travellers, check each family:
+    // if every traveller in a family now has their t.id marked, mark the familyId too.
+    const submittedUnitsRef = applicationData.questionnaire.submittedUnits;
+    const allTravellersRef = applicationData.deal.travellers || [];
+    const familyIds = [...new Set(allTravellersRef.map(t => t.familyId).filter(Boolean))];
+    familyIds.forEach(fid => {
+      const members = allTravellersRef.filter(t => t.familyId === fid);
+      if (members.length > 0 && members.every(t => t.id && submittedUnitsRef[t.id])) {
+        submittedUnitsRef[fid] = true;
       }
     });
   }
