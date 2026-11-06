@@ -886,25 +886,30 @@ if (questionnaireSubmitted) {
     });
     crmFamilyGroups.forEach(fg => {
       if (!fg) return;
+      // Mark the raw CRM Family_Group key so it's findable by later lookup.
+      // Do NOT mark the resolved local familyId or t.familyId here — a family group
+      // entry in the CRM means "at least one member submitted", not "all members done".
+      // The family-level completeness check below only marks familyId when all t.id
+      // entries for that family are individually confirmed as submitted.
       applicationData.questionnaire.submittedUnits[fg] = true;
-      // Translate: fg may be the CRM Family_Group (old format like "family-1"),
-      // a truncated local familyId, or the traveller's crmId. Mark every matching key.
       const resolvedFamilyId = crmFgToLocalFamilyId[fg];
-      if (resolvedFamilyId) applicationData.questionnaire.submittedUnits[resolvedFamilyId] = true;
       travellerList.forEach(t => {
         if (t.id === fg || t.familyId === fg || t.crmId === fg ||
             (fg && t.familyId && t.familyId.startsWith(fg))) {
+          // Only mark the individual traveller, never the whole family.
           if (t.id) applicationData.questionnaire.submittedUnits[t.id] = true;
-          if (t.familyId) applicationData.questionnaire.submittedUnits[t.familyId] = true;
         }
       });
+      // If fg resolved to a local familyId that isn't a t.familyId, still expose it
+      // for the completeness check below — but only as a lookup key, not as "done".
+      // (resolvedFamilyId is intentionally not marked here)
+      void resolvedFamilyId;
     });
   }
 
   // submittedClients: array of Client_Name values returned by the Deluge function when it
   // queries Creator server-side. More reliable than browser-side Creator API calls since
-  // the portal widget API blocks most criteria. Matches travellers by name and marks
-  // both t.id (used by deriveQuestionnaireUnits as unit.familyId) and t.familyId.
+  // the portal widget API blocks most criteria.
   const submittedClients = Array.isArray(questionnaireStatus.submittedClients)
     ? questionnaireStatus.submittedClients : [];
   if (submittedClients.length > 0) {
@@ -917,17 +922,16 @@ if (questionnaireSubmitted) {
         const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
         return tBuilt && (tBuilt === nameLower || nameLower.includes(tBuilt) || tBuilt.includes(nameLower));
       });
-      if (matched) {
-        // Only mark the individual traveller's id — do NOT mark familyId here.
-        // familyId is only set once ALL travellers in that family have submitted
-        // (see the family-level check below). Marking familyId for a single member
-        // would make every other member in the same family appear "done" prematurely.
-        if (matched.id) applicationData.questionnaire.submittedUnits[matched.id] = true;
-      }
+      // Only mark the individual traveller's id — familyId is handled below.
+      if (matched?.id) applicationData.questionnaire.submittedUnits[matched.id] = true;
     });
-    // After marking all individual submitted travellers, check each family:
-    // if every traveller in a family now has their t.id marked, mark the familyId too.
-    const submittedUnitsRef = applicationData.questionnaire.submittedUnits;
+  }
+
+  // After all individual traveller markings (from both crmFamilyGroups and submittedClients),
+  // promote a family to "done" only when EVERY member's t.id is marked as submitted.
+  // This is the single place that sets familyId, preventing premature family completion.
+  {
+    const submittedUnitsRef = applicationData.questionnaire.submittedUnits || {};
     const allTravellersRef = applicationData.deal.travellers || [];
     const familyIds = [...new Set(allTravellersRef.map(t => t.familyId).filter(Boolean))];
     familyIds.forEach(fid => {
