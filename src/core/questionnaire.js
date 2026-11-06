@@ -859,6 +859,7 @@ function buildAnswersHtmlFromQState(unit, unitName) {
   const fundingKeys    = Array.isArray(fin.funding) ? fin.funding : (fin.funding ? [fin.funding] : []);
   const hasSponsor     = fundingKeys.includes("sponsor");
   const isBusinessOwner = Boolean(tFinM["occ-business"]);
+  const isPensionerReview = Boolean(tFinM["occ-pensioner"]);
   const needsItr       = ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(tFinM[k]));
   const countries      = (q.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean).join(", ");
 
@@ -922,6 +923,10 @@ function buildAnswersHtmlFromQState(unit, unitName) {
     row("Current occupation", mapMultiAnswers(tFinM, occMapPrimary)),
     row("ITRs reflect occupation?", needsItr ? (itrMap[fin.itr] || "") : ""),
     row("Business type", isBusinessOwner ? (bizTypeMap[fin.bizType] || "") : ""),
+    row("Previous employer", isPensionerReview ? (fin.retiredPrevEmployer || "") : ""),
+    row("Last designation", isPensionerReview ? (fin.retiredLastDesig || "") : ""),
+    row("Date of retirement", isPensionerReview ? (fin.retiredDate || "") : ""),
+    row("Annual pension (INR)", isPensionerReview ? (fin.retiredAnnualPension ? String(fin.retiredAnnualPension) : "") : ""),
     row("Immovable property owned in India", mapMultiAnswers(tFinM, assetMap)),
     row("Liquid investments held", mapMultiAnswers(tFinM, investMap)),
     row("Social / community ties", mapMultiAnswers(tTiesM, tiesMap)),
@@ -1703,6 +1708,7 @@ function buildFinDerived(t) {
     fin,
     financeAnswers,
     isBusiness: Boolean(financeAnswers["occ-business"]),
+    isPensioner: Boolean(financeAnswers["occ-pensioner"]),
     isOtherOccupation: Boolean(financeAnswers["occ-other"]),
     shouldShowItr: ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(financeAnswers[k])),
     hasOtherAsset: Boolean(financeAnswers["asset-other"]),
@@ -1753,7 +1759,7 @@ const finFundingBlocks = primaryFinanceTravellers.map(t => {
 
 // ── sec-occupation: Occupation & ITR ──────────────────────────────────────
 const finOccBlocks = primaryFinanceTravellers.map(t => {
-  const { fin, financeAnswers, isBusiness, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
+  const { fin, financeAnswers, isBusiness, isPensioner, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
   return `<div class="person-block">
     <div class="person-block-hd">
       <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
@@ -1779,6 +1785,33 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
           ${qFinOptR(t.id,"bizType","sole","Sole Proprietorship","Shop, agency, or single-owner")}
           ${qFinOptR(t.id,"bizType","partnership","Partnership Firm","")}
           ${qFinOptR(t.id,"bizType","pvtltd","Public, Private, or an LLP","Registered company")}
+        </div>
+      </div>
+      <div class="q-dep ${isPensioner?"show":""}" id="dep-${t.id}-pensioner">
+        <div class="q-sub">Retirement details</div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Previous Employer / Organisation</label>
+            <input type="text" placeholder="Last employer name"
+              value="${escapeHtml(fin.retiredPrevEmployer||"")}"
+              oninput="qFinSetField('${t.id}','retiredPrevEmployer',this.value)">
+          </div>
+          <div class="q-field"><label>Last Designation</label>
+            <input type="text" placeholder="e.g. Senior Engineer, Manager"
+              value="${escapeHtml(fin.retiredLastDesig||"")}"
+              oninput="qFinSetField('${t.id}','retiredLastDesig',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Date of Retirement</label>
+            <input type="date"
+              value="${escapeHtml(fin.retiredDate||"")}"
+              oninput="qFinSetField('${t.id}','retiredDate',this.value)">
+          </div>
+          <div class="q-field"><label>Annual Pension (INR)</label>
+            <input type="number" placeholder="Amount in INR per year"
+              value="${escapeHtml(fin.retiredAnnualPension||"")}"
+              oninput="qFinSetField('${t.id}','retiredAnnualPension',this.value)">
+          </div>
         </div>
       </div>
     </div>
@@ -2353,6 +2386,13 @@ markAutoSavePending();
     if (businessBlock) {
   businessBlock.style.display = selected ? "block" : "none";
 }
+  }
+
+  if (key === "occ-pensioner") {
+    const pensionerBlock = document.getElementById(`dep-${travId}-pensioner`);
+    if (pensionerBlock) {
+      pensionerBlock.style.display = selected ? "block" : "none";
+    }
   }
 
   if (key === "occ-other") {

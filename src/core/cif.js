@@ -367,7 +367,7 @@ const CIF_UK_SECTIONS = [
     ["Airbnb / rental booking reference","f1","Airbnb_Booking_Reference","text",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"},"e.g. HMXXXXXXXX"],
     ["Airbnb / rental check-in date","f1","Airbnb_Check_In_Date","date",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
     ["Airbnb / rental check-out date","f1","Airbnb_Check_Out_Date","date",null,false,{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}],
-    ["Accommodation booking confirmed?","f1","Accommodation_Booking_Confirmed","yesno",null,false],
+    ["Accommodation booking confirmed?","f1","Accommodation_Booking_Confirmed","yesno",null,false,{anyOf:[{key:"Accommodation_Type",form:"f1",equals:"Hotel"},{key:"Accommodation_Type",form:"f1",equals:"Airbnb / Private Rental"}]}],
     ["Is return ticket confirmed?","f1","Return_Ticket_Confirmed","yesno",null,false],
     ["Preferred language for UK officials","f1","UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use","select",["English","Hindi","Gujarati","Other"],true],
     ["Which language?","f1","Which_language_would_you_prefer_to_use","text",null,false,{key:"UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use",form:"f1",equals:"Other"},"e.g. Punjabi"],
