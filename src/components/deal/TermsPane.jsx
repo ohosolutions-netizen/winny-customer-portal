@@ -72,18 +72,24 @@ export default function TermsPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countriesKey, hasUSADate, hasPremium]);
 
-  // Auto-sync once on mount if any adult traveller is missing their CRM ID.
-  // Fires a single saveDealData call so AgreementCards can show the sign button
-  // without the user needing to click "Re-sync now" manually.
+  // Auto-sync once on mount if traveller CRM IDs are missing, or if the deal
+  // has not yet been fully synced (applicationDetailsSynced not set — covers
+  // deals loaded directly at the Terms step whose Payment_Amount is still 0).
   useEffect(() => {
     const anyMissingCrmId = (applicationData.deal.travellers || []).some(
       (t) => isAdultTraveller(t) && !t.crmId
     );
-    if (anyMissingCrmId && applicationData.deal.crmDealId
+    const needsSync = anyMissingCrmId || !applicationData.crmSync.applicationDetailsSynced;
+    if (needsSync && applicationData.deal.crmDealId
         && !applicationData.crmSync.applicationDetailsSyncInFlight) {
+      applicationData.crmSync.applicationDetailsSyncInFlight = true;
       saveDealData({ syncOnly: true, silent: true })
-        .then(() => requestRender())
-        .catch(() => {}); // AgreementCard shows the manual Re-sync button on failure
+        .then(() => {
+          applicationData.crmSync.applicationDetailsSynced = true;
+          requestRender();
+        })
+        .catch(() => {})
+        .finally(() => { applicationData.crmSync.applicationDetailsSyncInFlight = false; });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
