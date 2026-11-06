@@ -309,8 +309,10 @@ let zPayInstance = null;
       }
       const amountWords = numToWords(Math.round(p.grandTotal || 0)) + " Rupees Only";
 
-      // Shared header builder
-      function agrHeader(partyLabel) {
+      // Shared header builder — clientName defaults to the main customer but can be
+      // overridden per-country to match the actual visa applicant's name.
+      function agrHeader(partyLabel, clientName) {
+        const displayName = clientName || fullName;
         return `<div style="font-family:Georgia,serif;font-size:13px;line-height:1.9;color:#111;max-width:100%">
 <div style="text-align:center;margin-bottom:16px">
   <div style="font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase">Service Agreement</div>
@@ -321,7 +323,7 @@ let zPayInstance = null;
 Ahmedabad 380006, Gujarat, India<br>
 <em>(Hereafter referred to as ${partyLabel})</em></p>
 <p style="margin:0 0 10px"><strong>And,</strong></p>
-<p style="margin:0 0 6px"><strong>Mr./Ms. ${escapeHtml(fullName)}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; APP ID: <strong>${escapeHtml(appId)}</strong><br>
+<p style="margin:0 0 6px"><strong>Mr./Ms. ${escapeHtml(displayName)}</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; APP ID: <strong>${escapeHtml(appId)}</strong><br>
 Address: ${escapeHtml(street)}, ${escapeHtml(city)}, ${escapeHtml(state)}, ${escapeHtml(zip)}, ${escapeHtml(country)}<br>
 Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; (M): ${escapeHtml(mobile)}<br>
 <em>(Hereafter referred as the Client)</em></p>
@@ -335,10 +337,11 @@ Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
 </div>`;
       }
 
-      function annexureA(partyLabel) {
+      function annexureA(partyLabel, clientName) {
+        const displayName = clientName || fullName;
         return `<hr style="border:0;border-top:2px solid #333;margin:22px 0 14px">
 <div style="text-align:center;font-size:14px;font-weight:700;margin-bottom:12px">VISITOR VISA — ANNEXURE A</div>
-<p style="margin:0 0 10px"><strong>Client Name:</strong> ${escapeHtml(fullName)}</p>
+<p style="margin:0 0 10px"><strong>Client Name:</strong> ${escapeHtml(displayName)}</p>
 <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px">
   <tr style="background:#f4f4f4"><th style="border:1px solid #ccc;padding:8px 10px;text-align:left;width:35%">Matter and scope of services</th><td style="border:1px solid #ccc;padding:8px 10px">Provide assistance in visitor visa application — <strong>${escapeHtml(serviceName)}</strong></td></tr>
   <tr><th style="border:1px solid #ccc;padding:8px 10px;text-align:left">Billing Method</th><td style="border:1px solid #ccc;padding:8px 10px">Flat fee – Single payment</td></tr>
@@ -378,10 +381,22 @@ Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
 
       const parts = [];  // one country-specific agreement per entry
 
+      // Returns the primary applicant's name for a given country destination,
+      // falling back to the main customer name when no specific traveller is found.
+      function clientNameForCountry(countryName) {
+        const assigned = (d.travellers || []).filter(
+          (t) => (t.countries || []).includes(countryName)
+        );
+        const primary = assigned.find((t) => t.type === "Primary Applicant") || assigned[0];
+        if (!primary) return fullName;
+        return `${primary.firstName || ""} ${primary.lastName || ""}`.trim() || fullName;
+      }
+
       if (nonUsaCountries.length > 0) {
         // ── NON-USA SERVICE AGREEMENT ──────────────────────────────────────────
         nonUsaCountries.forEach((nonUsaDest) => {
-        parts.push({ country: nonUsaDest, html: agrHeader("the Winny") + `
+        const clientName = clientNameForCountry(nonUsaDest);
+        parts.push({ country: nonUsaDest, html: agrHeader("the Winny", clientName) + `
 <p>WHEREAS the Winny and the Client wish to enter into a written agreement which contains the agreed upon terms and conditions upon which the Winny will provide professional services to the Client.</p>
 <p>In consideration of the mutual covenants contained in this Agreement, the Winny and the Client agree as follows:</p>
 
@@ -435,7 +450,7 @@ ${sigBlock()}
 <div style="display:flex;gap:40px;margin:14px 0 6px;font-size:12px">
   <div>DATE: ${today}<br><br>Client's Signature: _______________________</div>
   <div>Spouse's Signature: _______________________<br><br>Signature of Winny: ___________________</div>
-</div>` + annexureA("Winny") });
+</div>` + annexureA("Winny", clientName) });
 
         });
       }
@@ -464,7 +479,8 @@ ${sigBlock()}
 </ul>`;
 
         usaCountries.forEach((usaCountry) => {
-        parts.push({ country: usaCountry, html: agrHeader("the Company") + `
+        const clientName = clientNameForCountry(usaCountry);
+        parts.push({ country: usaCountry, html: agrHeader("the Company", clientName) + `
 <p>WHEREAS the Company provides services to individuals intending to travel to the United States for temporary visit purposes, including but not limited to tourism, attending convocations, visiting family or friends or for business.</p>
 <p>WHEREAS the Client is seeking assistance for their visa application process.</p>
 
@@ -510,7 +526,7 @@ ${sigBlock()}
 <div style="display:flex;gap:40px;margin:14px 0 6px;font-size:12px">
   <div>DATE: ${today}<br><br>Client's Signature: _______________________</div>
   <div>Spouse's Signature: _______________________<br><br>Signature of Company: ___________________</div>
-</div>` + annexureA("Company") });
+</div>` + annexureA("Company", clientName) });
         });
       }
 
