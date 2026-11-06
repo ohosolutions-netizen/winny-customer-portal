@@ -337,16 +337,18 @@ Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
 </div>`;
       }
 
-      function annexureA(partyLabel, clientName, serviceNameOverride) {
+      function annexureA(partyLabel, clientName, serviceNameOverride, amountOverride, amountWordsOverride) {
         const displayName = clientName || fullName;
         const displayService = serviceNameOverride || serviceName;
+        const displayAmount = amountOverride || amount;
+        const displayAmountWords = amountWordsOverride || amountWords;
         return `<hr style="border:0;border-top:2px solid #333;margin:22px 0 14px">
 <div style="text-align:center;font-size:14px;font-weight:700;margin-bottom:12px">VISITOR VISA — ANNEXURE A</div>
 <p style="margin:0 0 10px"><strong>Client Name:</strong> ${escapeHtml(displayName)}</p>
 <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px">
   <tr style="background:#f4f4f4"><th style="border:1px solid #ccc;padding:8px 10px;text-align:left;width:35%">Matter and scope of services</th><td style="border:1px solid #ccc;padding:8px 10px">Provide assistance in visitor visa application — <strong>${escapeHtml(displayService)}</strong></td></tr>
   <tr><th style="border:1px solid #ccc;padding:8px 10px;text-align:left">Billing Method</th><td style="border:1px solid #ccc;padding:8px 10px">Flat fee – Single payment</td></tr>
-  <tr style="background:#f4f4f4"><th style="border:1px solid #ccc;padding:8px 10px;text-align:left">Professional Fees</th><td style="border:1px solid #ccc;padding:8px 10px"><strong>${amount}</strong> (${escapeHtml(amountWords)}) + GST (as applicable) due upon signing the Service Agreement</td></tr>
+  <tr style="background:#f4f4f4"><th style="border:1px solid #ccc;padding:8px 10px;text-align:left">Professional Fees</th><td style="border:1px solid #ccc;padding:8px 10px"><strong>${displayAmount}</strong> (${escapeHtml(displayAmountWords)}) + GST (as applicable) due upon signing the Service Agreement</td></tr>
   <tr><th style="border:1px solid #ccc;padding:8px 10px;text-align:left">Condition</th><td style="border:1px solid #ccc;padding:8px 10px"><strong>This payment is Non-Refundable.</strong></td></tr>
 </table>
 <p>This Annexure was signed on the day of <strong>${today}</strong>.</p>
@@ -406,11 +408,28 @@ Email: ${escapeHtml(email)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs
         return [...new Set(matching.map((item) => item.name).filter(Boolean))].join(", ");
       }
 
+      // Returns the professional fee for a specific country by summing the
+      // serviceBasket items whose destinations include countryName.
+      // Falls back to the grand total when no matching basket item is found.
+      function feeForCountry(countryName) {
+        const basket = d.serviceBasket || [];
+        const norm = (s) => String(s || "").trim().toLowerCase();
+        const matching = basket.filter((item) =>
+          (item.destinations || []).some((dest) => norm(dest) === norm(countryName))
+        );
+        if (!matching.length) return null; // caller uses global amount/amountWords
+        const total = matching.reduce((sum, item) => sum + (Number(item.total) || Number(item.price) || 0), 0);
+        return total || null;
+      }
+
       if (nonUsaCountries.length > 0) {
         // ── NON-USA SERVICE AGREEMENT ──────────────────────────────────────────
         nonUsaCountries.forEach((nonUsaDest) => {
         const clientName = clientNameForCountry(nonUsaDest);
         const countryServiceName = serviceNameForCountry(nonUsaDest);
+        const countryFee = feeForCountry(nonUsaDest);
+        const countryAmount = countryFee ? formatCurrency(countryFee) : null;
+        const countryAmountWords = countryFee ? (numToWords(Math.round(countryFee)) + " Rupees Only") : null;
         parts.push({ country: nonUsaDest, html: agrHeader("the Winny", clientName) + `
 <p>WHEREAS the Winny and the Client wish to enter into a written agreement which contains the agreed upon terms and conditions upon which the Winny will provide professional services to the Client.</p>
 <p>In consideration of the mutual covenants contained in this Agreement, the Winny and the Client agree as follows:</p>
@@ -465,7 +484,7 @@ ${sigBlock()}
 <div style="display:flex;gap:40px;margin:14px 0 6px;font-size:12px">
   <div>DATE: ${today}<br><br>Client's Signature: _______________________</div>
   <div>Spouse's Signature: _______________________<br><br>Signature of Winny: ___________________</div>
-</div>` + annexureA("Winny", clientName, countryServiceName) });
+</div>` + annexureA("Winny", clientName, countryServiceName, countryAmount, countryAmountWords) });
 
         });
       }
@@ -496,6 +515,9 @@ ${sigBlock()}
         usaCountries.forEach((usaCountry) => {
         const clientName = clientNameForCountry(usaCountry);
         const countryServiceName = serviceNameForCountry(usaCountry);
+        const countryFee = feeForCountry(usaCountry);
+        const countryAmount = countryFee ? formatCurrency(countryFee) : null;
+        const countryAmountWords = countryFee ? (numToWords(Math.round(countryFee)) + " Rupees Only") : null;
         parts.push({ country: usaCountry, html: agrHeader("the Company", clientName) + `
 <p>WHEREAS the Company provides services to individuals intending to travel to the United States for temporary visit purposes, including but not limited to tourism, attending convocations, visiting family or friends or for business.</p>
 <p>WHEREAS the Client is seeking assistance for their visa application process.</p>
@@ -542,7 +564,7 @@ ${sigBlock()}
 <div style="display:flex;gap:40px;margin:14px 0 6px;font-size:12px">
   <div>DATE: ${today}<br><br>Client's Signature: _______________________</div>
   <div>Spouse's Signature: _______________________<br><br>Signature of Company: ___________________</div>
-</div>` + annexureA("Company", clientName, countryServiceName) });
+</div>` + annexureA("Company", clientName, countryServiceName, countryAmount, countryAmountWords) });
         });
       }
 
