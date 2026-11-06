@@ -72,14 +72,13 @@ export default function TermsPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countriesKey, hasUSADate, hasPremium]);
 
-  // Auto-sync once on mount if any primary applicant is missing their CRM ID.
+  // Auto-sync once on mount if any adult traveller is missing their CRM ID.
   // Fires a single saveDealData call so AgreementCards can show the sign button
   // without the user needing to click "Re-sync now" manually.
   useEffect(() => {
-    const primaryApplicants = (applicationData.deal.travellers || []).filter(
-      (t) => t.type === "Primary Applicant"
+    const anyMissingCrmId = (applicationData.deal.travellers || []).some(
+      (t) => isAdultTraveller(t) && !t.crmId
     );
-    const anyMissingCrmId = primaryApplicants.some((t) => !t.crmId);
     if (anyMissingCrmId && applicationData.deal.crmDealId
         && !applicationData.crmSync.applicationDetailsSyncInFlight) {
       saveDealData({ syncOnly: true, silent: true })
@@ -206,7 +205,7 @@ export default function TermsPane() {
 
         <div className="notice amber terms-intro">
           <strong>⚠️ Separate acceptance is required</strong>
-          <span>Each family must nominate one adult for every country they are applying to. The selected adult's signature is saved against that family and country.</span>
+          <span>Each family must nominate one adult to accept every country agreement (Steps 1–3), then every adult traveller in that family must individually sign via OTP (Step 4).</span>
         </div>
 
         {!requirements.length ? (
@@ -240,11 +239,7 @@ export default function TermsPane() {
                     ? { label: "Service Agreement" }
                     : agreementDetails(requirement.country, hasUSADate, hasPremium);
                   const agreementHtml = isGeneric
-                    ? (() => {
-                        const byCountry = applicationData.deal.agreementHtmlByCountry || {};
-                        const firstKey = Object.keys(byCountry)[0];
-                        return (firstKey && byCountry[firstKey]) || applicationData.deal.agreementHtml || "";
-                      })()
+                    ? (applicationData.deal.agreementHtml || "")
                     : agreementForCountry(agreementMap, requirement.country, requirements.length);
                   const displayCountry = isGeneric ? "Service Agreement" : requirement.country;
                   const complete = !!(record.acceptorId && record.accepted && String(record.signature || "").trim());
@@ -342,16 +337,22 @@ export default function TermsPane() {
               </div>
 
               {(() => {
-                const primaryApplicant = applicationData.deal.travellers.find(
-                  (t) => (t.familyId || "family-1") === family.id && t.type === "Primary Applicant"
+                const familyAdults = allTravellers.filter(
+                  (t) => (t.familyId || "family-1") === family.id && isAdultTraveller(t)
                 );
-                if (!primaryApplicant) return null;
+                if (!familyAdults.length) return null;
 
                 const pendingRequirements = family.requirements.filter((req) => {
                   const rec = getTermsAcceptance(req);
                   return !(rec.acceptorId && rec.accepted && String(rec.signature || "").trim());
                 });
                 const allFamilyTermsComplete = pendingRequirements.length === 0;
+
+                // Pass only this family's countries so each AgreementCard email
+                // references only its own service, not the combined deal.
+                const familyCountries = family.requirements
+                  .filter((r) => !r._isGeneric)
+                  .map((r) => r.country);
 
                 return (
                   <div className="agreement-signing-section">
@@ -360,11 +361,9 @@ export default function TermsPane() {
                       <div>
                         <strong>Digital Agreement Signature</strong>
                         <small>
-                          {primaryApplicant.firstName || "Primary applicant"} verifies via OTP to digitally sign the agreement
-                          {family.requirements[0]?.travellers?.some((t) => t.type === "Child") || family.requirements[0]?.travellers?.some((t) => t.type === "Dependent")
-                            ? " (covers all family members including minors)"
-                            : ""}
-                          .
+                          {familyAdults.length === 1
+                            ? `${familyAdults[0].firstName || "The adult traveller"} verifies via OTP to digitally sign the agreement.`
+                            : `Each adult traveller in ${family.label} must individually verify via OTP to digitally sign the agreement.`}
                         </small>
                       </div>
                     </div>
@@ -375,14 +374,18 @@ export default function TermsPane() {
                           : `Complete all country agreements before the digital signature step. Still pending: ${pendingRequirements.map((r) => r._isGeneric ? "Service Agreement" : r.country).join(", ")}.`}
                       </div>
                     ) : (
-                      <AgreementCard
-                        traveller={primaryApplicant}
-                        onSigned={() => {
-                          saveDraft(false);
-                          saveDealData({ syncOnly: true, silent: true }).catch(() => {});
-                          requestRender();
-                        }}
-                      />
+                      familyAdults.map((adult) => (
+                        <AgreementCard
+                          key={adult.id}
+                          traveller={adult}
+                          familyCountries={familyCountries}
+                          onSigned={() => {
+                            saveDraft(false);
+                            saveDealData({ syncOnly: true, silent: true }).catch(() => {});
+                            requestRender();
+                          }}
+                        />
+                      ))
                     )}
                   </div>
                 );

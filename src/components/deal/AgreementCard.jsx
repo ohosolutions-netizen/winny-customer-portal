@@ -3,7 +3,7 @@ import { sendAgreementOtp, verifyAgreementOtp, saveDealData, sendAgreementEmail 
 import { applicationData } from "../../store/runtime.js";
 import { toast, requestRender } from "../../lib/ui.js";
 
-export default function AgreementCard({ traveller, onSigned }) {
+export default function AgreementCard({ traveller, familyCountries, onSigned }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -30,14 +30,19 @@ export default function AgreementCard({ traveller, onSigned }) {
   ));
 
   function buildAgreementEmailArgs(overrides = {}) {
-    const c = applicationData.customer || {};
     const d = applicationData.deal || {};
     const byCountry = d.agreementHtmlByCountry || {};
-    const countries = Object.keys(byCountry).join(", ") || d.destination || "";
+    // Use only this family's countries so the email references its own service only.
+    const relevantCountries = Array.isArray(familyCountries) && familyCountries.length
+      ? familyCountries
+      : Object.keys(byCountry);
+    const countries = relevantCountries.join(", ") || d.destination || "";
     const isUSA = /united states|^usa$/i.test(countries);
     return {
       email,
-      customerName: `${c.firstName || ""} ${c.lastName || ""}`.trim() || name,
+      // Use the traveller's own name — applicationData.customer is always Family 1's
+      // main customer and would show the wrong name for Family 2 travellers.
+      customerName: name,
       applicationId: applicationData.applicationId || "",
       signedByName: name,
       signedAt: new Date().toISOString(),
