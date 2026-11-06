@@ -380,7 +380,11 @@ export default function TermsPane() {
                           traveller={adult}
                           familyCountries={familyCountries}
                           travellerAgreementHtml={
-                            (applicationData.deal.agreementHtmlByTraveller || {})[adult.id] || ""
+                            // Primary applicant already sees their own name in Step 1's
+                            // country agreement, so skip the duplicate preview here.
+                            adult.type === "Primary Applicant"
+                              ? ""
+                              : (applicationData.deal.agreementHtmlByTraveller || {})[adult.id] || ""
                           }
                           onSigned={() => {
                             saveDraft(false);
