@@ -5287,6 +5287,9 @@ function cifValidateSchengen(data) {
       if (!hasValue(c.Have_your_child_ever_visited_country_other_than_their_country_of_nationality)) return cifSchengenFail("Add_details_of_child", "Please select if your child has visited other countries.");
       if (!hasValue(c.Have_your_child_applied_for_a_Schengen_Visa_in_the_past_5_years)) return cifSchengenFail("Add_details_of_child", "Please select your child's Schengen visa status.");
       if (!hasValue(c.Have_your_child_provided_fingerprints_for_any_Schengen_Visa_previously)) return cifSchengenFail("Add_details_of_child", "Please select your child's fingerprint status.");
+      if (c.Have_your_child_provided_fingerprints_for_any_Schengen_Visa_previously === "Yes" && !hasValue(c.When_did_your_child_submitted_fingerprints_for_Schengen_Visa)) {
+        return cifSchengenFail("Add_details_of_child", "Please enter when your child submitted fingerprints for their Schengen visa.");
+      }
       if (c.Do_they_live_at_your_current_residence_address === "No" && !hasValue(c.Address_they_currently_live)) {
         return cifSchengenFail("Add_details_of_child", "Please enter your child's current living address.");
       }
