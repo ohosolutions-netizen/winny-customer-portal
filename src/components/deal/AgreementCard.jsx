@@ -3,7 +3,7 @@ import { sendAgreementOtp, verifyAgreementOtp, saveDealData, sendAgreementEmail 
 import { applicationData } from "../../store/runtime.js";
 import { toast, requestRender } from "../../lib/ui.js";
 
-export default function AgreementCard({ traveller, familyCountries, onSigned }) {
+export default function AgreementCard({ traveller, familyCountries, travellerAgreementHtml, onSigned }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -61,6 +61,17 @@ export default function AgreementCard({ traveller, familyCountries, onSigned }) 
     setHasPortalAccess(val);
     traveller.portalAccess = val;
   }
+
+  // Personalised agreement preview shown above the signing controls
+  const personalAgreementBlock = travellerAgreementHtml ? (
+    <div className="agreement-card-personal-doc">
+      <div className="terms-document-head" style={{ marginBottom: 6 }}>
+        <span><b>Agreement for {name}</b></span>
+        <small>Read before signing</small>
+      </div>
+      <div className="terms-document-content" dangerouslySetInnerHTML={{ __html: travellerAgreementHtml }} />
+    </div>
+  ) : null;
 
   if (signed) {
     return (
@@ -175,6 +186,7 @@ export default function AgreementCard({ traveller, familyCountries, onSigned }) 
     return (
       <div className="agreement-card">
         {portalToggle}
+        {personalAgreementBlock}
         <div className="agreement-card-head">
           <div>
             <strong>{name}</strong>
@@ -299,6 +311,7 @@ export default function AgreementCard({ traveller, familyCountries, onSigned }) 
   return (
     <div className="agreement-card">
       {portalToggle}
+      {personalAgreementBlock}
       <div className="agreement-card-head">
         <div>
           <strong>{name}</strong>

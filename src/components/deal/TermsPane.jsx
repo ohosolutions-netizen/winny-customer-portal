@@ -379,6 +379,9 @@ export default function TermsPane() {
                           key={adult.id}
                           traveller={adult}
                           familyCountries={familyCountries}
+                          travellerAgreementHtml={
+                            (applicationData.deal.agreementHtmlByTraveller || {})[adult.id] || ""
+                          }
                           onSigned={() => {
                             saveDraft(false);
                             saveDealData({ syncOnly: true, silent: true }).catch(() => {});

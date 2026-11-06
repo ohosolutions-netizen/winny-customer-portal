@@ -546,6 +546,28 @@ ${sigBlock()}
       applicationData.deal.agreementHtmlByCountry = Object.fromEntries(
         parts.map((part) => [part.country, part.html])
       );
+
+      // Build a personalised agreement for EACH adult traveller by substituting
+      // their name in place of the primary applicant's name in the country HTML.
+      const agreementHtmlByTraveller = {};
+      (d.travellers || []).forEach((traveller) => {
+        const tName = `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim();
+        if (!tName) return;
+        const tCountries = traveller.countries || [];
+        const tHtmlParts = tCountries.map((cName) => {
+          const part = parts.find((p) => p.country === cName);
+          if (!part) return null;
+          const originalEscaped = escapeHtml(clientNameForCountry(cName));
+          const travellerEscaped = escapeHtml(tName);
+          if (originalEscaped === travellerEscaped) return part.html;
+          // Replace every occurrence of the primary applicant's name with this traveller's name
+          return part.html.split(originalEscaped).join(travellerEscaped);
+        }).filter(Boolean);
+        if (tHtmlParts.length) {
+          agreementHtmlByTraveller[traveller.id] = tHtmlParts.join(pageDivider);
+        }
+      });
+      applicationData.deal.agreementHtmlByTraveller = agreementHtmlByTraveller;
       applicationData.deal.agreementHtml = parts.map((part) => part.html).join(pageDivider);
       saveDraft(false);
       requestRender();
