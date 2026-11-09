@@ -835,9 +835,9 @@ function buildAnswersHtmlFromQState(unit, unitName) {
   };
   const fundsRangeMap = { "4-7l":"4–7 Lakh INR", "7-10l":"7–10 Lakh INR", "10-15l":"10–15 Lakh INR", "15-20l":"15–20 Lakh INR", "20l-plus":"20 Lakh+ INR" };
   const occMapPrimary = {
-    "occ-employed":"Employed (Job)", "occ-freelancer":"Self employed (Freelancer)", "occ-business":"Business Owner",
-    "occ-homemaker":"Homemaker", "occ-pensioner":"Retired with pension", "occ-retired-nopension":"Retired without pension",
-    "occ-student":"Student", "occ-unemployed":"Unemployed", "occ-other":"Other (Please Specify)"
+    "occ-employed":"Employed (Job)", "occ-freelancer":"Self-Employed (Freelancer)", "occ-business":"Business Owner",
+    "occ-homemaker":"Homemaker", "occ-pensioner":"Retired with Pension", "occ-retired-nopension":"Retired without Pension",
+    "occ-student":"Student", "occ-unemployed":"Unemployed", "occ-other":"Other — Please Specify"
   };
   const itrMap = { yes:"Yes", no:"No", notsure:"Not sure", nofile:"I do not file ITR" };
   const bizTypeMap = { sole:"Sole Proprietorship", partnership:"Partnership", pvtltd:"Private Limited (Pvt Ltd)", publtd:"Public Limited (Ltd)", llp:"Limited Liability Partnership (LLP)", other:"Other" };
@@ -1814,14 +1814,14 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
       <div class="q-lbl">What is ${escapeHtml(t.firstName||"their")} current occupation? <span class="q-req">Required</span> <span style="font-size:12px;font-weight:400;color:var(--muted)">(select all that apply)</span></div>
       <div class="q-opts c2">
         ${qFinOptM(t.id,"occ-employed","Employed (Job)")}
-        ${qFinOptM(t.id,"occ-freelancer","Self-Employed / Freelancer")}
+        ${qFinOptM(t.id,"occ-freelancer","Self-Employed (Freelancer)")}
         ${qFinOptM(t.id,"occ-business","Business Owner")}
         ${qFinOptM(t.id,"occ-homemaker","Homemaker")}
         ${qFinOptM(t.id,"occ-pensioner","Retired with Pension")}
         ${qFinOptM(t.id,"occ-retired-nopension","Retired without Pension")}
         ${qFinOptM(t.id,"occ-student","Student")}
         ${qFinOptM(t.id,"occ-unemployed","Unemployed")}
-        ${qFinOptM(t.id,"occ-other","Other")}
+        ${qFinOptM(t.id,"occ-other","Other — Please Specify")}
       </div>
       <div class="q-dep ${isBusiness?"show":""}" id="dep-${t.id}-biz">
         <div class="q-sub">Business details <span class="q-req">Required</span></div>

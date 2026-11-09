@@ -39,14 +39,14 @@ const sponsorMap = {
 };
 const fundsRangeMap = { "4-7l":"4 -7 Lakh INR", "7-10l":"7-10 Lakh INR", "10-15l":"10-15 Lakh INR", "15-20l":"15-20 Lakh INR", "20l-plus":"20 Lakh+ INR" };
 const occMapPrimary = {
-  "occ-employed":"Employed (Job)", "occ-freelancer":"Self employed (Freelancer)", "occ-business":"Business Owner",
-  "occ-homemaker":"Homemaker", "occ-pensioner":"Retired with pension", "occ-retired-nopension":"Retired without pension",
-  "occ-student":"Student", "occ-unemployed":"Unemployed", "occ-other":"Other (Please Specify)"
+  "occ-employed":"Employed (Job)", "occ-freelancer":"Self-Employed (Freelancer)", "occ-business":"Business Owner",
+  "occ-homemaker":"Homemaker", "occ-pensioner":"Retired with Pension", "occ-retired-nopension":"Retired without Pension",
+  "occ-student":"Student", "occ-unemployed":"Unemployed", "occ-other":"Other — Please Specify"
 };
 const occMapSpouse = {
-  "occ-employed":"Employed (Job)", "occ-freelancer":"Self employed (Freelancer)", "occ-business":"Business Owner",
+  "occ-employed":"Employed (Job)", "occ-freelancer":"Self-Employed (Freelancer)", "occ-business":"Business Owner",
   "occ-pensioner":"Retired with Pension", "occ-student":"Student", "occ-homemaker":"Homemaker",
-  "occ-retired-nopension":"Retired without Pension", "occ-other":"Other (Please Specify)"
+  "occ-retired-nopension":"Retired without Pension", "occ-other":"Other — Please Specify"
 };
 // Unified biz type map (covers both bizType and spouseBizType keys)
 const bizTypeMap = {
