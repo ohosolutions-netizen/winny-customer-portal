@@ -892,18 +892,10 @@ if (questionnaireSubmitted) {
       // The family-level completeness check below only marks familyId when all t.id
       // entries for that family are individually confirmed as submitted.
       applicationData.questionnaire.submittedUnits[fg] = true;
-      const resolvedFamilyId = crmFgToLocalFamilyId[fg];
-      travellerList.forEach(t => {
-        if (t.id === fg || t.familyId === fg || t.crmId === fg ||
-            (fg && t.familyId && t.familyId.startsWith(fg))) {
-          // Only mark the individual traveller, never the whole family.
-          if (t.id) applicationData.questionnaire.submittedUnits[t.id] = true;
-        }
-      });
-      // If fg resolved to a local familyId that isn't a t.familyId, still expose it
-      // for the completeness check below — but only as a lookup key, not as "done".
-      // (resolvedFamilyId is intentionally not marked here)
-      void resolvedFamilyId;
+      // Do NOT mark individual t.id here based on familyId — crmFamilyGroups only
+      // tells us "at least one member of this family submitted", not which specific
+      // traveller. t.familyId === fg would match ALL family members and incorrectly
+      // mark everyone as done. Per-traveller marking comes solely from submittedClients.
     });
   }
 
