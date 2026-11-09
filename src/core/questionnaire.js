@@ -840,7 +840,7 @@ function buildAnswersHtmlFromQState(unit, unitName) {
     "occ-student":"Student", "occ-unemployed":"Unemployed", "occ-other":"Other (Please Specify)"
   };
   const itrMap = { yes:"Yes", no:"No", notsure:"Not sure", nofile:"I do not file ITR" };
-  const bizTypeMap = { sole:"Sole Proprietorship", partnership:"Partnership", pvtltd:"Public/Private/LLP", pvtllp:"Public/Private/LLP" };
+  const bizTypeMap = { sole:"Sole Proprietorship", partnership:"Partnership", pvtltd:"Private Limited (Pvt Ltd)", publtd:"Public Limited (Ltd)", llp:"Limited Liability Partnership (LLP)", other:"Other" };
   const assetMap = {
     "asset-house":"House", "asset-shop":"Shop", "asset-office":"Office", "asset-building":"Building",
     "asset-flat":"Apartment", "asset-factory":"Factory", "asset-shed":"Shed", "asset-warehouse":"Warehouse",
@@ -874,6 +874,10 @@ function buildAnswersHtmlFromQState(unit, unitName) {
   const fundingKeys    = Array.isArray(fin.funding) ? fin.funding : (fin.funding ? [fin.funding] : []);
   const hasSponsor     = fundingKeys.includes("sponsor");
   const isBusinessOwner = Boolean(tFinM["occ-business"]);
+  const isEmployedReview = Boolean(tFinM["occ-employed"]);
+  const isFreelancerReview = Boolean(tFinM["occ-freelancer"]);
+  const isStudentReview = Boolean(tFinM["occ-student"]);
+  const isUnemployedReview = Boolean(tFinM["occ-unemployed"]);
   const isPensionerReview = Boolean(tFinM["occ-pensioner"]) || Boolean(tFinM["occ-retired-nopension"]);
   const needsItr       = ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(tFinM[k]));
   const countries      = (q.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean).join(", ");
@@ -938,6 +942,22 @@ function buildAnswersHtmlFromQState(unit, unitName) {
     row("Current occupation", mapMultiAnswers(tFinM, occMapPrimary)),
     row("ITRs reflect occupation?", needsItr ? (itrMap[fin.itr] || "") : ""),
     row("Business type", isBusinessOwner ? (bizTypeMap[fin.bizType] || "") : ""),
+    row("Organisation name", isBusinessOwner ? (fin.bizOrgName || "") : ""),
+    row("Industry / Sector", isBusinessOwner ? (fin.bizIndustry || "") : ""),
+    row("Position / Role", isBusinessOwner ? (fin.bizPosition || "") : ""),
+    row("Employer", isEmployedReview ? (fin.empOrg || "") : ""),
+    row("Job title", isEmployedReview ? (fin.empTitle || "") : ""),
+    row("Industry / Sector", isEmployedReview ? (fin.empIndustry || "") : ""),
+    row("Employment start date", isEmployedReview ? (fin.empStartDate || "") : ""),
+    row("Employer city", isEmployedReview ? (fin.empCity || "") : ""),
+    row("Employer country", isEmployedReview ? (fin.empCountry || "") : ""),
+    row("Annual salary gross (INR)", isEmployedReview ? (fin.empSalaryGross ? String(fin.empSalaryGross) : "") : ""),
+    row("Job description", isEmployedReview ? (fin.empJobDesc || "") : ""),
+    row("Freelance description", isFreelancerReview ? (fin.freelanceDesc || "") : ""),
+    row("Institution / College", isStudentReview ? (fin.studentInst || "") : ""),
+    row("Last employment", isUnemployedReview ? (fin.unempLastJob || "") : ""),
+    row("Reason for unemployment", isUnemployedReview ? (fin.unempReason || "") : ""),
+    row("Annual income (INR)", isUnemployedReview ? (fin.unempIncome ? String(fin.unempIncome) : "") : ""),
     row("Previous employer", isPensionerReview ? (fin.retiredPrevEmployer || "") : ""),
     row("Last designation", isPensionerReview ? (fin.retiredLastDesig || "") : ""),
     row("Date of retirement", isPensionerReview ? (fin.retiredDate || "") : ""),
@@ -1723,6 +1743,10 @@ function buildFinDerived(t) {
     fin,
     financeAnswers,
     isBusiness: Boolean(financeAnswers["occ-business"]),
+    isEmployed: Boolean(financeAnswers["occ-employed"]),
+    isFreelancer: Boolean(financeAnswers["occ-freelancer"]),
+    isStudent: Boolean(financeAnswers["occ-student"]),
+    isUnemployed: Boolean(financeAnswers["occ-unemployed"]),
     isPensioner: Boolean(financeAnswers["occ-pensioner"]) || Boolean(financeAnswers["occ-retired-nopension"]),
     isOtherOccupation: Boolean(financeAnswers["occ-other"]),
     shouldShowItr: ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(financeAnswers[k])),
@@ -1773,8 +1797,13 @@ const finFundingBlocks = primaryFinanceTravellers.map(t => {
 }).join("");
 
 // ── sec-occupation: Occupation & ITR ──────────────────────────────────────
+function industrySectorOptions(selected) {
+  const sectors = ["Accounting & Audit","Advertising & Marketing","Agriculture & Farming","Automobiles & Auto Components","Aviation & Aerospace","Banking & Financial Services","Biotechnology & Life Sciences","Chemical & Pharma","Construction & Real Estate","Consulting & Management","Defence & Security","Diamond & Jewellery","Education & Training","Energy & Power (Oil, Gas, Renewables)","Engineering & Capital Goods","Export / Import / Trading","FMCG & Consumer Goods","Food Processing & Beverages","Government & Public Sector","Healthcare & Hospitals","Hospitality, Travel & Tourism","Insurance","IT & Software","Legal Services","Logistics & Supply Chain","Manufacturing (General)","Media & Entertainment","Mining & Metals","NGO / Non-Profit / Social Sector","Printing & Packaging","Real Estate Development","Retail & E-commerce","Shipping & Maritime","Sports & Fitness","Telecommunications","Textile & Apparel","Transport & Mobility","Other"];
+  return sectors.map(s => `<option value="${escapeHtml(s)}" ${selected===s?"selected":""}>${escapeHtml(s)}</option>`).join("");
+}
+
 const finOccBlocks = primaryFinanceTravellers.map(t => {
-  const { fin, financeAnswers, isBusiness, isPensioner, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
+  const { fin, financeAnswers, isBusiness, isEmployed, isFreelancer, isStudent, isUnemployed, isPensioner, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
   return `<div class="person-block">
     <div class="person-block-hd">
       <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
@@ -1795,11 +1824,141 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
         ${qFinOptM(t.id,"occ-other","Other")}
       </div>
       <div class="q-dep ${isBusiness?"show":""}" id="dep-${t.id}-biz">
-        <div class="q-sub">What type of business? <span class="q-req">Required</span></div>
-        <div class="q-opts">
-          ${qFinOptR(t.id,"bizType","sole","Sole Proprietorship","Shop, agency, or single-owner")}
-          ${qFinOptR(t.id,"bizType","partnership","Partnership Firm","")}
-          ${qFinOptR(t.id,"bizType","pvtltd","Public, Private, or an LLP","Registered company")}
+        <div class="q-sub">Business details <span class="q-req">Required</span></div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Organisation Name <span class="q-req">Required</span></label>
+            <input type="text" placeholder="Business / company name"
+              value="${escapeHtml(fin.bizOrgName||"")}"
+              oninput="qFinSetField('${t.id}','bizOrgName',this.value)">
+          </div>
+          <div class="q-field"><label>Type of Business <span class="q-req">Required</span></label>
+            <select onchange="qFinSetField('${t.id}','bizType',this.value)">
+              <option value="">Select</option>
+              <option value="sole" ${fin.bizType==="sole"?"selected":""}>Sole Proprietorship</option>
+              <option value="partnership" ${fin.bizType==="partnership"?"selected":""}>Partnership</option>
+              <option value="pvtltd" ${fin.bizType==="pvtltd"?"selected":""}>Private Limited (Pvt Ltd)</option>
+              <option value="publtd" ${fin.bizType==="publtd"?"selected":""}>Public Limited (Ltd)</option>
+              <option value="llp" ${fin.bizType==="llp"?"selected":""}>Limited Liability Partnership (LLP)</option>
+              <option value="other" ${fin.bizType==="other"?"selected":""}>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Industry / Sector</label>
+            <select onchange="qFinSetField('${t.id}','bizIndustry',this.value)">
+              <option value="">Select sector</option>
+              ${industrySectorOptions(fin.bizIndustry)}
+            </select>
+          </div>
+          <div class="q-field"><label>Your Position / Role</label>
+            <select onchange="qFinSetField('${t.id}','bizPosition',this.value)">
+              <option value="">Select</option>
+              <option value="Director" ${fin.bizPosition==="Director"?"selected":""}>Director</option>
+              <option value="Managing Director" ${fin.bizPosition==="Managing Director"?"selected":""}>Managing Director</option>
+              <option value="Proprietor" ${fin.bizPosition==="Proprietor"?"selected":""}>Proprietor</option>
+              <option value="Partner" ${fin.bizPosition==="Partner"?"selected":""}>Partner</option>
+              <option value="CEO / Managing Partner" ${fin.bizPosition==="CEO / Managing Partner"?"selected":""}>CEO / Managing Partner</option>
+              <option value="Chairman" ${fin.bizPosition==="Chairman"?"selected":""}>Chairman</option>
+              <option value="Trustee" ${fin.bizPosition==="Trustee"?"selected":""}>Trustee</option>
+              <option value="Other" ${fin.bizPosition==="Other"?"selected":""}>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="q-dep ${isEmployed?"show":""}" id="dep-${t.id}-employed">
+        <div class="q-sub">Employment details</div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Employer / Organisation <span class="q-req">Required</span></label>
+            <input type="text" placeholder="Company or employer name"
+              value="${escapeHtml(fin.empOrg||"")}"
+              oninput="qFinSetField('${t.id}','empOrg',this.value)">
+          </div>
+          <div class="q-field"><label>Job Title / Designation <span class="q-req">Required</span></label>
+            <input type="text" placeholder="e.g. Senior Manager, Engineer"
+              value="${escapeHtml(fin.empTitle||"")}"
+              oninput="qFinSetField('${t.id}','empTitle',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Industry / Sector</label>
+            <select onchange="qFinSetField('${t.id}','empIndustry',this.value)">
+              <option value="">Select sector</option>
+              ${industrySectorOptions(fin.empIndustry)}
+            </select>
+          </div>
+          <div class="q-field"><label>Employment Start Date</label>
+            <input type="date"
+              value="${escapeHtml(fin.empStartDate||"")}"
+              oninput="qFinSetField('${t.id}','empStartDate',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>City</label>
+            <input type="text" placeholder="City"
+              value="${escapeHtml(fin.empCity||"")}"
+              oninput="qFinSetField('${t.id}','empCity',this.value)">
+          </div>
+          <div class="q-field"><label>Country</label>
+            <input type="text" placeholder="Country"
+              value="${escapeHtml(fin.empCountry||"India")}"
+              oninput="qFinSetField('${t.id}','empCountry',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row single">
+          <div class="q-field"><label>Annual Salary / Gross Income (INR)</label>
+            <input type="number" placeholder="Amount in INR (annual, before tax)"
+              value="${escapeHtml(String(fin.empSalaryGross||""))}"
+              oninput="qFinSetField('${t.id}','empSalaryGross',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row single"><div class="q-field">
+          <label>Describe your job / role</label>
+          <textarea rows="2" placeholder="Brief description of your day-to-day responsibilities"
+            oninput="qFinSetField('${t.id}','empJobDesc',this.value)">${escapeHtml(fin.empJobDesc||"")}</textarea>
+        </div></div>
+      </div>
+      <div class="q-dep ${isFreelancer?"show":""}" id="dep-${t.id}-freelancer">
+        <div class="q-sub">Freelance / self-employment details</div>
+        <div class="q-field-row single"><div class="q-field">
+          <label>Description of Work</label>
+          <textarea rows="2" placeholder="Describe your self-employed / freelance activities"
+            oninput="qFinSetField('${t.id}','freelanceDesc',this.value)">${escapeHtml(fin.freelanceDesc||"")}</textarea>
+        </div></div>
+      </div>
+      <div class="q-dep ${isStudent?"show":""}" id="dep-${t.id}-student">
+        <div class="q-sub">Academic details</div>
+        <div class="q-field-row single"><div class="q-field">
+          <label>Institution / College / School Name</label>
+          <input type="text" placeholder="Name of the institution"
+            value="${escapeHtml(fin.studentInst||"")}"
+            oninput="qFinSetField('${t.id}','studentInst',this.value)">
+        </div></div>
+      </div>
+      <div class="q-dep ${isUnemployed?"show":""}" id="dep-${t.id}-unemployed">
+        <div class="q-sub">Unemployment details</div>
+        <div class="q-field-row single"><div class="q-field">
+          <label>Last Employment (if any)</label>
+          <input type="text" placeholder="Previous employer / role (optional)"
+            value="${escapeHtml(fin.unempLastJob||"")}"
+            oninput="qFinSetField('${t.id}','unempLastJob',this.value)">
+        </div></div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Reason for not currently employed</label>
+            <select onchange="qFinSetField('${t.id}','unempReason',this.value)">
+              <option value="">Select</option>
+              <option value="Seeking new opportunity" ${fin.unempReason==="Seeking new opportunity"?"selected":""}>Seeking new opportunity</option>
+              <option value="Family / personal reasons" ${fin.unempReason==="Family / personal reasons"?"selected":""}>Family / personal reasons</option>
+              <option value="Health reasons" ${fin.unempReason==="Health reasons"?"selected":""}>Health reasons</option>
+              <option value="Relocated recently" ${fin.unempReason==="Relocated recently"?"selected":""}>Relocated recently</option>
+              <option value="Never been employed" ${fin.unempReason==="Never been employed"?"selected":""}>Never been employed</option>
+              <option value="Other" ${fin.unempReason==="Other"?"selected":""}>Other</option>
+            </select>
+          </div>
+          <div class="q-field"><label>Annual Income (if any)</label>
+            <input type="number" placeholder="Amount in INR (from investments, family support)"
+              value="${escapeHtml(String(fin.unempIncome||""))}"
+              oninput="qFinSetField('${t.id}','unempIncome',this.value)">
+          </div>
         </div>
       </div>
       <div class="q-dep ${isPensioner?"show":""}" id="dep-${t.id}-pensioner">
@@ -2395,12 +2554,28 @@ markAutoSavePending();
   }
 
   if (key === "occ-business") {
-    const businessBlock =
-      document.getElementById(`dep-${travId}-biz`);
+    const businessBlock = document.getElementById(`dep-${travId}-biz`);
+    if (businessBlock) businessBlock.style.display = selected ? "block" : "none";
+  }
 
-    if (businessBlock) {
-  businessBlock.style.display = selected ? "block" : "none";
-}
+  if (key === "occ-employed") {
+    const employedBlock = document.getElementById(`dep-${travId}-employed`);
+    if (employedBlock) employedBlock.style.display = selected ? "block" : "none";
+  }
+
+  if (key === "occ-freelancer") {
+    const freelancerBlock = document.getElementById(`dep-${travId}-freelancer`);
+    if (freelancerBlock) freelancerBlock.style.display = selected ? "block" : "none";
+  }
+
+  if (key === "occ-student") {
+    const studentBlock = document.getElementById(`dep-${travId}-student`);
+    if (studentBlock) studentBlock.style.display = selected ? "block" : "none";
+  }
+
+  if (key === "occ-unemployed") {
+    const unemployedBlock = document.getElementById(`dep-${travId}-unemployed`);
+    if (unemployedBlock) unemployedBlock.style.display = selected ? "block" : "none";
   }
 
   if (key === "occ-pensioner" || key === "occ-retired-nopension") {
@@ -2792,6 +2967,9 @@ markAutoSavePending();
         if (!qHasAnySelected(primaryAnswers, occupationKeys)) return `${tLabel}'s current occupation is mandatory.`;
         if (qHasExclusiveConflict(primaryAnswers, "occ-unemployed", activeOccupationKeys)) return "Unemployed cannot be selected together with another occupation.";
         if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizType)) return "Business ownership type is mandatory.";
+        if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizOrgName)) return "Business organisation name is required.";
+        if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empOrg)) return "Employer / organisation name is required.";
+        if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empTitle)) return "Job title / designation is required.";
         if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please describe the other occupation.";
         if (["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(key => primaryAnswers[key]) && qIsBlank(primaryFin.itr)) return "Please answer the ITR question.";
         return "";
