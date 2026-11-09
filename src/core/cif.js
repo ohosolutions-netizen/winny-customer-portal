@@ -313,6 +313,8 @@ const CIF_UK_SECTIONS = [
     ["Business Start Date","f1","Business_Start_Date","date",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
     ["Business City","f1","Business_City","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"},"e.g. Ahmedabad"],
     ["Business Country","f1","Business_Country","select",UK_CIF_COUNTRIES,false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
+    ["Homemaker since (date)","f1","Homemaker_Since","date",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Homemaker"}],
+    ["If this doesn't cover the full 10-year history, previous employment or education will be requested below.",null,"homemaker_note","note",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Homemaker"}],
   ]},
   { id:"income", title:"Income & Savings", icon:"&#x1F4B0;", fields:[
     ["Any other income or savings?","f1","Do_you_have_another_income_or_any_savings","yesno",null,true],
@@ -700,6 +702,7 @@ const CIF_UK_SECTIONS = [
     function cifRenderField(travId, def) {
       const [label, form, key, ftype, extra, req, showIf, placeholder] = def;
       if (!cifShowIfMet(travId, showIf)) return "";
+      if (ftype === "note") return `<div class="cifx-field full cifx-note-field"><div class="cifx-note">${escapeHtml(label)}</div></div>`;
       const path = cifPath(travId, form, key);
       if (ftype === "yesno" || ftype === "yesnobool") return cifYesNoField(label, path, req);
       if (ftype === "select") {
@@ -1270,6 +1273,11 @@ if (finance) {
             cifPath(travId, "f1", "What_is_your_employment_status"),
             [...new Set(matched)].join(", ")
           );
+        }
+
+        // Auto-fill homemaker field from questionnaire
+        if (finance.multiAnswers["occ-homemaker"] && finance.homemakerSince) {
+          setIfEmpty(cifPath(travId, "f1", "Homemaker_Since"), finance.homemakerSince);
         }
 
         // Auto-fill self-employed fields from questionnaire

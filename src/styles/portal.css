@@ -1137,6 +1137,9 @@
     #stepCIF .cifx-cattabs .cifx-tabbtn .badge { display:inline-block; margin-left:6px; font-size:10px; opacity:.85; }
     #stepCIF .cifx-info-b { background:linear-gradient(135deg,#eef5ff,#f0fdfa); border:1px solid #c5d8f5; border-radius:9px;
       padding:10px 14px; font-size:12.5px; color:#193a8f; display:flex; gap:8px; margin-bottom:16px; align-items:flex-start; }
+    #stepCIF .cifx-note-field { display:flex; align-items:center; }
+    #stepCIF .cifx-note { background:#f0fdfa; border-left:3px solid var(--cx-teal,#06c9b5); border-radius:6px;
+      padding:10px 14px; font-size:12.5px; color:#1a5c50; line-height:1.5; }
     #stepCIF .cifx-stack { display:flex; flex-direction:column; gap:14px; }
     #stepCIF .cifx-card { background:#fff; border:1px solid var(--cx-line); border-radius:14px; box-shadow:0 2px 12px rgba(16,24,40,.06); }
     #stepCIF .cifx-cb { padding:18px 20px; }
