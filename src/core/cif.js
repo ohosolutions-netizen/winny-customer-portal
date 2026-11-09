@@ -4202,6 +4202,13 @@ async function completeCIF() {
             const addr = data[key] || {};
             v = addr; // address composite already stored as nested object via dot-paths
           }
+          // Some Creator fields are MULTI_SELECT_CHECKBOX on the backend but rendered
+          // as single-select dropdowns in the portal — Creator requires an array for these.
+          const CREATOR_CHECKBOX_AS_SELECT = new Set(["What_is_your_employment_status"]);
+          if (ftype === "select" && CREATOR_CHECKBOX_AS_SELECT.has(key)) {
+            payload[key] = [v];
+            return;
+          }
           payload[key] = v;
         });
       });
