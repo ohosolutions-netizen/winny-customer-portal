@@ -319,6 +319,7 @@ const CIF_UK_SECTIONS = [
     ["Last Designation","f1","Retired_Last_Designation","text",null,false,{anyOf:[{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}]},"e.g. Senior Engineer, Manager"],
     ["Date of Retirement","f1","Retired_Date","date",null,false,{anyOf:[{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}]}],
     ["Annual Pension (INR per year)","f1","Retired_Annual_Pension","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},"Amount in INR per year"],
+    ["No pension — savings and investments are the primary financial source.",null,"retired_no_pension_note","note",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}],
   ]},
   { id:"income", title:"Income & Savings", icon:"&#x1F4B0;", fields:[
     ["Any other income or savings?","f1","Do_you_have_another_income_or_any_savings","yesno",null,true],
