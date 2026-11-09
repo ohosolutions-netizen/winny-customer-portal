@@ -1801,6 +1801,10 @@ function industrySectorOptions(selected) {
   const sectors = ["Accounting & Audit","Advertising & Marketing","Agriculture & Farming","Automobiles & Auto Components","Aviation & Aerospace","Banking & Financial Services","Biotechnology & Life Sciences","Chemical & Pharma","Construction & Real Estate","Consulting & Management","Defence & Security","Diamond & Jewellery","Education & Training","Energy & Power (Oil, Gas, Renewables)","Engineering & Capital Goods","Export / Import / Trading","FMCG & Consumer Goods","Food Processing & Beverages","Government & Public Sector","Healthcare & Hospitals","Hospitality, Travel & Tourism","Insurance","IT & Software","Legal Services","Logistics & Supply Chain","Manufacturing (General)","Media & Entertainment","Mining & Metals","NGO / Non-Profit / Social Sector","Printing & Packaging","Real Estate Development","Retail & E-commerce","Shipping & Maritime","Sports & Fitness","Telecommunications","Textile & Apparel","Transport & Mobility","Other"];
   return sectors.map(s => `<option value="${escapeHtml(s)}" ${selected===s?"selected":""}>${escapeHtml(s)}</option>`).join("");
 }
+function empIndustrySectorOptions(selected) {
+  const sectors = ["Banking & Finance","Education","Government / Public Sector","Healthcare","IT / Software","Manufacturing","Retail / FMCG","Telecom","Transport & Logistics","Other"];
+  return sectors.map(s => `<option value="${escapeHtml(s)}" ${selected===s?"selected":""}>${escapeHtml(s)}</option>`).join("");
+}
 
 const finOccBlocks = primaryFinanceTravellers.map(t => {
   const { fin, financeAnswers, isBusiness, isEmployed, isFreelancer, isStudent, isUnemployed, isPensioner, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
@@ -1880,33 +1884,33 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
           </div>
         </div>
         <div class="q-field-row">
-          <div class="q-field"><label>Industry / Sector</label>
+          <div class="q-field"><label>Industry / Sector <span class="q-req">Required</span></label>
             <select onchange="qFinSetField('${t.id}','empIndustry',this.value)">
-              <option value="">Select sector</option>
-              ${industrySectorOptions(fin.empIndustry)}
+              <option value="">Select</option>
+              ${empIndustrySectorOptions(fin.empIndustry)}
             </select>
           </div>
-          <div class="q-field"><label>Employment Start Date</label>
+          <div class="q-field"><label>Employment Start Date <span class="q-req">Required</span></label>
             <input type="date"
               value="${escapeHtml(fin.empStartDate||"")}"
               oninput="qFinSetField('${t.id}','empStartDate',this.value)">
           </div>
         </div>
         <div class="q-field-row">
-          <div class="q-field"><label>City</label>
+          <div class="q-field"><label>City <span class="q-req">Required</span></label>
             <input type="text" placeholder="City"
               value="${escapeHtml(fin.empCity||"")}"
               oninput="qFinSetField('${t.id}','empCity',this.value)">
           </div>
-          <div class="q-field"><label>Country</label>
+          <div class="q-field"><label>Country <span class="q-req">Required</span></label>
             <input type="text" placeholder="Country"
               value="${escapeHtml(fin.empCountry||"India")}"
               oninput="qFinSetField('${t.id}','empCountry',this.value)">
           </div>
         </div>
         <div class="q-field-row single">
-          <div class="q-field"><label>Annual Salary / Gross Income (INR)</label>
-            <input type="number" placeholder="Amount in INR (annual, before tax)"
+          <div class="q-field"><label>Annual Salary (Gross) <span class="q-req">Required</span></label>
+            <input type="number" placeholder="Amount in INR"
               value="${escapeHtml(String(fin.empSalaryGross||""))}"
               oninput="qFinSetField('${t.id}','empSalaryGross',this.value)">
           </div>
@@ -2970,6 +2974,10 @@ markAutoSavePending();
         if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizOrgName)) return "Business organisation name is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empOrg)) return "Employer / organisation name is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empTitle)) return "Job title / designation is required.";
+        if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empIndustry)) return "Industry / sector is required.";
+        if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empStartDate)) return "Employment start date is required.";
+        if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empCity)) return "Employer city is required.";
+        if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empSalaryGross)) return "Annual salary (gross) is required.";
         if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please describe the other occupation.";
         if (["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(key => primaryAnswers[key]) && qIsBlank(primaryFin.itr)) return "Please answer the ITR question.";
         return "";
