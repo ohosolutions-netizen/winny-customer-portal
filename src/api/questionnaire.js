@@ -720,14 +720,15 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     }
 
     if (fg && !applicationData.questionnaire.submittedUnits[fg]) {
-      // If the unit has per-traveller qTokens, do NOT mark it done here.
-      // The token-based per-traveller check below requires ALL travellers to have
-      // submitted their own record before the unit is complete. Marking it done from
-      // the CRM_ID batch query (which returns any record for the deal) would skip that
-      // check and incorrectly show the whole family done when only one person submitted.
+      // Do NOT mark a multi-traveller unit done from a single batch record.
+      // The batch CRM_ID query returns a record for each individual traveller who
+      // submitted; one record means only that traveller is done, not the whole family.
+      // The per-traveller check below (by token or by name) handles multi-traveller
+      // units and only marks done when ALL travellers have matching records.
       const matchedUnit = allUnits.find(u => u.familyId === fg);
+      const isMultiTraveller = (matchedUnit?.travellers.length || 0) > 1;
       const hasTokenTravellers = matchedUnit?.travellers.some(t => t.qToken);
-      if (!hasTokenTravellers) {
+      if (!isMultiTraveller && !hasTokenTravellers) {
         applicationData.questionnaire.submittedUnits[fg] = true;
         if (qState.unitCompletions) qState.unitCompletions[fg] = true;
         changed = true;
@@ -812,6 +813,34 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
   console.log(`[Winny] ${pendingUnits.length} unit(s) still pending external check`);
   for (const unit of pendingUnits) {
+    // 0. Multi-traveller units: use the already-fetched batch records to check whether
+    //    ALL travellers have submitted (matched by Client_Name). If only some are found,
+    //    skip the primary-only fallbacks below — they would mark the unit done on a
+    //    partial match and incorrectly show the whole family as submitted.
+    if (unit.travellers.length > 1 && records.length) {
+      const namedTravellers = unit.travellers.filter(t =>
+        `${t.firstName || ""} ${t.lastName || ""}`.trim()
+      );
+      if (namedTravellers.length > 0) {
+        const allFound = namedTravellers.every(t => {
+          const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+          return records.some(r => {
+            const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
+            return rName && (rName === tName || rName.includes(tName) || tName.includes(rName));
+          });
+        });
+        if (allFound) {
+          console.log(`[Winny] All ${namedTravellers.length} traveller(s) in unit ${unit.familyId} confirmed via batch records`);
+          applicationData.questionnaire.submittedUnits[unit.familyId] = true;
+          if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
+          changed = true;
+        } else {
+          console.log(`[Winny] Only some travellers found in batch for unit ${unit.familyId} — not marking done yet`);
+        }
+        continue; // Don't fall through to primary-only lookups for multi-traveller units
+      }
+    }
+
     // 1. Per-traveller Q_Token lookup (each traveller now has their own unique token)
     //    A unit is complete only when every traveller with a token has a matching record.
     const tokenTravellers = unit.travellers.filter(t => t.qToken);
