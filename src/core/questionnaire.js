@@ -874,7 +874,7 @@ function buildAnswersHtmlFromQState(unit, unitName) {
   const fundingKeys    = Array.isArray(fin.funding) ? fin.funding : (fin.funding ? [fin.funding] : []);
   const hasSponsor     = fundingKeys.includes("sponsor");
   const isBusinessOwner = Boolean(tFinM["occ-business"]);
-  const isPensionerReview = Boolean(tFinM["occ-pensioner"]);
+  const isPensionerReview = Boolean(tFinM["occ-pensioner"]) || Boolean(tFinM["occ-retired-nopension"]);
   const needsItr       = ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(tFinM[k]));
   const countries      = (q.applyingCountries || "").split(",").map(s => s.trim()).filter(Boolean).join(", ");
 
@@ -1723,7 +1723,7 @@ function buildFinDerived(t) {
     fin,
     financeAnswers,
     isBusiness: Boolean(financeAnswers["occ-business"]),
-    isPensioner: Boolean(financeAnswers["occ-pensioner"]),
+    isPensioner: Boolean(financeAnswers["occ-pensioner"]) || Boolean(financeAnswers["occ-retired-nopension"]),
     isOtherOccupation: Boolean(financeAnswers["occ-other"]),
     shouldShowItr: ["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(k => Boolean(financeAnswers[k])),
     hasOtherAsset: Boolean(financeAnswers["asset-other"]),
@@ -1822,11 +1822,11 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
               value="${escapeHtml(fin.retiredDate||"")}"
               oninput="qFinSetField('${t.id}','retiredDate',this.value)">
           </div>
-          <div class="q-field"><label>Annual Pension (INR)</label>
+          ${!financeAnswers["occ-retired-nopension"] ? `<div class="q-field"><label>Annual Pension (INR)</label>
             <input type="number" placeholder="Amount in INR per year"
               value="${escapeHtml(fin.retiredAnnualPension||"")}"
               oninput="qFinSetField('${t.id}','retiredAnnualPension',this.value)">
-          </div>
+          </div>` : ""}
         </div>
       </div>
     </div>
@@ -2403,10 +2403,12 @@ markAutoSavePending();
 }
   }
 
-  if (key === "occ-pensioner") {
+  if (key === "occ-pensioner" || key === "occ-retired-nopension") {
     const pensionerBlock = document.getElementById(`dep-${travId}-pensioner`);
     if (pensionerBlock) {
-      pensionerBlock.style.display = selected ? "block" : "none";
+      const finAnswers = (applicationData.questionnaire.finance?.[travId]?.multiAnswers) || {};
+      const isRetired = Boolean(finAnswers["occ-pensioner"]) || Boolean(finAnswers["occ-retired-nopension"]);
+      pensionerBlock.style.display = isRetired ? "block" : "none";
     }
   }
 
