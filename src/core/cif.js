@@ -293,13 +293,14 @@ const CIF_UK_SECTIONS = [
   ]},
   { id:"employment", title:"Employment", icon:"&#x1F4BC;", fields:[
     ["Employment status","f1","What_is_your_employment_status","select",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other — Please Specify"],true],
-    ["Employer's name","f1","Employer_s_name","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"e.g. Tata Consultancy Services"],
-    ["Employer's address","f1","Employer_s_address","address",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
-    ["Employer's telephone number","f1","Employer_s_telephone_number","phone",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
-    ["Date you started working","f1","Date_you_started_working","date",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
-    ["Your job title","f1","Your_job_title","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"e.g. Software Engineer"],
-    ["Monthly income amount (after tax, INR)","f1","Amount_earning_Employed","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
-    ["Describe your job","f1","Describe_your_job","textarea",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"Briefly describe your role and main responsibilities"],
+    ["Employer / Organisation Name","f1","Employer_s_name","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"Company name"],
+    ["Job Title / Designation","f1","Your_job_title","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"e.g. Senior Manager, Software Engineer"],
+    ["Industry / Sector","f1","Employer_Industry","select",["Accounting & Audit","Advertising & Marketing","Agriculture & Farming","Automobiles & Auto Components","Aviation & Aerospace","Banking & Financial Services","Biotechnology & Life Sciences","Chemical & Pharma","Construction & Real Estate","Consulting & Management","Defence & Security","Diamond & Jewellery","Education & Training","Energy & Power (Oil, Gas, Renewables)","Engineering & Capital Goods","Export / Import / Trading","FMCG & Consumer Goods","Food Processing & Beverages","Government & Public Sector","Healthcare & Hospitals","Hospitality, Travel & Tourism","Insurance","IT & Software","Legal Services","Logistics & Supply Chain","Manufacturing (General)","Media & Entertainment","Mining & Metals","NGO / Non-Profit / Social Sector","Printing & Packaging","Real Estate Development","Retail & E-commerce","Shipping & Maritime","Sports & Fitness","Telecommunications","Textile & Apparel","Transport & Mobility","Other"],true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
+    ["Employment Start Date","f1","Date_you_started_working","date",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
+    ["City","f1","Employer_City","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"City"],
+    ["Country","f1","Employer_Country","select",UK_CIF_COUNTRIES,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
+    ["Annual Salary (Gross)","f1","Amount_earning_Employed","number",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"Amount in INR"],
+    ["Key Roles & Responsibilities","f1","Describe_your_job","ai-suggest-employed",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"Describe your key responsibilities and role"],
     ["Nature of Business / Services","f1","What_is_your_job","textarea",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Self-Employed (Freelancer)"},"Describe what you do — products, services, or work you offer to clients"],
     ["Field / Industry","f1","Self_Employed_Industry","select",["IT / Software","Design / Creative","Consulting","Legal","Medical / Healthcare","Finance / Accounting","Education / Training","Marketing / PR","Construction / Engineering","Other"],true,{key:"What_is_your_employment_status",form:"f1",includes:"Self-Employed (Freelancer)"}],
     ["Business Start Date","f1","Self_Employed_Start_Date","date",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Self-Employed (Freelancer)"}],
@@ -713,10 +714,88 @@ const CIF_UK_SECTIONS = [
       return true;
     }
 
+    const CIF_JOB_SUGGESTIONS = {
+      "Software Engineer":          ["Design, develop and maintain software applications","Write clean, testable and well-documented code","Participate in code reviews and technical discussions","Debug and resolve software defects","Collaborate with cross-functional teams to deliver product features"],
+      "Senior Software Engineer":   ["Lead design and development of complex software modules","Mentor junior engineers and conduct code reviews","Architect scalable and maintainable solutions","Drive technical decision-making and best practices","Collaborate with product and QA teams on delivery"],
+      "Software Developer":         ["Develop and maintain web or mobile applications","Write and optimize code across the full stack","Fix bugs and improve application performance","Document technical specifications and processes","Participate in sprint planning and agile ceremonies"],
+      "Team Lead":                  ["Lead a team of engineers to deliver sprint goals","Conduct 1:1s, performance reviews and mentoring","Coordinate with stakeholders on project requirements","Ensure code quality through reviews and standards","Manage task allocation, timelines and risk"],
+      "Project Manager":            ["Plan, execute and close projects on time and budget","Define project scope, goals and deliverables","Coordinate internal teams and external vendors","Track progress and report status to stakeholders","Identify and mitigate project risks"],
+      "Business Analyst":           ["Gather and document business requirements","Analyse workflows and identify process improvements","Liaise between business stakeholders and technical teams","Prepare use cases, user stories and functional specs","Support UAT and change management activities"],
+      "Manager":                    ["Manage team performance and professional development","Set objectives and monitor key performance indicators","Oversee daily operations and ensure quality standards","Collaborate with leadership on strategy and budgets","Handle escalations and resolve operational issues"],
+      "Senior Manager":             ["Lead multiple teams or business units","Drive strategic planning and goal-setting","Oversee budgets, resources and cross-functional projects","Build and maintain stakeholder relationships","Champion organisational change and continuous improvement"],
+      "Director":                   ["Provide strategic direction for the department","Lead senior leadership and cross-departmental collaboration","Define and monitor departmental KPIs and budgets","Drive business development and stakeholder engagement","Represent the organisation at industry forums"],
+      "Accountant":                 ["Prepare financial statements and reports","Manage accounts payable and receivable","Ensure compliance with tax and regulatory requirements","Conduct internal audits and reconciliations","Support budgeting and financial forecasting"],
+      "Financial Analyst":          ["Analyse financial data and prepare reports","Build financial models and forecasts","Identify trends, variances and cost-saving opportunities","Present findings to management and stakeholders","Support investment and strategic planning decisions"],
+      "HR Manager":                 ["Oversee recruitment, onboarding and talent management","Manage employee relations and HR policies","Administer payroll, benefits and compliance","Drive learning and development initiatives","Support organisational culture and engagement programs"],
+      "Marketing Manager":          ["Develop and execute marketing strategies and campaigns","Manage brand positioning and digital presence","Analyse market trends and competitor landscape","Coordinate with sales, design and content teams","Track campaign ROI and report on performance"],
+      "Sales Manager":              ["Lead sales team to achieve revenue targets","Develop and manage client relationships","Identify new business opportunities and markets","Monitor sales metrics and pipeline health","Coach team members and conduct performance reviews"],
+      "Operations Manager":         ["Oversee day-to-day business operations","Optimise processes for efficiency and quality","Manage vendor and supplier relationships","Ensure compliance with operational policies","Coordinate across departments to meet business goals"],
+      "Doctor":                     ["Examine, diagnose and treat patients","Prescribe medications and treatment plans","Maintain accurate patient records and case notes","Collaborate with specialists and healthcare teams","Participate in clinical governance and CPD activities"],
+      "Teacher":                    ["Plan and deliver lessons aligned to the curriculum","Assess student progress and provide feedback","Create an inclusive and engaging classroom environment","Communicate with parents and guardians","Participate in staff development and school activities"],
+      "Engineer":                   ["Design and develop engineering solutions","Conduct analysis, testing and quality checks","Prepare technical documentation and reports","Coordinate with project teams and clients","Ensure compliance with safety and regulatory standards"],
+      "Lawyer":                     ["Advise clients on legal rights and obligations","Draft, review and negotiate contracts and agreements","Represent clients in legal proceedings","Conduct legal research and due diligence","Maintain client confidentiality and professional ethics"],
+      "Nurse":                      ["Provide direct patient care and clinical support","Administer medications and monitor patient vitals","Document patient information and care plans","Coordinate with doctors and healthcare teams","Educate patients and families on health management"],
+      "Consultant":                 ["Advise clients on strategy, operations or technology","Conduct research, analysis and stakeholder interviews","Prepare and present recommendations and reports","Support implementation of solutions and change management","Manage client relationships and project deliverables"],
+      "Executive":                  ["Drive organisational strategy and business goals","Manage senior leadership teams and budgets","Build relationships with key stakeholders and partners","Oversee major initiatives and performance outcomes","Represent the organisation externally"],
+      "Analyst":                    ["Collect, clean and analyse data to support decisions","Prepare dashboards, reports and presentations","Identify trends, patterns and business insights","Collaborate with teams to solve business problems","Document findings and recommendations"],
+      "Designer":                   ["Create visual assets, layouts and design systems","Develop user-centred UI/UX for products and campaigns","Collaborate with product, engineering and marketing teams","Conduct user research and usability testing","Maintain brand consistency across all outputs"],
+      "Architect":                  ["Design architectural plans and building specifications","Oversee construction projects and contractor coordination","Ensure designs comply with regulations and standards","Manage client briefs and project timelines","Review and approve construction drawings and changes"],
+    };
+
+    function cifAISuggestDesignations(travId) {
+      const jobTitlePath = cifPath(travId, "f1", "Your_job_title");
+      const jobTitle = (getByPath(applicationData, jobTitlePath) || "").trim();
+      const matches = jobTitle.length < 2 ? [] : Object.keys(CIF_JOB_SUGGESTIONS).filter(d =>
+        d.toLowerCase().includes(jobTitle.toLowerCase()) || jobTitle.toLowerCase().includes(d.toLowerCase().split(" ")[0])
+      );
+      const sel = qs(`#cif-ai-desig-${travId}`);
+      if (!sel) return;
+      sel.innerHTML = `<option value="">-- ${matches.length ? "Select a designation" : "No close match — type more"} --</option>` +
+        matches.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+      qs(`#cif-ai-hint-${travId}`).textContent = matches.length
+        ? "Select a designation to see suggested responsibilities"
+        : "Type your job title on the left — responsibilities will auto-populate";
+    }
+
+    function cifAIApplyResponsibilities(travId) {
+      const sel = qs(`#cif-ai-desig-${travId}`);
+      if (!sel || !sel.value) return;
+      const suggestions = CIF_JOB_SUGGESTIONS[sel.value] || [];
+      const textarea = qs(`#cif-ai-resp-${travId}`);
+      if (!textarea) return;
+      textarea.value = suggestions.map((r, i) => `${i + 1}. ${r}`).join("\n");
+      const path = cifPath(travId, "f1", "Describe_your_job");
+      setByPath(applicationData, path, textarea.value);
+      markAutoSavePending();
+    }
+
     function cifRenderField(travId, def) {
       const [label, form, key, ftype, extra, req, showIf, placeholder] = def;
       if (!cifShowIfMet(travId, showIf)) return "";
       if (ftype === "note") return `<div class="cifx-field full cifx-note-field"><div class="cifx-note">${escapeHtml(label)}</div></div>`;
+      if (ftype === "ai-suggest-employed") {
+        const path = cifPath(travId, form, key);
+        const value = escapeHtml(getByPath(applicationData, path) || "");
+        return `<div class="cifx-field full cifx-ai-suggest-wrap" data-field="${path}">
+          <div class="cifx-ai-suggest-grid">
+            <div class="cifx-ai-suggest-left">
+              <label>${escapeHtml(label)}</label>
+              <textarea id="cif-ai-resp-${travId}" data-bind="${path}" placeholder="${escapeHtml(placeholder||"")}">${value}</textarea>
+            </div>
+            <div class="cifx-ai-suggest-right">
+              <div class="cifx-ai-panel-header">
+                <span class="cifx-ai-panel-title">Key Roles &amp; Responsibilities</span>
+                <span class="cifx-ai-badge">&#x26A1; AI-suggested</span>
+              </div>
+              <p id="cif-ai-hint-${travId}" class="cifx-ai-hint">Type your job title on the left — responsibilities will auto-populate</p>
+              <select id="cif-ai-desig-${travId}" class="cifx-ai-desig-sel" onchange="cifAIApplyResponsibilities('${travId}')">
+                <option value="">-- Enter job title first --</option>
+              </select>
+              <p class="cifx-ai-sub-hint" style="margin-top:6px;font-size:11.5px;color:#888;">Select designation on the left to see suggested responsibilities</p>
+            </div>
+          </div>
+        </div>`;
+      }
       const path = cifPath(travId, form, key);
       if (ftype === "yesno" || ftype === "yesnobool") return cifYesNoField(label, path, req);
       if (ftype === "select") {
@@ -5951,5 +6030,6 @@ export {
   cifGoToCategoryOffset, cifSetYesNo, cifToggleMulti, cifSchengenToggleMulti,
   cifAddSubformRow, cifRemoveSubformRow, cifGenericAddRow, cifGenericRemoveRow,
   cifRetryMetadata, cifSaveTraveller, cifValidateUsForm1, cifValidateGeneric,
-  saveCIFData, cmsToggle, cmsSelect, cmsRemove, cmsClear, cmsFilter, closeAllCmsDropdowns
+  saveCIFData, cmsToggle, cmsSelect, cmsRemove, cmsClear, cmsFilter, closeAllCmsDropdowns,
+  cifAISuggestDesignations, cifAIApplyResponsibilities
 };

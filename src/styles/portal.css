@@ -1140,6 +1140,20 @@
     #stepCIF .cifx-note-field { display:flex; align-items:center; }
     #stepCIF .cifx-note { background:#f0fdfa; border-left:3px solid var(--cx-teal,#06c9b5); border-radius:6px;
       padding:10px 14px; font-size:12.5px; color:#1a5c50; line-height:1.5; }
+    #stepCIF .cifx-ai-suggest-wrap { grid-column:1/-1; }
+    #stepCIF .cifx-ai-suggest-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    @media(max-width:680px){ #stepCIF .cifx-ai-suggest-grid { grid-template-columns:1fr; } }
+    #stepCIF .cifx-ai-suggest-left label { display:block; font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; }
+    #stepCIF .cifx-ai-suggest-left textarea { width:100%; min-height:120px; border:1.5px solid #d1d5db; border-radius:8px;
+      padding:9px 11px; font-size:13px; resize:vertical; box-sizing:border-box; }
+    #stepCIF .cifx-ai-suggest-right { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:14px 16px; }
+    #stepCIF .cifx-ai-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    #stepCIF .cifx-ai-panel-title { font-size:14px; font-weight:700; color:#111827; }
+    #stepCIF .cifx-ai-badge { background:#fef9c3; border:1px solid #fde047; border-radius:20px;
+      padding:2px 10px; font-size:11px; font-weight:600; color:#854d0e; white-space:nowrap; }
+    #stepCIF .cifx-ai-hint { font-size:12px; color:#6b7280; margin:0 0 10px; }
+    #stepCIF .cifx-ai-desig-sel { width:100%; border:1.5px solid #d1d5db; border-radius:8px;
+      padding:8px 10px; font-size:13px; color:#374151; background:#fff; cursor:pointer; }
     #stepCIF .cifx-stack { display:flex; flex-direction:column; gap:14px; }
     #stepCIF .cifx-card { background:#fff; border:1px solid var(--cx-line); border-radius:14px; box-shadow:0 2px 12px rgba(16,24,40,.06); }
     #stepCIF .cifx-cb { padding:18px 20px; }

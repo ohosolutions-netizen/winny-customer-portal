@@ -20,7 +20,7 @@ const CIF_HANDLERS = [
   "cifSchengenToggleMulti", "cifAddSubformRow", "cifRemoveSubformRow", "cifGenericAddRow",
   "cifGenericRemoveRow", "cifRetryMetadata", "cifSaveTraveller",
   "cmsToggle", "cmsSelect", "cmsRemove", "cmsClear", "cmsFilter",
-  "cifSwitchFamilyUnit",
+  "cifSwitchFamilyUnit", "cifAISuggestDesignations", "cifAIApplyResponsibilities",
 ];
 
 // Tracks the last toast message shown to deduplicate rapid-fire identical toasts
@@ -124,6 +124,11 @@ function cifHandleInput(event) {
       const errEl = wrapper.querySelector(".cifx-err");
       if (errEl) errEl.remove();
     }
+  }
+  // AI suggestion: update designation dropdown when job title field changes
+  if (/\.Your_job_title$/.test(field.dataset.bind || "")) {
+    const travId = (field.dataset.bind || "").split(".")[2];
+    if (travId && window.cifAISuggestDesignations) window.cifAISuggestDesignations(travId);
   }
 }
 
