@@ -162,7 +162,7 @@ let zPayInstance = null;
       showLoader("Creating payment session...");
       try {
         applicationData.applicationId = applicationData.applicationId || makeApplicationId();
-        applicationData.deal.dealName = `${getCustomerName()} - ${getSelectedServiceNames() || "Application"}`;
+        applicationData.deal.dealName = `${getCustomerName()} - ${applicationData.applicationId || "Application"}`;
         const payableAmount = getPayableAmount();
         if (payableAmount <= 0) return fail("Enter a valid payment amount.");
 
@@ -629,7 +629,7 @@ ${sigBlock()}
         applicationData.payment.status = getPaymentStatusAfterSuccess();
         applicationData.payment.paidAt = new Date().toISOString();
         applicationData.applicationId  = applicationData.applicationId || makeApplicationId();
-        applicationData.deal.dealName  = `${getCustomerName()} - ${getSelectedServiceNames() || "Application"}`;
+        applicationData.deal.dealName  = `${getCustomerName()} - ${applicationData.applicationId || "Application"}`;
         // saveDealData sends "Payment Complete" with existing CRM_Deal_ID
         // so Deluge updates the existing Deal instead of creating a duplicate
         await saveDealData({ includeTravellers: true });
@@ -662,7 +662,7 @@ ${sigBlock()}
       try {
         applicationData.payment.method    = "Zoho Payments";
         applicationData.applicationId     = applicationData.applicationId || makeApplicationId();
-        applicationData.deal.dealName     = `${getCustomerName()} - ${getSelectedServiceNames() || "Application"}`;
+        applicationData.deal.dealName     = `${getCustomerName()} - ${applicationData.applicationId || "Application"}`;
         const payableAmount = getPayableAmount();
         if (payableAmount <= 0) return fail("Enter a valid payment amount.");
         const response = await paymentsRest("POST", `/paymentlinks?account_id=${encodeURIComponent(CONFIG.paymentsAccountId)}`, {
@@ -714,7 +714,7 @@ if (isDealSaved()) {
       showLoader("Saving your application details...");
       try {
         applicationData.applicationId = applicationData.applicationId || makeApplicationId();
-        applicationData.deal.dealName = applicationData.deal.dealName || `${getCustomerName()} - Application`;
+        applicationData.deal.dealName = applicationData.deal.dealName || `${getCustomerName()} - ${applicationData.applicationId || "Application"}`;
         ensurePrimaryTravellerFromCustomer();
 
         // Submit to Creator → Deluge workflow fires

@@ -172,7 +172,7 @@ localStorage.setItem(indexKey, JSON.stringify(drafts));
         localKey,
         dealId: draft?.deal?.crmDealId || "",
         applicationId: draft?.applicationId || "",
-        title: draft?.deal?.dealName || `${[draft?.customer?.firstName, draft?.customer?.lastName].filter(Boolean).join(" ") || "Draft"} - Application`,
+        title: draft?.deal?.dealName || `${[draft?.customer?.firstName, draft?.customer?.lastName].filter(Boolean).join(" ") || "Draft"} - ${draft?.applicationId || "Application"}`,
         destination: draft?.deal?.destination || "",
         serviceType: draft?.deal?.goal || (draft?.deal?.serviceBasket || []).map((item) => item.name).filter(Boolean).join(", "),
         stage: getApplicationStage(draft),
