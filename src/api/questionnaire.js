@@ -789,6 +789,10 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       if (!isMultiTraveller && !hasTokenTravellers) {
         applicationData.questionnaire.submittedUnits[fg] = true;
         if (qState.unitCompletions) qState.unitCompletions[fg] = true;
+        // Mark traveller index 0 for single-traveller units
+        if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
+        if (!applicationData.questionnaire.submittedTravellers[fg]) applicationData.questionnaire.submittedTravellers[fg] = {};
+        applicationData.questionnaire.submittedTravellers[fg][0] = true;
         changed = true;
       }
     }
@@ -892,6 +896,23 @@ async function checkExternalQuestionnaireSubmission(dealId) {
           if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
           changed = true;
         } else {
+          // Mark whichever individual travellers were found
+          namedTravellers.forEach((t, i) => {
+            const travIdx = unit.travellers.indexOf(t);
+            const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+            const found = records.some(r => {
+              const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
+              return rName && (rName === tName || rName.includes(tName) || tName.includes(rName));
+            });
+            if (found && travIdx >= 0) {
+              if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
+              if (!applicationData.questionnaire.submittedTravellers[unit.familyId]) applicationData.questionnaire.submittedTravellers[unit.familyId] = {};
+              if (!applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx]) {
+                applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx] = true;
+                changed = true;
+              }
+            }
+          });
           console.log(`[Winny] Only some travellers found in batch for unit ${unit.familyId} — not marking done yet`);
         }
         continue; // Skip primary-only lookups for multi-traveller units
@@ -904,6 +925,7 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     if (tokenTravellers.length > 0) {
       let allFound = true;
       for (const t of tokenTravellers) {
+        const travIdx = unit.travellers.indexOf(t);
         try {
           const rows = await creatorQuery(`Q_Token == "${t.qToken}"`);
           if (rows.length) {
@@ -918,7 +940,14 @@ async function checkExternalQuestionnaireSubmission(dealId) {
                 changed = true;
               }
             }
-            console.log(`[Winny] Traveller ${t.id} in unit ${unit.familyId} confirmed submitted via Q_Token`);
+            // Mark this individual traveller as submitted
+            if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
+            if (!applicationData.questionnaire.submittedTravellers[unit.familyId]) applicationData.questionnaire.submittedTravellers[unit.familyId] = {};
+            if (!applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx]) {
+              applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx] = true;
+              changed = true;
+            }
+            console.log(`[Winny] Traveller ${t.id} (idx ${travIdx}) in unit ${unit.familyId} confirmed submitted via Q_Token`);
           } else {
             allFound = false;
           }
