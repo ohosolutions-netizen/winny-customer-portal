@@ -714,59 +714,189 @@ const CIF_UK_SECTIONS = [
       return true;
     }
 
-    const CIF_JOB_SUGGESTIONS = {
-      "Software Engineer":          ["Design, develop and maintain software applications","Write clean, testable and well-documented code","Participate in code reviews and technical discussions","Debug and resolve software defects","Collaborate with cross-functional teams to deliver product features"],
-      "Senior Software Engineer":   ["Lead design and development of complex software modules","Mentor junior engineers and conduct code reviews","Architect scalable and maintainable solutions","Drive technical decision-making and best practices","Collaborate with product and QA teams on delivery"],
-      "Software Developer":         ["Develop and maintain web or mobile applications","Write and optimize code across the full stack","Fix bugs and improve application performance","Document technical specifications and processes","Participate in sprint planning and agile ceremonies"],
-      "Team Lead":                  ["Lead a team of engineers to deliver sprint goals","Conduct 1:1s, performance reviews and mentoring","Coordinate with stakeholders on project requirements","Ensure code quality through reviews and standards","Manage task allocation, timelines and risk"],
-      "Project Manager":            ["Plan, execute and close projects on time and budget","Define project scope, goals and deliverables","Coordinate internal teams and external vendors","Track progress and report status to stakeholders","Identify and mitigate project risks"],
-      "Business Analyst":           ["Gather and document business requirements","Analyse workflows and identify process improvements","Liaise between business stakeholders and technical teams","Prepare use cases, user stories and functional specs","Support UAT and change management activities"],
-      "Manager":                    ["Manage team performance and professional development","Set objectives and monitor key performance indicators","Oversee daily operations and ensure quality standards","Collaborate with leadership on strategy and budgets","Handle escalations and resolve operational issues"],
-      "Senior Manager":             ["Lead multiple teams or business units","Drive strategic planning and goal-setting","Oversee budgets, resources and cross-functional projects","Build and maintain stakeholder relationships","Champion organisational change and continuous improvement"],
-      "Director":                   ["Provide strategic direction for the department","Lead senior leadership and cross-departmental collaboration","Define and monitor departmental KPIs and budgets","Drive business development and stakeholder engagement","Represent the organisation at industry forums"],
-      "Accountant":                 ["Prepare financial statements and reports","Manage accounts payable and receivable","Ensure compliance with tax and regulatory requirements","Conduct internal audits and reconciliations","Support budgeting and financial forecasting"],
-      "Financial Analyst":          ["Analyse financial data and prepare reports","Build financial models and forecasts","Identify trends, variances and cost-saving opportunities","Present findings to management and stakeholders","Support investment and strategic planning decisions"],
-      "HR Manager":                 ["Oversee recruitment, onboarding and talent management","Manage employee relations and HR policies","Administer payroll, benefits and compliance","Drive learning and development initiatives","Support organisational culture and engagement programs"],
-      "Marketing Manager":          ["Develop and execute marketing strategies and campaigns","Manage brand positioning and digital presence","Analyse market trends and competitor landscape","Coordinate with sales, design and content teams","Track campaign ROI and report on performance"],
-      "Sales Manager":              ["Lead sales team to achieve revenue targets","Develop and manage client relationships","Identify new business opportunities and markets","Monitor sales metrics and pipeline health","Coach team members and conduct performance reviews"],
-      "Operations Manager":         ["Oversee day-to-day business operations","Optimise processes for efficiency and quality","Manage vendor and supplier relationships","Ensure compliance with operational policies","Coordinate across departments to meet business goals"],
-      "Doctor":                     ["Examine, diagnose and treat patients","Prescribe medications and treatment plans","Maintain accurate patient records and case notes","Collaborate with specialists and healthcare teams","Participate in clinical governance and CPD activities"],
-      "Teacher":                    ["Plan and deliver lessons aligned to the curriculum","Assess student progress and provide feedback","Create an inclusive and engaging classroom environment","Communicate with parents and guardians","Participate in staff development and school activities"],
-      "Engineer":                   ["Design and develop engineering solutions","Conduct analysis, testing and quality checks","Prepare technical documentation and reports","Coordinate with project teams and clients","Ensure compliance with safety and regulatory standards"],
-      "Lawyer":                     ["Advise clients on legal rights and obligations","Draft, review and negotiate contracts and agreements","Represent clients in legal proceedings","Conduct legal research and due diligence","Maintain client confidentiality and professional ethics"],
-      "Nurse":                      ["Provide direct patient care and clinical support","Administer medications and monitor patient vitals","Document patient information and care plans","Coordinate with doctors and healthcare teams","Educate patients and families on health management"],
-      "Consultant":                 ["Advise clients on strategy, operations or technology","Conduct research, analysis and stakeholder interviews","Prepare and present recommendations and reports","Support implementation of solutions and change management","Manage client relationships and project deliverables"],
-      "Executive":                  ["Drive organisational strategy and business goals","Manage senior leadership teams and budgets","Build relationships with key stakeholders and partners","Oversee major initiatives and performance outcomes","Represent the organisation externally"],
-      "Analyst":                    ["Collect, clean and analyse data to support decisions","Prepare dashboards, reports and presentations","Identify trends, patterns and business insights","Collaborate with teams to solve business problems","Document findings and recommendations"],
-      "Designer":                   ["Create visual assets, layouts and design systems","Develop user-centred UI/UX for products and campaigns","Collaborate with product, engineering and marketing teams","Conduct user research and usability testing","Maintain brand consistency across all outputs"],
-      "Architect":                  ["Design architectural plans and building specifications","Oversee construction projects and contractor coordination","Ensure designs comply with regulations and standards","Manage client briefs and project timelines","Review and approve construction drawings and changes"],
+    // ── AI ROLES — ported from global-form-v9 ────────────────────────────────
+    const ROLES_DB = {
+      'Self-Employed':['Independently manages client acquisition, service delivery, invoicing, and quality control.','Builds and maintains a client portfolio through networking, referrals, and professional outreach.','Designs and delivers customised solutions tailored to individual client requirements.','Manages financial records, tax filings, and business accounts independently.','Continuously updates skills and certifications to remain current in the professional field.','Negotiates contracts, project scopes, and timelines directly with clients.'],
+      'IT / Software':['Provides freelance software development, web design, or IT consulting to clients.','Develops and maintains client applications and digital products per specifications.','Manages all client communications, requirements, and project delivery independently.','Invoices clients and maintains financial records for the freelance business.'],
+      'Design / Creative':['Delivers creative services including branding, graphic design, UI/UX, and visual content.','Translates client briefs into impactful design deliverables.','Manages client relationships, revisions, and project timelines as a sole practitioner.'],
+      'Consulting':['Provides expert advisory services in strategy, operations, or management.','Conducts assessments and analysis to develop actionable recommendations for clients.','Manages engagements independently including scoping, delivery, and reporting.'],
+      'Medical / Healthcare':['Provides freelance or contractual medical, healthcare, or wellness services to clients.','Maintains accurate and confidential patient or client records.','Participates in continuing professional education and quality improvement activities.'],
+      'Finance / Accounting':['Provides accounting, bookkeeping, tax filing, or financial advisory services to clients.','Prepares financial statements, GST returns, and audit support for client businesses.','Manages client accounts, payroll, and financial compliance requirements.'],
+      'Education / Training':['Designs and delivers training programmes, workshops, or tuition sessions to students or corporate clients.','Develops curriculum content, learning materials, and assessment tools.','Maintains records of learner progress and provides feedback and mentoring support.'],
+      'Marketing / PR':['Develops and executes marketing campaigns, social media strategies, and brand communications for clients.','Manages media relations, press releases, and stakeholder communications.','Analyses campaign performance and prepares reports with actionable recommendations.'],
+      'Construction / Engineering':['Provides freelance engineering design, supervision, or project management services.','Prepares technical drawings, reports, and specifications for client projects.','Ensures compliance with safety standards and regulatory requirements on project sites.'],
+      'HR Executive':['Manages end-to-end recruitment including job posting, screening, interviewing, and onboarding new employees.','Maintains and updates employee records, contracts, and HR documentation in compliance with company policies.','Coordinates payroll inputs, attendance tracking, and statutory compliance filings (PF, ESIC, PT).','Handles employee queries, grievances, and conflict resolution in a fair and timely manner.','Supports performance management processes including appraisals, goal-setting, and feedback cycles.','Organises employee engagement activities, training programmes, and induction for new joiners.'],
+      'Human Resource Executive':['Manages end-to-end recruitment including job posting, screening, interviewing, and onboarding new employees.','Maintains and updates employee records, contracts, and HR documentation in compliance with company policies.','Coordinates payroll inputs, attendance tracking, and statutory compliance filings (PF, ESIC, PT).','Handles employee queries, grievances, and conflict resolution in a fair and timely manner.','Supports performance management processes including appraisals, goal-setting, and feedback cycles.','Organises employee engagement activities, training programmes, and induction for new joiners.'],
+      'HR Manager':['Leads the full recruitment lifecycle including sourcing, screening, interviewing, offer management, and onboarding.','Develops and enforces HR policies, procedures, and statutory compliance requirements.','Oversees performance management, appraisal cycles, and career development programmes.','Manages employee relations including grievance handling, disciplinary actions, and conflict resolution.','Administers payroll, compensation structures, and employee benefits programmes.','Partners with senior management on workforce planning, organisational development, and talent retention strategies.'],
+      'Manager':['Supervises a team, assigns responsibilities, monitors performance, and provides coaching.','Plans and allocates work ensuring deadlines and quality standards are consistently met.','Identifies process inefficiencies and leads improvement initiatives.','Prepares reports on team performance and project status for senior management.','Acts as the primary point of contact for clients or vendors.'],
+      'Senior Manager':['Oversees multiple teams, ensuring alignment with business objectives.','Responsible for budgeting, resource allocation, and performance management.','Develops and implements operational processes and policies.','Engages with senior leadership on strategic planning and business reviews.'],
+      'General Manager':['Provides overall leadership and management of a business unit or regional operations.','Accountable for P&L performance, growth, cost control, and team development.','Leads strategic planning, translating corporate objectives into operational targets.','Represents the unit in senior leadership forums and external stakeholder engagements.'],
+      'Engineer':['Designs, develops, and tests technical solutions per project specifications.','Participates in site surveys, technical assessments, and quality audits.','Prepares technical documentation including drawings, reports, and specifications.','Collaborates with cross-functional teams to deliver projects on time and within budget.'],
+      'Senior Engineer':['Leads technical design activities for complex projects, mentoring junior engineers.','Reviews and approves engineering drawings, calculations, and reports.','Coordinates with project managers, vendors, and clients on technical delivery.','Ensures compliance with applicable engineering standards and regulatory requirements.'],
+      'Software Engineer':['Designs, codes, tests, and deploys software applications per product requirements.','Participates in code reviews and ensures adherence to coding best practices.','Contributes to system architecture decisions evaluating performance and scalability.','Investigates and resolves bugs, performance issues, and production incidents.','Collaborates with product managers, designers, and QA in agile workflows.'],
+      'Analyst':['Collects, analyses, and interprets data to generate insights for business decisions.','Prepares reports, dashboards, and presentations summarising key findings.','Conducts market or operational research to identify trends, risks, and opportunities.','Develops and maintains analytical models and databases.'],
+      'Executive':['Manages day-to-day operational and administrative tasks within the department.','Coordinates with internal teams and external parties for smooth execution of processes.','Maintains records, prepares documents, and supports team activities.','Handles correspondence, scheduling, and routine communications on behalf of the team.'],
+      'Consultant':['Provides specialist advisory services to client organisations in a defined area of expertise.','Conducts diagnostics and gap analyses to support client decision-making.','Develops and presents structured recommendations and implementation roadmaps.','Manages client engagements ensuring delivery quality and strong professional relationships.'],
+      'Director':['Responsible for setting the long-term strategic direction and vision of the company.','Oversees all aspects of day-to-day company operations in alignment with board objectives.','Ensures full compliance with corporate laws, regulatory requirements, and governance standards.','Reviews and approves annual budgets, monitors financial performance, and authorises capital expenditure.','Manages relationships with key stakeholders including investors, financial institutions, and major clients.','Acts as an authorised signatory for legal documents, agreements, and financial instruments.'],
+      'Managing Director':['Manages the entire business day-to-day, translating board strategy into executable plans.','Leads business development including new markets, partnerships, and high-value contracts.','Leads and mentors the senior management team and makes key HR decisions.','Manages relationships with vendors, suppliers, key customers, and external agencies.','Accountable for the company\'s Profit and Loss performance.','Ensures all business activities comply with regulatory frameworks and tax obligations.'],
+      'Proprietor':['Manages all business operations including production, procurement, sales, and client delivery.','Hires, trains, and manages employees and third-party vendors.','Acquires new clients and maintains existing customer relationships.','Manages all financial aspects including banking, invoicing, GST filings, and bookkeeping.','Handles procurement, inventory management, and logistics coordination.'],
+      'Partner':['Jointly oversees business management including operations, client delivery, and financial oversight.','Engages with clients to deliver services, resolve issues, and ensure customer satisfaction.','Identifies and pursues revenue opportunities and grows the firm\'s clientele.','Shares financial accountability including capital contributions, profit-sharing, and liabilities.'],
+      'CEO / Managing Partner':['Sets the overall vision, long-term objectives, and strategic direction of the company.','Leads and manages the entire senior leadership team ensuring organisational effectiveness.','Serves as the primary representative to the board, investors, regulators, and external partners.','Drives revenue growth, oversees P&L performance, and is accountable to the board.','Responsible for building and maintaining the company\'s brand, culture, and reputation.'],
+      'Chairman':['Chairs all board meetings and ensures governance, compliance, and fiduciary responsibilities are fulfilled.','Provides overall strategic leadership as the highest decision-making authority.','Represents the company at the highest institutional level in government and industry engagements.','Oversees the performance of the Managing Director and senior leadership team.'],
+      'Trustee':['Oversees administration and governance of the trust in accordance with the trust deed and applicable laws.','Manages trust assets in a fiduciary capacity for the benefit of beneficiaries.','Reviews and approves annual accounts, audit reports, and major financial decisions.','Ensures all trust activities comply with charitable, tax, and regulatory obligations.'],
+      'Teacher / Professor':['Designs and delivers lessons, lectures, and curriculum content to students.','Assesses student performance through assignments, examinations, and continuous evaluation.','Provides academic guidance, mentorship, and pastoral care to students.','Participates in curriculum development, school committees, and professional development.'],
+      'Doctor / Physician':['Diagnoses and treats medical conditions through clinical assessment, investigation, and management.','Prescribes medication, orders investigations, and refers patients to specialists as required.','Maintains accurate and confidential patient records in accordance with medical standards.','Participates in continuing medical education, peer review, and quality improvement activities.'],
+      'Team Leader':['Leads a small team, assigns daily tasks, monitors progress, and provides guidance.','Acts as the first point of escalation for team issues and client concerns.','Prepares daily or weekly status reports for the reporting manager.','Identifies skill gaps in the team and recommends training or development interventions.'],
+      'VP / AVP':['Provides senior leadership to a function or business unit reporting to the C-suite.','Develops and executes divisional strategy in alignment with overall business objectives.','Manages a large team of managers and professionals across multiple locations or verticals.','Represents the division in senior forums and engages with key clients and regulators.'],
     };
 
-    function cifAISuggestDesignations(travId) {
-      const jobTitlePath = cifPath(travId, "f1", "Your_job_title");
-      const jobTitle = (getByPath(applicationData, jobTitlePath) || "").trim();
-      const matches = jobTitle.length < 2 ? [] : Object.keys(CIF_JOB_SUGGESTIONS).filter(d =>
-        d.toLowerCase().includes(jobTitle.toLowerCase()) || jobTitle.toLowerCase().includes(d.toLowerCase().split(" ")[0])
-      );
-      const sel = qs(`#cif-ai-desig-${travId}`);
-      if (!sel) return;
-      sel.innerHTML = `<option value="">-- ${matches.length ? "Select a designation" : "No close match — type more"} --</option>` +
-        matches.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
-      qs(`#cif-ai-hint-${travId}`).textContent = matches.length
-        ? "Select a designation to see suggested responsibilities"
-        : "Type your job title on the left — responsibilities will auto-populate";
+    function cifGenerateGenericRoles(jobTitle) {
+      const title = jobTitle.toLowerCase();
+      const name = jobTitle.charAt(0).toUpperCase() + jobTitle.slice(1);
+      if (/doctor|physician|surgeon|dentist|radiolog|patholog|gynaec|pediatr|paediatr|ortho|cardio|neuro|dermat|psychiatr/i.test(title))
+        return ['Diagnoses and treats patients through clinical assessment, investigation, and prescribed treatment plans.','Maintains accurate, up-to-date and confidential patient records as per medical standards.','Prescribes medication, orders diagnostic tests, and coordinates specialist referrals where required.','Participates in ward rounds, clinical meetings, and quality improvement activities.','Adheres to medical ethics, patient confidentiality, and regulatory standards at all times.','Engages in continuing medical education to stay current with developments in the field.'];
+      if (/nurse|nursing/i.test(title))
+        return ['Provides direct patient care including medication administration, wound care, and monitoring of vital signs.','Collaborates with the medical team to plan and implement patient care plans.','Maintains accurate nursing records and communicates patient status to the treating physician.','Educates patients and families on post-treatment care, medications, and lifestyle changes.','Adheres to infection control protocols and patient safety standards at all times.','Participates in nursing audits, in-service training, and continuing professional development.'];
+      if (/lawyer|advocate|solicitor|barrister|legal counsel|attorney/i.test(title))
+        return ['Advises clients on legal matters, rights, and obligations under applicable laws.','Drafts, reviews, and negotiates contracts, agreements, and legal documents.','Represents clients before courts, tribunals, or regulatory authorities as required.','Conducts legal research and prepares written opinions, briefs, and submissions.','Ensures all client matters are handled in compliance with professional conduct rules.','Manages case files, deadlines, court dates, and client communications efficiently.'];
+      if (/accountant|chartered accountant|ca |auditor|taxation|tax consultant|finance manager|cfo|chief financial/i.test(title))
+        return ['Prepares and reviews financial statements, balance sheets, and profit & loss accounts.','Manages tax compliance including GST, TDS, income tax filings, and statutory returns.','Conducts internal or external audits to ensure accuracy and compliance of financial records.','Advises clients or management on financial planning, cost control, and risk management.','Prepares MIS reports and financial analyses for management decision-making.','Coordinates with regulatory authorities, banks, and auditors on financial and compliance matters.'];
+      if (/teacher|professor|lecturer|faculty|educator|principal|headmaster/i.test(title))
+        return ['Plans and delivers lessons aligned with the prescribed curriculum and learning outcomes.','Assesses student performance through regular tests, assignments, and examinations.','Maintains accurate records of student attendance, progress, and academic performance.','Provides academic guidance, mentoring, and pastoral support to students.','Participates in school or college committees, curriculum development, and staff meetings.','Engages in professional development and keeps current with advances in pedagogy.'];
+      if (/engineer|architect|technician|mechanic/i.test(title))
+        return ['Designs, develops, and tests technical solutions in accordance with project specifications and standards.','Prepares technical drawings, calculations, reports, and documentation as required.','Conducts site visits, inspections, and quality audits to ensure compliance with specifications.','Collaborates with cross-functional teams including project managers, vendors, and clients.','Identifies technical problems and develops practical, cost-effective solutions.','Ensures all work complies with applicable engineering standards, safety codes, and regulatory requirements.'];
+      if (/software|developer|programmer|coder|devops|data scientist|data analyst|machine learning|full stack|backend|frontend/i.test(title))
+        return ['Designs, codes, tests, and deploys software applications per product requirements and best practices.','Participates in code reviews, ensuring adherence to coding standards and technical documentation.','Investigates and resolves bugs, performance issues, and production incidents promptly.','Contributes to system architecture, database design, and API development decisions.','Collaborates with product managers, designers, and QA teams in agile development workflows.','Stays current with emerging technologies and frameworks relevant to the product stack.'];
+      if (/hr|human resource|talent|recruitment|recruiter/i.test(title))
+        return ['Manages end-to-end recruitment including job posting, screening, interviewing, and onboarding.','Administers employee records, contracts, payroll inputs, and statutory compliance filings.','Designs and implements employee engagement, retention, and performance management programmes.','Handles employee grievances, disciplinary procedures, and conflict resolution processes.','Ensures HR policies and practices comply with applicable labour laws and regulations.','Provides HR advisory support to line managers on talent management and organisational development.'];
+      if (/sales|business development|account executive|account manager/i.test(title))
+        return ['Identifies and pursues new business opportunities through prospecting, networking, and referrals.','Manages the full sales cycle from lead generation and pitching to negotiation and closure.','Maintains and grows relationships with existing clients to drive repeat business.','Achieves or exceeds assigned revenue targets and key performance indicators each period.','Prepares proposals, quotations, and sales presentations tailored to client requirements.','Provides regular pipeline updates and sales reports to the management team.'];
+      if (/marketing|brand manager|digital marketing|seo|content/i.test(title))
+        return ['Develops and executes marketing campaigns across digital, print, and social media channels.','Manages brand identity, messaging, and consistency across all communications.','Analyses campaign performance metrics and prepares reports with insights and recommendations.','Coordinates with agencies, vendors, and internal teams for campaign delivery.','Conducts market research to identify customer insights, trends, and competitive positioning.','Manages marketing budgets, vendor contracts, and timelines for all campaigns.'];
+      if (/operations|supply chain|logistics|warehouse|procurement/i.test(title))
+        return ['Oversees day-to-day operational activities ensuring processes run efficiently and within targets.','Manages vendor relationships, procurement processes, and supply chain coordination.','Monitors operational KPIs and prepares performance reports for management review.','Identifies bottlenecks and process inefficiencies and implements continuous improvement initiatives.','Ensures compliance with operational policies, quality standards, and regulatory requirements.','Coordinates cross-functional teams to deliver operational objectives on time and within budget.'];
+      return [
+        'Manages and executes the core responsibilities associated with the role of ' + name + ' efficiently and professionally.',
+        'Plans, prioritises, and delivers assigned tasks and projects in line with organisational goals and timelines.',
+        'Collaborates with internal teams, clients, or stakeholders to achieve shared objectives and resolve issues.',
+        'Maintains accurate records, reports, and documentation relevant to the role and applicable standards.',
+        'Identifies areas for improvement and contributes to process optimisation and quality enhancement initiatives.',
+        'Stays current with industry developments, regulations, and best practices relevant to the position.',
+      ];
     }
 
-    function cifAIApplyResponsibilities(travId) {
-      const sel = qs(`#cif-ai-desig-${travId}`);
-      if (!sel || !sel.value) return;
-      const suggestions = CIF_JOB_SUGGESTIONS[sel.value] || [];
-      const textarea = qs(`#cif-ai-resp-${travId}`);
-      if (!textarea) return;
-      textarea.value = suggestions.map((r, i) => `${i + 1}. ${r}`).join("\n");
-      const path = cifPath(travId, "f1", "Describe_your_job");
-      setByPath(applicationData, path, textarea.value);
+    const cifSelectedRoles = {};
+    const cifRolesAITimer = {};
+
+    function cifUpdateRoles(travId, desg) {
+      const picker = qs(`#cif-role-picker-${travId}`);
+      const container = qs(`#cif-roles-${travId}`);
+      if (!picker || !container) return;
+      if (!desg || desg.trim() === '') return;
+      let roles = [];
+      if (ROLES_DB[desg]) {
+        roles = ROLES_DB[desg];
+      } else {
+        const desgLower = desg.toLowerCase().trim();
+        const keys = Object.keys(ROLES_DB);
+        const sortedKeys = keys.slice().sort((a, b) => b.length - a.length);
+        for (const k of sortedKeys) {
+          const kl = k.toLowerCase();
+          if (desgLower.indexOf(kl) !== -1 || kl.indexOf(desgLower) !== -1) { roles = ROLES_DB[k]; break; }
+        }
+        if (roles.length === 0) {
+          let words = desgLower.split(/[\s\/\-]+/).filter(w => w.length > 3 && !['executive','officer','senior','junior','associate','assistant','head','lead','chief'].includes(w));
+          if (words.length === 0) words = desgLower.split(/[\s\/\-]+/).filter(w => w.length > 3);
+          for (const k of keys) {
+            if (roles.length > 0) break;
+            const kl = k.toLowerCase();
+            if (words.some(w => kl.indexOf(w) !== -1)) roles = ROLES_DB[k];
+          }
+        }
+      }
+      picker.innerHTML = '<option value="">-- Select a responsibility to add --</option>';
+      if (roles.length > 0) {
+        roles.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; picker.appendChild(o); });
+        if (!cifSelectedRoles[travId] || cifSelectedRoles[travId].length === 0)
+          container.innerHTML = '<span class="role-hint">Select responsibilities from the dropdown above — they appear here as a checklist</span>';
+      } else {
+        if (cifRolesAITimer[travId]) clearTimeout(cifRolesAITimer[travId]);
+        cifRolesAITimer[travId] = setTimeout(() => cifGenerateRolesWithAI(travId, desg), 600);
+      }
+    }
+
+    function cifGenerateRolesWithAI(travId, jobTitle) {
+      const picker = qs(`#cif-role-picker-${travId}`);
+      const container = qs(`#cif-roles-${travId}`);
+      if (!picker || !container) return;
+      if (!cifSelectedRoles[travId] || cifSelectedRoles[travId].length === 0)
+        container.innerHTML = `<span class="role-hint" style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:12px;height:12px;border:2px solid var(--cx-teal,#06c9b5);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite"></span> Generating responsibilities for <strong>${escapeHtml(jobTitle)}</strong>…</span>`;
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': (typeof ANTHROPIC_API_KEY !== 'undefined' ? ANTHROPIC_API_KEY : ''), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-haiku-4-20250514', max_tokens: 500, messages: [{ role: 'user', content: `Generate exactly 6 concise professional key responsibilities for the job title: "${jobTitle}". Return ONLY a JSON array of 6 strings, no markdown. Example: ["Responsibility one.","Responsibility two."]` }] })
+      }).then(r => r.json()).then(data => {
+        let text = (data.content && data.content[0] && data.content[0].text) || '[]';
+        text = text.replace(/```json|```/g, '').trim();
+        let aiRoles; try { aiRoles = JSON.parse(text); } catch(e) { aiRoles = []; }
+        if (!Array.isArray(aiRoles) || aiRoles.length === 0) aiRoles = cifGenerateGenericRoles(jobTitle);
+        ROLES_DB[jobTitle] = aiRoles;
+        cifPopulateRolePicker(travId, aiRoles, jobTitle);
+      }).catch(() => {
+        const fallback = cifGenerateGenericRoles(jobTitle);
+        ROLES_DB[jobTitle] = fallback;
+        cifPopulateRolePicker(travId, fallback, jobTitle);
+      });
+    }
+
+    function cifPopulateRolePicker(travId, roles, jobTitle) {
+      const picker = qs(`#cif-role-picker-${travId}`);
+      const container = qs(`#cif-roles-${travId}`);
+      if (!picker) return;
+      picker.innerHTML = '<option value="">-- Select a responsibility to add --</option>';
+      roles.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; picker.appendChild(o); });
+      if (container && (!cifSelectedRoles[travId] || cifSelectedRoles[travId].length === 0))
+        container.innerHTML = `<span class="role-hint" style="color:#06c9b5">✨ Suggested for “${escapeHtml(jobTitle)}” — select from dropdown above</span>`;
+    }
+
+    function cifAddRole(travId, val) {
+      if (!val) return;
+      if (!cifSelectedRoles[travId]) cifSelectedRoles[travId] = [];
+      if (cifSelectedRoles[travId].indexOf(val) !== -1) return;
+      cifSelectedRoles[travId].push(val);
+      cifRenderRoleTags(travId);
+      cifSaveRoles(travId);
+    }
+
+    function cifRemoveRole(travId, idx) {
+      if (!cifSelectedRoles[travId]) return;
+      cifSelectedRoles[travId].splice(idx, 1);
+      cifRenderRoleTags(travId);
+      cifSaveRoles(travId);
+    }
+
+    function cifRenderRoleTags(travId) {
+      const container = qs(`#cif-roles-${travId}`);
+      if (!container) return;
+      if (!cifSelectedRoles[travId] || cifSelectedRoles[travId].length === 0) {
+        container.innerHTML = '<span class="role-hint">Select responsibilities from the dropdown above — they will appear here as a checklist</span>';
+        return;
+      }
+      container.innerHTML = cifSelectedRoles[travId].map((r, i) =>
+        `<div class="role-tag"><span style="flex:1">${escapeHtml(r)}</span><span class="rm" title="Remove" onclick="cifRemoveRole('${travId}',${i})">×</span></div>`
+      ).join('');
+    }
+
+    function cifSaveRoles(travId) {
+      const path = cifPath(travId, 'f1', 'Describe_your_job');
+      setByPath(applicationData, path, (cifSelectedRoles[travId] || []).join('\n'));
       markAutoSavePending();
+    }
+
+    // Exposed so CIF.jsx can call after renderCIF
+    function cifAISuggestDesignations(travId) {
+      const jobTitle = (getByPath(applicationData, cifPath(travId, 'f1', 'Your_job_title')) || '').trim();
+      if (jobTitle.length >= 2) cifUpdateRoles(travId, jobTitle);
     }
 
     function cifRenderField(travId, def) {
@@ -774,24 +904,22 @@ const CIF_UK_SECTIONS = [
       if (!cifShowIfMet(travId, showIf)) return "";
       if (ftype === "note") return `<div class="cifx-field full cifx-note-field"><div class="cifx-note">${escapeHtml(label)}</div></div>`;
       if (ftype === "ai-suggest-employed") {
-        const path = cifPath(travId, form, key);
-        const value = escapeHtml(getByPath(applicationData, path) || "");
-        return `<div class="cifx-field full cifx-ai-suggest-wrap" data-field="${path}">
+        return `<div class="cifx-field full cifx-ai-suggest-wrap">
           <div class="cifx-ai-suggest-grid">
             <div class="cifx-ai-suggest-left">
               <label>${escapeHtml(label)}</label>
-              <textarea id="cif-ai-resp-${travId}" data-bind="${path}" placeholder="${escapeHtml(placeholder||"")}">${value}</textarea>
+              <select id="cif-role-picker-${travId}" class="cifx-ai-role-picker" onchange="cifAddRole('${travId}',this.value);this.value=''">
+                <option value="">-- Enter job title first --</option>
+              </select>
+              <div class="roles-container" id="cif-roles-${travId}"><span class="role-hint">Type your job title above — matching responsibilities will appear here as options to choose from</span></div>
             </div>
             <div class="cifx-ai-suggest-right">
               <div class="cifx-ai-panel-header">
                 <span class="cifx-ai-panel-title">Key Roles &amp; Responsibilities</span>
                 <span class="cifx-ai-badge">&#x26A1; AI-suggested</span>
               </div>
-              <p id="cif-ai-hint-${travId}" class="cifx-ai-hint">Type your job title on the left — responsibilities will auto-populate</p>
-              <select id="cif-ai-desig-${travId}" class="cifx-ai-desig-sel" onchange="cifAIApplyResponsibilities('${travId}')">
-                <option value="">-- Enter job title first --</option>
-              </select>
-              <p class="cifx-ai-sub-hint" style="margin-top:6px;font-size:11.5px;color:#888;">Select designation on the left to see suggested responsibilities</p>
+              <p class="cifx-ai-hint">Select responsibilities from the dropdown on the left — they will appear here as a checklist</p>
+              <div class="cifx-ai-preview-hint">Selected responsibilities are saved automatically and appear in your CIF form.</div>
             </div>
           </div>
         </div>`;
@@ -6031,5 +6159,5 @@ export {
   cifAddSubformRow, cifRemoveSubformRow, cifGenericAddRow, cifGenericRemoveRow,
   cifRetryMetadata, cifSaveTraveller, cifValidateUsForm1, cifValidateGeneric,
   saveCIFData, cmsToggle, cmsSelect, cmsRemove, cmsClear, cmsFilter, closeAllCmsDropdowns,
-  cifAISuggestDesignations, cifAIApplyResponsibilities
+  cifAISuggestDesignations, cifAddRole, cifRemoveRole
 };

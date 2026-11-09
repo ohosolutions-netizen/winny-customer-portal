@@ -20,7 +20,7 @@ const CIF_HANDLERS = [
   "cifSchengenToggleMulti", "cifAddSubformRow", "cifRemoveSubformRow", "cifGenericAddRow",
   "cifGenericRemoveRow", "cifRetryMetadata", "cifSaveTraveller",
   "cmsToggle", "cmsSelect", "cmsRemove", "cmsClear", "cmsFilter",
-  "cifSwitchFamilyUnit", "cifAISuggestDesignations", "cifAIApplyResponsibilities",
+  "cifSwitchFamilyUnit", "cifAISuggestDesignations", "cifAddRole", "cifRemoveRole",
 ];
 
 // Tracks the last toast message shown to deduplicate rapid-fire identical toasts
