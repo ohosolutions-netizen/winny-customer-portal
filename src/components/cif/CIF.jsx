@@ -126,8 +126,9 @@ function cifHandleInput(event) {
     }
   }
   // AI suggestion: update designation dropdown when job title field changes
+  // path format: cifData.{travId}.instances.{instanceId}.f1.Your_job_title
   if (/\.Your_job_title$/.test(field.dataset.bind || "")) {
-    const travId = (field.dataset.bind || "").split(".")[2];
+    const travId = (field.dataset.bind || "").split(".")[1];
     if (travId && window.cifAISuggestDesignations) window.cifAISuggestDesignations(travId);
   }
 }
@@ -153,9 +154,25 @@ export default function CIF() {
 
   useEffect(() => {
     CIF_HANDLERS.forEach((n) => { window[n] = CifMod[n]; });
-    window.renderCIF = renderCIF; // for cifSelectField trigger: onchange="setTimeout(renderCIF,0)"
+    // Wrap renderCIF so the AI suggestion panel refreshes on every re-render
+    window.renderCIF = () => {
+      renderCIF();
+      // After render, populate AI suggestion dropdown for each visible AI panel
+      setTimeout(() => {
+        document.querySelectorAll("[id^='cif-ai-desig-']").forEach(el => {
+          const travId = el.id.replace("cif-ai-desig-", "");
+          if (window.cifAISuggestDesignations) window.cifAISuggestDesignations(travId);
+        });
+      }, 0);
+    };
 
     renderCIF();
+    setTimeout(() => {
+      document.querySelectorAll("[id^='cif-ai-desig-']").forEach(el => {
+        const travId = el.id.replace("cif-ai-desig-", "");
+        if (window.cifAISuggestDesignations) window.cifAISuggestDesignations(travId);
+      });
+    }, 0);
 
     const el = ref.current;
     el.addEventListener("input", cifHandleInput);
