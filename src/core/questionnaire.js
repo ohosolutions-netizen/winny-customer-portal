@@ -289,9 +289,12 @@ function renderUnitOverviewHTML(units) {
     const _sline = (filled) => `<span style="flex:1;height:1.5px;background:${filled?"var(--teal)":"var(--line)"};min-width:10px;margin-bottom:9px;align-self:center"></span>`;
     const stepperHTML = `<div style="display:flex;align-items:flex-end;gap:4px;margin-top:10px"><span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[0])}${_slbl(_stepStates[0],_stepLabels[0])}</span>${_sline(_stepStates[0]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[1])}${_slbl(_stepStates[1],_stepLabels[1])}</span>${_sline(_stepStates[1]==="done")}<span style="display:inline-flex;flex-direction:column;align-items:center;gap:3px">${_sdot(_stepStates[2])}${_slbl(_stepStates[2],_stepLabels[2])}</span></div>`;
 
-    // Per-traveller action rows — each traveller gets their own [I fill it] and [Send link] buttons
+    // Per-traveller submission map (keyed by traveller index within this unit)
+    const _submittedTravMap = ((applicationData.questionnaire.submittedTravellers || {})[u.familyId]) || {};
+
+    // Per-traveller action rows — each traveller gets their own status / action buttons
     const _unitMembers = u.travellers;
-    const travRows = (!u.minorOnly && !done)
+    const travRows = (!u.minorOnly)
       ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
           ${_unitMembers.map((t, travIdx) => {
             const tName = escapeHtml(`${t.firstName||""} ${t.lastName||""}`.trim() || "Traveller");
@@ -299,23 +302,27 @@ function renderUnitOverviewHTML(units) {
             const tType = escapeHtml(["Additional Traveller", "Co-Traveller", "additional traveller"].includes(_tRel) ? "" : _tRel);
             const tLinkSent = !!t.qLinkSent;
             const isAdult = isAdultTraveller(t);
+            const isTravDone = !!_submittedTravMap[travIdx];
             const fillLabel = isAdult ? "&#x270F;&#xFE0F; I fill it" : "&#x270F;&#xFE0F; Fill on behalf of child";
-            const sendBtn = isAdult
+            const sendBtn = (!isTravDone && isAdult)
               ? `<button class="btn ghost" type="button" style="font-size:12px;padding:3px 10px;white-space:nowrap"
                    onclick="qSendLinkToTraveller('${fid}')"
                  >${tLinkSent ? "&#x21A9; Resend link" : "&#x1F517; Send link to traveller"}</button>`
               : "";
+            const actionArea = isTravDone
+              ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#059669;padding:3px 10px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:99px">&#x2713; Submitted</span>`
+              : `<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+                  <button class="btn primary" type="button" style="font-size:12px;padding:3px 10px;white-space:nowrap"
+                    onclick="qSetUnitFillMode('${fid}','owner');qStartTraveller(${u.index},${travIdx})"
+                  >${fillLabel}</button>
+                  ${sendBtn}
+                </div>`;
             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#f8fafc;border:1px solid var(--line);border-radius:8px">
               <div style="min-width:0;flex:1">
                 <span style="font-weight:600;font-size:13px;color:var(--navy)">${tName}</span>
                 ${tType ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${tType}</span>` : ""}
               </div>
-              <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-                <button class="btn primary" type="button" style="font-size:12px;padding:3px 10px;white-space:nowrap"
-                  onclick="qSetUnitFillMode('${fid}','owner');qStartTraveller(${u.index},${travIdx})"
-                >${fillLabel}</button>
-                ${sendBtn}
-              </div>
+              ${actionArea}
             </div>`;
           }).join("")}
         </div>`
@@ -408,20 +415,28 @@ function renderUnitOverviewHTML(units) {
       </div>`;
   }).join("");
 
-  const pendingUnits = !allDone ? units.filter(u => !qState.unitCompletions[u.familyId]) : [];
+  // Collect individually pending travellers across all units
+  const _pendingTravellers = [];
+  if (!allDone) {
+    units.forEach(u => {
+      const _stMap = ((applicationData.questionnaire.submittedTravellers || {})[u.familyId]) || {};
+      u.travellers.forEach((t, idx) => {
+        if (!_stMap[idx] && !qState.unitCompletions[u.familyId]) {
+          _pendingTravellers.push(`${t.firstName || ""} ${t.lastName || ""}`.trim() || u.label);
+        }
+      });
+    });
+  }
   let blockerBar = "";
-  if (!allDone && pendingUnits.length > 0) {
-    const names = pendingUnits.slice(0, 2).map(u => {
-      const primary = u.primaryTraveller || u.travellers[0];
-      return primary ? (primary.firstName || "").trim() || u.label : u.label;
-    }).filter(Boolean);
-    const rest = pendingUnits.length > 2 ? ` and ${pendingUnits.length - 2} more` : "";
+  if (!allDone && _pendingTravellers.length > 0) {
+    const names = _pendingTravellers.slice(0, 2).filter(Boolean);
+    const rest = _pendingTravellers.length > 2 ? ` and ${_pendingTravellers.length - 2} more` : "";
     const nameStr = names.join(", ") + rest;
     blockerBar = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
       <span style="font-size:18px;flex-shrink:0">&#x26A0;&#xFE0F;</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;color:#92400e">${pendingUnits.length === 1 ? "1 traveller is" : pendingUnits.length + " travellers are"} holding up the application</div>
-        <div style="font-size:12px;color:#b45309;margin-top:2px">${escapeHtml(nameStr)} ${pendingUnits.length === 1 ? "hasn't" : "haven't"} submitted yet</div>
+        <div style="font-size:13px;font-weight:700;color:#92400e">${_pendingTravellers.length === 1 ? "1 traveller is" : _pendingTravellers.length + " travellers are"} holding up the application</div>
+        <div style="font-size:12px;color:#b45309;margin-top:2px">${escapeHtml(nameStr)} ${_pendingTravellers.length === 1 ? "hasn't" : "haven't"} submitted yet</div>
       </div>
     </div>`;
   }
