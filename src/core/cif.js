@@ -292,7 +292,7 @@ const CIF_UK_SECTIONS = [
     ["Visas stamped in this passport","Prev_Passport_Visas_Stamped","text",null,false],
   ]},
   { id:"employment", title:"Employment", icon:"&#x1F4BC;", fields:[
-    ["Employment status","f1","What_is_your_employment_status","multiselect",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other — Please Specify"],true],
+    ["Employment status","f1","What_is_your_employment_status","select",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other — Please Specify"],true],
     ["Employer's name","f1","Employer_s_name","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"e.g. Tata Consultancy Services"],
     ["Employer's address","f1","Employer_s_address","address",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
     ["Employer's telephone number","f1","Employer_s_telephone_number","phone",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
