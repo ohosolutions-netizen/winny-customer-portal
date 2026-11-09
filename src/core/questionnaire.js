@@ -1745,6 +1745,7 @@ function buildFinDerived(t) {
     isBusiness: Boolean(financeAnswers["occ-business"]),
     isEmployed: Boolean(financeAnswers["occ-employed"]),
     isFreelancer: Boolean(financeAnswers["occ-freelancer"]),
+    isHomemaker: Boolean(financeAnswers["occ-homemaker"]),
     isStudent: Boolean(financeAnswers["occ-student"]),
     isUnemployed: Boolean(financeAnswers["occ-unemployed"]),
     isPensioner: Boolean(financeAnswers["occ-pensioner"]) || Boolean(financeAnswers["occ-retired-nopension"]),
@@ -1807,7 +1808,7 @@ function empIndustrySectorOptions(selected) {
 }
 
 const finOccBlocks = primaryFinanceTravellers.map(t => {
-  const { fin, financeAnswers, isBusiness, isEmployed, isFreelancer, isStudent, isUnemployed, isPensioner, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
+  const { fin, financeAnswers, isBusiness, isEmployed, isFreelancer, isHomemaker, isStudent, isUnemployed, isPensioner, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
   return `<div class="person-block">
     <div class="person-block-hd">
       <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
@@ -1868,6 +1869,37 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
             </select>
           </div>
         </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Business Start Date <span class="q-req">Required</span></label>
+            <input type="date"
+              value="${escapeHtml(fin.bizStartDate||"")}"
+              oninput="qFinSetField('${t.id}','bizStartDate',this.value)">
+          </div>
+          <div class="q-field"><label>City <span class="q-req">Required</span></label>
+            <input type="text" placeholder="City"
+              value="${escapeHtml(fin.bizCity||"")}"
+              oninput="qFinSetField('${t.id}','bizCity',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Country <span class="q-req">Required</span></label>
+            <input type="text" placeholder="Country"
+              value="${escapeHtml(fin.bizCountry||"India")}"
+              oninput="qFinSetField('${t.id}','bizCountry',this.value)">
+          </div>
+          <div class="q-field"><label>Annual Turnover (INR)</label>
+            <input type="number" placeholder="Amount in INR"
+              value="${escapeHtml(String(fin.bizTurnover||""))}"
+              oninput="qFinSetField('${t.id}','bizTurnover',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row single">
+          <div class="q-field"><label>Total Annual Income (INR)</label>
+            <input type="number" placeholder="Amount in INR"
+              value="${escapeHtml(String(fin.bizIncome||""))}"
+              oninput="qFinSetField('${t.id}','bizIncome',this.value)">
+          </div>
+        </div>
       </div>
       <div class="q-dep ${isEmployed?"show":""}" id="dep-${t.id}-employed">
         <div class="q-sub">Employment details</div>
@@ -1924,19 +1956,81 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
       <div class="q-dep ${isFreelancer?"show":""}" id="dep-${t.id}-freelancer">
         <div class="q-sub">Freelance / self-employment details</div>
         <div class="q-field-row single"><div class="q-field">
-          <label>Description of Work</label>
+          <label>Nature of Business / Services <span class="q-req">Required</span></label>
           <textarea rows="2" placeholder="Describe your self-employed / freelance activities"
-            oninput="qFinSetField('${t.id}','freelanceDesc',this.value)">${escapeHtml(fin.freelanceDesc||"")}</textarea>
+            oninput="qFinSetField('${t.id}','freelanceNature',this.value)">${escapeHtml(fin.freelanceNature||"")}</textarea>
         </div></div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Field / Industry <span class="q-req">Required</span></label>
+            <select onchange="qFinSetField('${t.id}','freelanceField',this.value)">
+              <option value="">Select</option>
+              <option value="IT / Software" ${fin.freelanceField==="IT / Software"?"selected":""}>IT / Software</option>
+              <option value="Design / Creative" ${fin.freelanceField==="Design / Creative"?"selected":""}>Design / Creative</option>
+              <option value="Consulting" ${fin.freelanceField==="Consulting"?"selected":""}>Consulting</option>
+              <option value="Legal" ${fin.freelanceField==="Legal"?"selected":""}>Legal</option>
+              <option value="Medical / Healthcare" ${fin.freelanceField==="Medical / Healthcare"?"selected":""}>Medical / Healthcare</option>
+              <option value="Finance / Accounting" ${fin.freelanceField==="Finance / Accounting"?"selected":""}>Finance / Accounting</option>
+              <option value="Education / Training" ${fin.freelanceField==="Education / Training"?"selected":""}>Education / Training</option>
+              <option value="Marketing / PR" ${fin.freelanceField==="Marketing / PR"?"selected":""}>Marketing / PR</option>
+              <option value="Construction / Engineering" ${fin.freelanceField==="Construction / Engineering"?"selected":""}>Construction / Engineering</option>
+              <option value="Other" ${fin.freelanceField==="Other"?"selected":""}>Other</option>
+            </select>
+          </div>
+          <div class="q-field"><label>Business Start Date <span class="q-req">Required</span></label>
+            <input type="date"
+              value="${escapeHtml(fin.freelanceStartDate||"")}"
+              oninput="qFinSetField('${t.id}','freelanceStartDate',this.value)">
+          </div>
+        </div>
+        <div class="q-field-row">
+          <div class="q-field"><label>Annual Turnover (INR)</label>
+            <input type="number" placeholder="Amount in INR"
+              value="${escapeHtml(String(fin.freelanceTurnover||""))}"
+              oninput="qFinSetField('${t.id}','freelanceTurnover',this.value)">
+          </div>
+          <div class="q-field"><label>Annual Income (INR)</label>
+            <input type="number" placeholder="Amount in INR"
+              value="${escapeHtml(String(fin.freelanceIncome||""))}"
+              oninput="qFinSetField('${t.id}','freelanceIncome',this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="q-dep ${isHomemaker?"show":""}" id="dep-${t.id}-homemaker">
+        <div class="q-sub">Homemaker details</div>
+        <div class="q-field-row single"><div class="q-field">
+          <label>Homemaker Since <span class="q-req">Required</span></label>
+          <input type="date"
+            value="${escapeHtml(fin.homemakerSince||"")}"
+            oninput="qFinSetField('${t.id}','homemakerSince',this.value)">
+        </div></div>
+        <div class="qn qn-teal" style="margin-top:8px;">If this doesn't cover the full 10-year history, previous employment or education details will be requested below.</div>
       </div>
       <div class="q-dep ${isStudent?"show":""}" id="dep-${t.id}-student">
         <div class="q-sub">Academic details</div>
         <div class="q-field-row single"><div class="q-field">
-          <label>Institution / College / School Name</label>
+          <label>Institution / College / School Name <span class="q-req">Required</span></label>
           <input type="text" placeholder="Name of the institution"
             value="${escapeHtml(fin.studentInst||"")}"
             oninput="qFinSetField('${t.id}','studentInst',this.value)">
         </div></div>
+        <div class="q-field-row single"><div class="q-field">
+          <label>Programme / Course / Grade <span class="q-req">Required</span></label>
+          <input type="text" placeholder="e.g. B.Com, MBA, 10th Standard"
+            value="${escapeHtml(fin.studentCourse||"")}"
+            oninput="qFinSetField('${t.id}','studentCourse',this.value)">
+        </div></div>
+        <div class="q-field-row">
+          <div class="q-field"><label>City</label>
+            <input type="text" placeholder="City"
+              value="${escapeHtml(fin.studentCity||"")}"
+              oninput="qFinSetField('${t.id}','studentCity',this.value)">
+          </div>
+          <div class="q-field"><label>Country</label>
+            <input type="text" placeholder="Country"
+              value="${escapeHtml(fin.studentCountry||"India")}"
+              oninput="qFinSetField('${t.id}','studentCountry',this.value)">
+          </div>
+        </div>
       </div>
       <div class="q-dep ${isUnemployed?"show":""}" id="dep-${t.id}-unemployed">
         <div class="q-sub">Unemployment details</div>
@@ -1996,8 +2090,15 @@ const finOccBlocks = primaryFinanceTravellers.map(t => {
     <div class="q-blk" id="dep-${t.id}-occ-other" style="${isOtherOccupation ? "" : "display:none"}">
       <div class="q-lbl">Please provide more information about ${escapeHtml(t.firstName||"their")} occupation <span class="q-req">Required</span></div>
       <div class="q-field-row single"><div class="q-field">
-        <textarea rows="2" placeholder="e.g. job title, business type, day-to-day work"
-          oninput="qFinSetField('${t.id}','moreInfo',this.value)">${escapeHtml(fin.moreInfo||"")}</textarea>
+        <input type="text" placeholder="Please specify your occupation"
+          value="${escapeHtml(fin.moreInfo||"")}"
+          oninput="qFinSetField('${t.id}','moreInfo',this.value)">
+      </div></div>
+      <div class="q-field-row single"><div class="q-field">
+        <label>Annual Income (INR)</label>
+        <input type="number" placeholder="Amount in INR"
+          value="${escapeHtml(String(fin.otherIncome||""))}"
+          oninput="qFinSetField('${t.id}','otherIncome',this.value)">
       </div></div>
     </div>
     <div class="q-blk" id="dep-${t.id}-itr" style="${shouldShowItr ? "" : "display:none"}">
@@ -2572,6 +2673,11 @@ markAutoSavePending();
     if (freelancerBlock) freelancerBlock.style.display = selected ? "block" : "none";
   }
 
+  if (key === "occ-homemaker") {
+    const homemakerBlock = document.getElementById(`dep-${travId}-homemaker`);
+    if (homemakerBlock) homemakerBlock.style.display = selected ? "block" : "none";
+  }
+
   if (key === "occ-student") {
     const studentBlock = document.getElementById(`dep-${travId}-student`);
     if (studentBlock) studentBlock.style.display = selected ? "block" : "none";
@@ -2972,13 +3078,21 @@ markAutoSavePending();
         if (qHasExclusiveConflict(primaryAnswers, "occ-unemployed", activeOccupationKeys)) return "Unemployed cannot be selected together with another occupation.";
         if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizType)) return "Business ownership type is mandatory.";
         if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizOrgName)) return "Business organisation name is required.";
+        if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizStartDate)) return "Business start date is required.";
+        if (primaryAnswers["occ-business"] && qIsBlank(primaryFin.bizCity)) return "Business city is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empOrg)) return "Employer / organisation name is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empTitle)) return "Job title / designation is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empIndustry)) return "Industry / sector is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empStartDate)) return "Employment start date is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empCity)) return "Employer city is required.";
         if (primaryAnswers["occ-employed"] && qIsBlank(primaryFin.empSalaryGross)) return "Annual salary (gross) is required.";
-        if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please describe the other occupation.";
+        if (primaryAnswers["occ-freelancer"] && qIsBlank(primaryFin.freelanceNature)) return "Nature of business / services is required.";
+        if (primaryAnswers["occ-freelancer"] && qIsBlank(primaryFin.freelanceField)) return "Freelance field / industry is required.";
+        if (primaryAnswers["occ-freelancer"] && qIsBlank(primaryFin.freelanceStartDate)) return "Freelance business start date is required.";
+        if (primaryAnswers["occ-homemaker"] && qIsBlank(primaryFin.homemakerSince)) return "Homemaker since date is required.";
+        if (primaryAnswers["occ-student"] && qIsBlank(primaryFin.studentInst)) return "Institution name is required.";
+        if (primaryAnswers["occ-student"] && qIsBlank(primaryFin.studentCourse)) return "Programme / course is required.";
+        if (primaryAnswers["occ-other"] && qIsBlank(primaryFin.moreInfo)) return "Please specify the other occupation.";
         if (["occ-employed","occ-freelancer","occ-pensioner","occ-business"].some(key => primaryAnswers[key]) && qIsBlank(primaryFin.itr)) return "Please answer the ITR question.";
         return "";
       }
