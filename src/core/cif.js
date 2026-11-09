@@ -292,7 +292,7 @@ const CIF_UK_SECTIONS = [
     ["Visas stamped in this passport","Prev_Passport_Visas_Stamped","text",null,false],
   ]},
   { id:"employment", title:"Employment", icon:"&#x1F4BC;", fields:[
-    ["Employment status","f1","What_is_your_employment_status","multiselect",["Employed","Self-Employed","Business Owner","A Student","Retired","Unemployed"],true],
+    ["Employment status","f1","What_is_your_employment_status","multiselect",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other — Please Specify"],true],
     ["Employer's name","f1","Employer_s_name","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"},"e.g. Tata Consultancy Services"],
     ["Employer's address","f1","Employer_s_address","address",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
     ["Employer's telephone number","f1","Employer_s_telephone_number","phone",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Employed"}],
@@ -1257,9 +1257,9 @@ if (finance) {
 }
       if (finance && finance.multiAnswers) {
         const occMap = [
-          ["occ-employed", "Employed"], ["occ-freelancer", "Self-Employed"], ["occ-business", "Self-Employed"],
-          ["occ-student", "A Student"], ["occ-pensioner", "Retired"], ["occ-retired-nopension", "Retired"],
-          ["occ-unemployed", "Unemployed"]
+          ["occ-employed", "Employed (Job)"], ["occ-freelancer", "Self-Employed (Freelancer)"], ["occ-business", "Business Owner"],
+          ["occ-homemaker", "Homemaker"], ["occ-student", "Student"], ["occ-pensioner", "Retired with Pension"], ["occ-retired-nopension", "Retired without Pension"],
+          ["occ-unemployed", "Unemployed"], ["occ-other", "Other — Please Specify"]
         ];
         const matched = occMap.filter(([key]) => finance.multiAnswers[key]).map(([, label]) => label);
         if (matched.length) {
