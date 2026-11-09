@@ -315,6 +315,10 @@ const CIF_UK_SECTIONS = [
     ["Business Country","f1","Business_Country","select",UK_CIF_COUNTRIES,false,{key:"What_is_your_employment_status",form:"f1",includes:"Business Owner"}],
     ["Homemaker since (date)","f1","Homemaker_Since","date",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Homemaker"}],
     ["If this doesn't cover the full 10-year history, previous employment or education will be requested below.",null,"homemaker_note","note",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Homemaker"}],
+    ["Previous Employer / Organisation","f1","Retired_Prev_Employer","text",null,false,{anyOf:[{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}]},"Last employer name"],
+    ["Last Designation","f1","Retired_Last_Designation","text",null,false,{anyOf:[{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}]},"e.g. Senior Engineer, Manager"],
+    ["Date of Retirement","f1","Retired_Date","date",null,false,{anyOf:[{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}]}],
+    ["Annual Pension (INR per year)","f1","Retired_Annual_Pension","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},"Amount in INR per year"],
   ]},
   { id:"income", title:"Income & Savings", icon:"&#x1F4B0;", fields:[
     ["Any other income or savings?","f1","Do_you_have_another_income_or_any_savings","yesno",null,true],
@@ -1278,6 +1282,16 @@ if (finance) {
         // Auto-fill homemaker field from questionnaire
         if (finance.multiAnswers["occ-homemaker"] && finance.homemakerSince) {
           setIfEmpty(cifPath(travId, "f1", "Homemaker_Since"), finance.homemakerSince);
+        }
+
+        // Auto-fill retired fields from questionnaire
+        if (finance.multiAnswers["occ-pensioner"] || finance.multiAnswers["occ-retired-nopension"]) {
+          if (finance.retiredPrevEmployer) setIfEmpty(cifPath(travId, "f1", "Retired_Prev_Employer"), finance.retiredPrevEmployer);
+          if (finance.retiredLastDesig)    setIfEmpty(cifPath(travId, "f1", "Retired_Last_Designation"), finance.retiredLastDesig);
+          if (finance.retiredDate)         setIfEmpty(cifPath(travId, "f1", "Retired_Date"), finance.retiredDate);
+          if (finance.multiAnswers["occ-pensioner"] && finance.retiredAnnualPension) {
+            setIfEmpty(cifPath(travId, "f1", "Retired_Annual_Pension"), finance.retiredAnnualPension);
+          }
         }
 
         // Auto-fill self-employed fields from questionnaire
