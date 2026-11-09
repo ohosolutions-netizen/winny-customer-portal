@@ -852,157 +852,101 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     return [];
   }
 
-  // Pre-pass: try to match batch records to pending units by Client_Name in JS
-  // (Creator portal API can't filter by Client_Name, but we have the data already)
-  if (records.length) {
-    allUnits.forEach(unit => {
-      if (applicationData.questionnaire.submittedUnits[unit.familyId]) return;
-      const primary = unit.primaryTraveller;
-      const uName = `${primary?.firstName || ""} ${primary?.lastName || ""}`.trim().toLowerCase() ||
-                    String(primary?.name || primary?.Name || "").trim().toLowerCase();
-      if (!uName) return;
-      const match = records.find(r => {
-        const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
-        return rName && (rName === uName || rName.includes(uName) || uName.includes(rName));
-      });
-      if (match) {
-        console.log(`[Winny] Matched batch record to unit ${unit.familyId} by Client_Name`);
-        applyRecord(match, unit.familyId);
+  // Helper: find a submission record for a specific traveller from a records array.
+  // Matches by Primary_Traveller_ID (CRM traveller ID) first, then Client_Name.
+  function findRecordForTraveller(t, recs) {
+    const tCrmId = String(t.crmId || "").trim();
+    const tName  = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+    return recs.find(r => {
+      if (tCrmId) {
+        const rId = String(r.Primary_Traveller_ID || "").trim();
+        if (rId && rId === tCrmId) return true;
       }
+      if (tName) {
+        const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
+        return rName && (rName === tName || rName.includes(tName) || tName.includes(rName));
+      }
+      return false;
     });
   }
 
+  // Helper: mark a single traveller confirmed and capture consent from their record.
+  function markTravellerConfirmed(unit, travIdx, r) {
+    if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
+    if (!applicationData.questionnaire.submittedTravellers[unit.familyId]) applicationData.questionnaire.submittedTravellers[unit.familyId] = {};
+    if (!applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx]) {
+      applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx] = true;
+      changed = true;
+    }
+    if (r) {
+      const rawConsent = r.Data_Sharing_Consent;
+      const consentGiven = rawConsent === true || rawConsent === "true" || rawConsent === "1" || rawConsent === 1 || String(rawConsent || "").toLowerCase() === "yes";
+      if (consentGiven) {
+        if (!applicationData.questionnaire.unitConsents) applicationData.questionnaire.unitConsents = {};
+        if (!applicationData.questionnaire.unitConsents[unit.familyId]) {
+          applicationData.questionnaire.unitConsents[unit.familyId] = true;
+          changed = true;
+        }
+      }
+    }
+  }
+
+  // Helper: mark entire unit done if every traveller is now confirmed.
+  function promoteUnitIfAllDone(unit) {
+    if (applicationData.questionnaire.submittedUnits[unit.familyId]) return;
+    const stMap = (applicationData.questionnaire.submittedTravellers || {})[unit.familyId] || {};
+    if (unit.travellers.every((_, i) => stMap[i])) {
+      applicationData.questionnaire.submittedUnits[unit.familyId] = true;
+      if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
+      changed = true;
+    }
+  }
+
+  // Step 1: match each traveller against the batch records already fetched by CRM_ID.
+  // These records are actual questionnaire submissions — presence of a matching record
+  // confirms the traveller filled and submitted the form.
+  if (records.length) {
+    allUnits.forEach(unit => {
+      if (applicationData.questionnaire.submittedUnits[unit.familyId]) return;
+      unit.travellers.forEach((t, travIdx) => {
+        const r = findRecordForTraveller(t, records);
+        if (r) {
+          console.log(`[Winny] Traveller ${t.id || t.firstName} (idx ${travIdx}) confirmed via batch record`);
+          markTravellerConfirmed(unit, travIdx, r);
+        }
+      });
+      promoteUnitIfAllDone(unit);
+    });
+  }
+
+  // Step 2: for travellers still unconfirmed, query Creator individually.
+  // This catches submissions where CRM_ID wasn't saved in the questionnaire record
+  // (e.g. admin-entered or pre-fill URL misconfigured).
   const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
-  console.log(`[Winny] ${pendingUnits.length} unit(s) still pending external check`);
+  console.log(`[Winny] ${pendingUnits.length} unit(s) still pending after batch match`);
   for (const unit of pendingUnits) {
-    // 0. Multi-traveller units with NO qTokens: fall back to Client_Name matching
-    //    against the already-fetched batch records. When tokens ARE available, step 1
-    //    handles per-traveller completion correctly — skip this path in that case.
-    if (unit.travellers.length > 1 && records.length && !unit.travellers.some(t => t.qToken)) {
-      const namedTravellers = unit.travellers.filter(t =>
-        `${t.firstName || ""} ${t.lastName || ""}`.trim()
-      );
-      if (namedTravellers.length > 0) {
-        const allFound = namedTravellers.every(t => {
-          const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
-          return records.some(r => {
-            const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
-            return rName && (rName === tName || rName.includes(tName) || tName.includes(rName));
-          });
-        });
-        if (allFound) {
-          console.log(`[Winny] All ${namedTravellers.length} traveller(s) in unit ${unit.familyId} confirmed via batch records (no-token fallback)`);
-          applicationData.questionnaire.submittedUnits[unit.familyId] = true;
-          if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
-          changed = true;
-        } else {
-          // Mark whichever individual travellers were found
-          namedTravellers.forEach((t, i) => {
-            const travIdx = unit.travellers.indexOf(t);
-            const tName = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
-            const found = records.some(r => {
-              const rName = String(r.Client_Name || r.Traveller_Name || "").trim().toLowerCase();
-              return rName && (rName === tName || rName.includes(tName) || tName.includes(rName));
-            });
-            if (found && travIdx >= 0) {
-              if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
-              if (!applicationData.questionnaire.submittedTravellers[unit.familyId]) applicationData.questionnaire.submittedTravellers[unit.familyId] = {};
-              if (!applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx]) {
-                applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx] = true;
-                changed = true;
-              }
-            }
-          });
-          console.log(`[Winny] Only some travellers found in batch for unit ${unit.familyId} — not marking done yet`);
-        }
-        continue; // Skip primary-only lookups for multi-traveller units
-      }
-    }
-
-    // 1. Per-traveller Q_Token lookup (each traveller now has their own unique token)
-    //    A unit is complete only when every traveller with a token has a matching record.
-    const tokenTravellers = unit.travellers.filter(t => t.qToken);
-    if (tokenTravellers.length > 0) {
-      let allFound = true;
-      for (const t of tokenTravellers) {
-        const travIdx = unit.travellers.indexOf(t);
-        try {
-          const rows = await creatorQuery(`Q_Token == "${t.qToken}"`);
-          if (rows.length) {
-            // Capture consent from this traveller's record
-            const r = rows[0];
-            const rawConsent = r.Data_Sharing_Consent;
-            const consentGiven = rawConsent === true || rawConsent === "true" || rawConsent === "1" || rawConsent === 1 || String(rawConsent || "").toLowerCase() === "yes";
-            if (consentGiven) {
-              if (!applicationData.questionnaire.unitConsents) applicationData.questionnaire.unitConsents = {};
-              if (!applicationData.questionnaire.unitConsents[unit.familyId]) {
-                applicationData.questionnaire.unitConsents[unit.familyId] = true;
-                changed = true;
-              }
-            }
-            // Mark this individual traveller as submitted
-            if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
-            if (!applicationData.questionnaire.submittedTravellers[unit.familyId]) applicationData.questionnaire.submittedTravellers[unit.familyId] = {};
-            if (!applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx]) {
-              applicationData.questionnaire.submittedTravellers[unit.familyId][travIdx] = true;
-              changed = true;
-            }
-            console.log(`[Winny] Traveller ${t.id} (idx ${travIdx}) in unit ${unit.familyId} confirmed submitted via Q_Token`);
-          } else {
-            allFound = false;
-          }
-        } catch (e) {
-          console.warn(`[Winny] Q_Token lookup failed for traveller ${t.id}:`, e);
-          allFound = false;
-        }
-      }
-      if (allFound) {
-        console.log(`[Winny] All ${tokenTravellers.length} traveller(s) in unit ${unit.familyId} submitted — marking unit done`);
-        if (!applicationData.questionnaire.submittedUnits[unit.familyId]) {
-          applicationData.questionnaire.submittedUnits[unit.familyId] = true;
-          if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
-          changed = true;
-        }
-        continue;
-      }
-      // Some travellers have tokens but not all submitted — don't fall through to name
-      // lookup which could false-positive on partial completions
-      continue;
-    }
-
-    // 2. Primary_Traveller_ID lookup (portal-saved records carry the CRM traveller record ID)
-    const primary = unit.primaryTraveller;
-    const travCrmId = primary?.crmId || "";
-    if (travCrmId) {
+    const stMap = (applicationData.questionnaire.submittedTravellers || {})[unit.familyId] || {};
+    for (let travIdx = 0; travIdx < unit.travellers.length; travIdx++) {
+      if (stMap[travIdx]) continue; // already confirmed from batch
+      const t = unit.travellers[travIdx];
+      const tCrmId = String(t.crmId || "").trim();
+      const tName  = `${t.firstName || ""} ${t.lastName || ""}`.trim();
+      let rows = [];
       try {
-        const rows = await creatorQuery(`Primary_Traveller_ID == "${travCrmId}"`);
-        if (rows.length) {
-          console.log(`[Winny] Found questionnaire record by Primary_Traveller_ID for unit ${unit.familyId}`);
-          applyRecord(rows[0], unit.familyId);
-          continue;
-        }
-      } catch (e) {
-        console.warn(`[Winny] Primary_Traveller_ID lookup failed for unit ${unit.familyId}:`, e);
+        if (tCrmId) rows = await creatorQuery(`Primary_Traveller_ID == "${tCrmId}"`);
+      } catch (e) { console.warn(`[Winny] Primary_Traveller_ID lookup failed for ${t.id}:`, e); }
+      if (!rows.length && tName && dealId) {
+        try { rows = await creatorQuery(`CRM_ID == "${dealId}" && Client_Name == "${tName}"`); }
+        catch (e) { console.warn(`[Winny] Name lookup failed for ${t.id}:`, e); }
+      }
+      if (rows.length) {
+        console.log(`[Winny] Traveller ${t.id || tName} (idx ${travIdx}) confirmed via individual Creator query`);
+        markTravellerConfirmed(unit, travIdx, rows[0]);
+      } else {
+        console.warn(`[Winny] No questionnaire record found for traveller ${t.id || tName} in unit ${unit.familyId}`);
       }
     }
-
-    // 3. Client_Name lookup (admin-entered records that lack Primary_Traveller_ID)
-    const tName = `${primary?.firstName || ""} ${primary?.lastName || ""}`.trim();
-    console.log(`[Winny] Checking unit ${unit.familyId} by name "${tName}"`);
-    if (tName) {
-      try {
-        // Always scope to this deal — a name-only fallback would match records from other deals.
-        const rows = dealId ? await creatorQuery(`CRM_ID == "${dealId}" && Client_Name == "${tName}"`) : [];
-        if (rows.length) {
-          console.log(`[Winny] Found questionnaire record by name "${tName}" for unit ${unit.familyId}`);
-          applyRecord(rows[0], unit.familyId);
-        } else {
-          console.warn(`[Winny] No questionnaire record found by name "${tName}" for unit ${unit.familyId}`);
-        }
-      } catch (e) {
-        console.warn(`[Winny] Name lookup failed for unit ${unit.familyId}:`, e);
-      }
-    }
+    promoteUnitIfAllDone(unit);
   }
 
   if (changed || !applicationData.stepStatus.anyQuestionnaireSubmitted) {
