@@ -680,6 +680,64 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   const allUnits = deriveQuestionnaireUnits();
   let changed = false;
 
+  // Populate t.qToken from Questionnaire_Link_Email — tokens are stored in Creator,
+  // not in CRM, so travellers arrive without them. Fetch once per deal load and set
+  // them on the traveller objects so the per-traveller token check below can fire.
+  const qlinkReport = "Questionnaire_Link_Email_Report";
+  try {
+    let qlinkRecords = [];
+    if (window.ZOHO?.CREATOR?.DATA?.getRecords) {
+      const res = await ZOHO.CREATOR.DATA.getRecords({
+        app_name: CONFIG.creator.appLinkName,
+        report_name: qlinkReport,
+        criteria: `CRM_ID == "${dealId}"`
+      });
+      if (Number(res?.code) === 3000) {
+        qlinkRecords = Array.isArray(res?.data) ? res.data
+          : (Array.isArray(res?.data?.data) ? res.data.data : []);
+      }
+    }
+    if (!qlinkRecords.length && window.ZOHO?.CREATOR?.API?.invokeUrl) {
+      const url = `https://creator.zoho.in/api/v2/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/report/${qlinkReport}?criteria=${encodeURIComponent(`CRM_ID == "${dealId}"`)}&max_records=200`;
+      const res = await ZOHO.CREATOR.API.invokeUrl({ url, type: "GET", connectionName: CONFIG.creatorConnectionName });
+      const body = typeof res?.data === "string" ? (JSON.parse(res.data) || {}) : (res?.data || res || {});
+      qlinkRecords = Array.isArray(body?.data) ? body.data : [];
+    }
+    if (!qlinkRecords.length && window.ZOHO?.CREATOR?.API?.getRecords) {
+      const res = await ZOHO.CREATOR.API.getRecords({
+        accountOwnerName: CONFIG.creator.appOwner,
+        appLinkName: CONFIG.creator.appLinkName,
+        reportLinkName: qlinkReport,
+        criteria: `CRM_ID == "${dealId}"`,
+        fromIndex: 1,
+        toIndex: 200
+      });
+      qlinkRecords = Array.isArray(res?.data) ? res.data : [];
+    }
+    const travellerList = applicationData.deal.travellers || [];
+    qlinkRecords.forEach(r => {
+      const token = String(r.Q_Token || "").trim();
+      if (!token) return;
+      const travCrmId = String(r.Traveller_ID || "").trim();
+      const travName = String(r.Traveller_Name1 || "").trim().toLowerCase();
+      let matched = travCrmId
+        ? travellerList.find(t => t.crmId && String(t.crmId) === travCrmId)
+        : null;
+      if (!matched && travName) {
+        matched = travellerList.find(t => {
+          const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+          return tBuilt && (tBuilt === travName || travName.includes(tBuilt) || tBuilt.includes(travName));
+        });
+      }
+      if (matched && !matched.qToken) {
+        matched.qToken = token;
+        console.log(`[Winny] Q_Token populated for traveller ${matched.id} (${matched.firstName})`);
+      }
+    });
+  } catch (err) {
+    console.warn("[Winny] Failed to load Q_Tokens from Questionnaire_Link_Email:", err);
+  }
+
   function applyRecord(r, familyIdHint) {
     let fg = familyIdHint || String(r.Family_Group || r.family_group || "").trim();
 
@@ -813,11 +871,10 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   const pendingUnits = allUnits.filter(u => !applicationData.questionnaire.submittedUnits[u.familyId]);
   console.log(`[Winny] ${pendingUnits.length} unit(s) still pending external check`);
   for (const unit of pendingUnits) {
-    // 0. Multi-traveller units: use the already-fetched batch records to check whether
-    //    ALL travellers have submitted (matched by Client_Name). If only some are found,
-    //    skip the primary-only fallbacks below — they would mark the unit done on a
-    //    partial match and incorrectly show the whole family as submitted.
-    if (unit.travellers.length > 1 && records.length) {
+    // 0. Multi-traveller units with NO qTokens: fall back to Client_Name matching
+    //    against the already-fetched batch records. When tokens ARE available, step 1
+    //    handles per-traveller completion correctly — skip this path in that case.
+    if (unit.travellers.length > 1 && records.length && !unit.travellers.some(t => t.qToken)) {
       const namedTravellers = unit.travellers.filter(t =>
         `${t.firstName || ""} ${t.lastName || ""}`.trim()
       );
@@ -830,14 +887,14 @@ async function checkExternalQuestionnaireSubmission(dealId) {
           });
         });
         if (allFound) {
-          console.log(`[Winny] All ${namedTravellers.length} traveller(s) in unit ${unit.familyId} confirmed via batch records`);
+          console.log(`[Winny] All ${namedTravellers.length} traveller(s) in unit ${unit.familyId} confirmed via batch records (no-token fallback)`);
           applicationData.questionnaire.submittedUnits[unit.familyId] = true;
           if (qState.unitCompletions) qState.unitCompletions[unit.familyId] = true;
           changed = true;
         } else {
           console.log(`[Winny] Only some travellers found in batch for unit ${unit.familyId} — not marking done yet`);
         }
-        continue; // Don't fall through to primary-only lookups for multi-traveller units
+        continue; // Skip primary-only lookups for multi-traveller units
       }
     }
 
