@@ -866,39 +866,6 @@ if (questionnaireSubmitted) {
 
   // Populate submittedUnits from the CRM-reported family groups so that
   // individual traveller status (✓ Submitted) reflects external submissions.
-  const crmFamilyGroups = Array.isArray(questionnaireStatus.familyGroups)
-    ? questionnaireStatus.familyGroups
-    : [];
-  if (crmFamilyGroups.length > 0) {
-    if (!applicationData.questionnaire.submittedUnits) {
-      applicationData.questionnaire.submittedUnits = {};
-    }
-    const travellerList = applicationData.deal.travellers || [];
-    // Build map: CRM Family_Group value → local traveller familyId
-    // crmTravellerRows carries each traveller's CRM id and Family_Group field.
-    const crmFgToLocalFamilyId = {};
-    crmTravellerRows.forEach(row => {
-      const rowCrmId = String(row.id || row.ID || "");
-      const rowFg = String(row.Family_Group || "").trim();
-      if (!rowCrmId || !rowFg) return;
-      const local = travellerList.find(t => t.crmId && String(t.crmId) === rowCrmId);
-      if (local?.familyId) crmFgToLocalFamilyId[rowFg] = local.familyId;
-    });
-    crmFamilyGroups.forEach(fg => {
-      if (!fg) return;
-      // Mark the raw CRM Family_Group key so it's findable by later lookup.
-      // Do NOT mark the resolved local familyId or t.familyId here — a family group
-      // entry in the CRM means "at least one member submitted", not "all members done".
-      // The family-level completeness check below only marks familyId when all t.id
-      // entries for that family are individually confirmed as submitted.
-      applicationData.questionnaire.submittedUnits[fg] = true;
-      // Do NOT mark individual t.id here based on familyId — crmFamilyGroups only
-      // tells us "at least one member of this family submitted", not which specific
-      // traveller. t.familyId === fg would match ALL family members and incorrectly
-      // mark everyone as done. Per-traveller marking comes solely from submittedClients.
-    });
-  }
-
   // submittedClients: array of Client_Name values returned by the Deluge function when it
   // queries Creator server-side. More reliable than browser-side Creator API calls since
   // the portal widget API blocks most criteria.
