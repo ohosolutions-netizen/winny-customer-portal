@@ -292,7 +292,7 @@ const CIF_UK_SECTIONS = [
     ["Visas stamped in this passport","Prev_Passport_Visas_Stamped","text",null,false],
   ]},
   { id:"employment", title:"Employment", icon:"&#x1F4BC;", fields:[
-    ["Employment status","f1","What_is_your_employment_status","select",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other — Please Specify"],true],
+    ["Employment status","f1","What_is_your_employment_status","select",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other – Please Specify"],true],
     ["Employer / Organisation Name","f1","Employer_s_name","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"Company name"],
     ["Job Title / Designation","f1","Your_job_title","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"},"e.g. Senior Manager, Software Engineer"],
     ["Industry / Sector","f1","Employer_Industry","select",["Accounting & Audit","Advertising & Marketing","Agriculture & Farming","Automobiles & Auto Components","Aviation & Aerospace","Banking & Financial Services","Biotechnology & Life Sciences","Chemical & Pharma","Construction & Real Estate","Consulting & Management","Defence & Security","Diamond & Jewellery","Education & Training","Energy & Power (Oil, Gas, Renewables)","Engineering & Capital Goods","Export / Import / Trading","FMCG & Consumer Goods","Food Processing & Beverages","Government & Public Sector","Healthcare & Hospitals","Hospitality, Travel & Tourism","Insurance","IT & Software","Legal Services","Logistics & Supply Chain","Manufacturing (General)","Media & Entertainment","Mining & Metals","NGO / Non-Profit / Social Sector","Printing & Packaging","Real Estate Development","Retail & E-commerce","Shipping & Maritime","Sports & Fitness","Telecommunications","Textile & Apparel","Transport & Mobility","Other"],true,{key:"What_is_your_employment_status",form:"f1",includes:"Employed (Job)"}],
@@ -328,8 +328,8 @@ const CIF_UK_SECTIONS = [
     ["Last Employment (if any)","f1","Unemployed_Last_Employment","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Unemployed"},"Previous employer / role (optional)"],
     ["Reason for not currently employed","f1","Unemployed_Reason","select",["Resigned / Quit","Made Redundant / Laid Off","Health Reasons","Family Responsibilities","Studying / Further Education","Career Break","Never Employed","Other"],false,{key:"What_is_your_employment_status",form:"f1",includes:"Unemployed"}],
     ["Annual Income (if any — from investments, family support)","f1","Unemployed_Annual_Income","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Unemployed"},"Amount in INR"],
-    ["Please specify your occupation","f1","Other_Occupation_Description","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Other — Please Specify"},"Describe your occupation"],
-    ["Annual Income","f1","Other_Occupation_Income","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Other — Please Specify"},"Amount in INR"],
+    ["Please specify your occupation","f1","Other_Occupation_Description","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Other – Please Specify"},"Describe your occupation"],
+    ["Annual Income","f1","Other_Occupation_Income","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Other – Please Specify"},"Amount in INR"],
   ]},
   { id:"income", title:"Income & Savings", icon:"&#x1F4B0;", fields:[
     ["Any other income or savings?","f1","Do_you_have_another_income_or_any_savings","yesno",null,true],
@@ -1486,7 +1486,7 @@ if (finance) {
         const occMap = [
           ["occ-employed", "Employed (Job)"], ["occ-freelancer", "Self-Employed (Freelancer)"], ["occ-business", "Business Owner"],
           ["occ-homemaker", "Homemaker"], ["occ-student", "Student"], ["occ-pensioner", "Retired with Pension"], ["occ-retired-nopension", "Retired without Pension"],
-          ["occ-unemployed", "Unemployed"], ["occ-other", "Other — Please Specify"]
+          ["occ-unemployed", "Unemployed"], ["occ-other", "Other – Please Specify"]
         ];
         const matched = occMap.filter(([key]) => finance.multiAnswers[key]).map(([, label]) => label);
         if (matched.length) {
