@@ -80,7 +80,7 @@ export default function AgreementCard({ traveller, familyCountries, travellerAgr
         <div>
           <strong>{name} — agreement signed</strong>
           <small>
-            {hasPortalAccess
+            {(hasPortalAccess || isLoggedInUser)
               ? "Verified digitally via OTP"
               : "Agreement emailed directly"}
             {signedAt ? ` · ${new Date(signedAt).toLocaleString("en-IN")}` : ""}
@@ -279,6 +279,8 @@ export default function AgreementCard({ traveller, familyCountries, travellerAgr
       try { parsedAt = JSON.parse(result.CRM_Response || "{}").signedAt || ""; } catch (e) {}
       traveller.agreementSigned = true;
       traveller.agreementSignedAt = parsedAt || new Date().toISOString();
+      traveller.portalAccess = true;
+      setHasPortalAccess(true);
       setSigned(true);
       setSignedAt(traveller.agreementSignedAt);
       toast(`Agreement signed by ${name} ✓`);
