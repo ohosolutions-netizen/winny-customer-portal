@@ -951,7 +951,7 @@ if (questionnaireSubmitted) {
   const _distinctFamilyIds = [...new Set(travellers.map(t => t.familyId || "family-1"))];
   const isMultiUnit = _distinctFamilyIds.length > 1;
   const allDone = hasUnitTracking
-    ? travellers.every(t => submittedUnits[t.id || t.familyId || "family-1"])
+    ? travellers.every(t => t.id && submittedUnits[t.id])
     : !isMultiUnit;
 
   if (allDone) {
