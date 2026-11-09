@@ -2177,7 +2177,7 @@ const finAssetBlocks = primaryFinanceTravellers.map(t => {
               <h3>Case Questionnaire${_isMultiUnit ? ` — ${escapeHtml(_activeUnit.label)}` : ""}</h3>
               <p>Your answers generate your personalised document checklist and prepare your application file.</p>
             </div>
-            ${_isMultiUnit ? `<button class="btn" type="button" onclick="qBackToOverview()">&#x2190; All Questionnaires</button>` : ""}
+            ${(_isMultiUnit || (_activeUnit?.travellers?.length || 0) > 1) ? `<button class="btn" type="button" onclick="qBackToOverview()">&#x2190; All Questionnaires</button>` : ""}
           </div>
           <div class="panel-body">
             ${!isFirstTraveller ? `
