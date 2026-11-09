@@ -320,6 +320,13 @@ const CIF_UK_SECTIONS = [
     ["Date of Retirement","f1","Retired_Date","date",null,false,{anyOf:[{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}]}],
     ["Annual Pension (INR per year)","f1","Retired_Annual_Pension","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Retired with Pension"},"Amount in INR per year"],
     ["No pension — savings and investments are the primary financial source.",null,"retired_no_pension_note","note",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Retired without Pension"}],
+    ["Institution Name","f1","Student_Institution","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Student"},"School / College / University"],
+    ["Programme / Course / Grade","f1","Student_Course","text",null,true,{key:"What_is_your_employment_status",form:"f1",includes:"Student"},"e.g. B.Tech 3rd Year, Class 12"],
+    ["City","f1","Student_City","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Student"},"City"],
+    ["Country","f1","Student_Country","select",UK_CIF_COUNTRIES,false,{key:"What_is_your_employment_status",form:"f1",includes:"Student"}],
+    ["Last Employment (if any)","f1","Unemployed_Last_Employment","text",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Unemployed"},"Previous employer / role (optional)"],
+    ["Reason for not currently employed","f1","Unemployed_Reason","select",["Resigned / Quit","Made Redundant / Laid Off","Health Reasons","Family Responsibilities","Studying / Further Education","Career Break","Never Employed","Other"],false,{key:"What_is_your_employment_status",form:"f1",includes:"Unemployed"}],
+    ["Annual Income (if any — from investments, family support)","f1","Unemployed_Annual_Income","number",null,false,{key:"What_is_your_employment_status",form:"f1",includes:"Unemployed"},"Amount in INR"],
   ]},
   { id:"income", title:"Income & Savings", icon:"&#x1F4B0;", fields:[
     ["Any other income or savings?","f1","Do_you_have_another_income_or_any_savings","yesno",null,true],
@@ -1302,6 +1309,14 @@ if (finance) {
           if (finance.freelanceStartDate) setIfEmpty(cifPath(travId, "f1", "Self_Employed_Start_Date"), finance.freelanceStartDate);
           if (finance.freelanceTurnover)  setIfEmpty(cifPath(travId, "f1", "Self_Employed_Turnover"), finance.freelanceTurnover);
           if (finance.freelanceIncome)    setIfEmpty(cifPath(travId, "f1", "Amount_earning_Self_Employed"), finance.freelanceIncome);
+        }
+
+        // Auto-fill student fields from questionnaire
+        if (finance.multiAnswers["occ-student"]) {
+          if (finance.studentInst)    setIfEmpty(cifPath(travId, "f1", "Student_Institution"), finance.studentInst);
+          if (finance.studentCourse)  setIfEmpty(cifPath(travId, "f1", "Student_Course"), finance.studentCourse);
+          if (finance.studentCity)    setIfEmpty(cifPath(travId, "f1", "Student_City"), finance.studentCity);
+          if (finance.studentCountry) setIfEmpty(cifPath(travId, "f1", "Student_Country"), finance.studentCountry);
         }
       }
 
