@@ -720,9 +720,18 @@ async function checkExternalQuestionnaireSubmission(dealId) {
     }
 
     if (fg && !applicationData.questionnaire.submittedUnits[fg]) {
-      applicationData.questionnaire.submittedUnits[fg] = true;
-      if (qState.unitCompletions) qState.unitCompletions[fg] = true;
-      changed = true;
+      // If the unit has per-traveller qTokens, do NOT mark it done here.
+      // The token-based per-traveller check below requires ALL travellers to have
+      // submitted their own record before the unit is complete. Marking it done from
+      // the CRM_ID batch query (which returns any record for the deal) would skip that
+      // check and incorrectly show the whole family done when only one person submitted.
+      const matchedUnit = allUnits.find(u => u.familyId === fg);
+      const hasTokenTravellers = matchedUnit?.travellers.some(t => t.qToken);
+      if (!hasTokenTravellers) {
+        applicationData.questionnaire.submittedUnits[fg] = true;
+        if (qState.unitCompletions) qState.unitCompletions[fg] = true;
+        changed = true;
+      }
     }
 
     // Read Data_Sharing_Consent from Creator record
