@@ -58,12 +58,14 @@ function cifNormalizeCountry(country) {
     // ── CIF render + logic + schema + schengen (source 4057-7241) ──
     function cifTypeForCountry(country) {
       const normalized = cifNormalizeCountry(country);
+      if (normalized === "United Kingdom") return "uk";
       if (normalized === "Australia") return "australia";
       if (normalized === "United States") return "usa";
       // "Schengen" stored as zone name (not a specific country) → Schengen CIF
       if (normalized.toLowerCase() === "schengen") return "schengen";
       if (SCHENGEN_COUNTRIES.has(normalized.toLowerCase())) return "schengen";
-      return "uk";
+      // No CIF form exists for this destination (e.g. Canada, New Zealand)
+      return null;
     }
 
     function cifInstanceSlug(country) {
@@ -96,13 +98,14 @@ function cifNormalizeCountry(country) {
         return true;
       }).map(country => {
         const type = cifTypeForCountry(country);
+        if (!type) return null; // No CIF form available for this destination
         return {
           id: `${cifInstanceSlug(country)}-${type}`,
           country,
           type,
           definition: CIF_TYPE_DEFINITIONS[type]
         };
-      });
+      }).filter(Boolean);
     }
 
     function cifGetInstance(instanceId) {
@@ -3314,7 +3317,11 @@ const traveller = travellers.find(t => t.id === travId);
       cifEnsureDataModel();
       const instances = cifDestinationInstances();
       if (!instances.length) {
-        qs("#stepCIF").innerHTML = `<section class="wizard-panel"><div class="panel-body"><div class="qn qn-amber">No destination countries were selected. Return to the questionnaire and select at least one country.</div></div></section>`;
+        const allCountries = qQuestionnaireCountries();
+        const msg = allCountries.length
+          ? `A Client Information Form is not currently available for <strong>${allCountries.map(c => cifNormalizeCountry(c)).join(", ")}</strong>. Your case expert will be in touch to collect the required information.`
+          : "No destination countries were selected. Return to the questionnaire and select at least one country.";
+        qs("#stepCIF").innerHTML = `<section class="wizard-panel"><div class="panel-body"><div class="qn qn-amber">${msg}</div></div></section>`;
         return;
       }
       if (!state.activeCifTraveller || !travellers.some(t => t.id === state.activeCifTraveller)) state.activeCifTraveller = travellers[0].id;
