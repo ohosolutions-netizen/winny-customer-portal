@@ -134,6 +134,11 @@ export async function docEmailLink(travellerId) {
   renderDocuments();
 }
 
+export function docSetActiveTraveller(travKey) {
+  state.documents.activeTravellerId = travKey;
+  renderDocuments();
+}
+
 export function docResetLink(travellerId) {
   (applicationData.deal.travellers || []).forEach(t => {
     if (t.id === travellerId || t.crmId === travellerId) {
@@ -352,6 +357,12 @@ export function switchDocumentUnit(familyId) {
         byTraveller[key].docs.push(d);
       });
 
+      const travKeys = Object.keys(byTraveller);
+      if (!state.documents.activeTravellerId || !byTraveller[state.documents.activeTravellerId]) {
+        state.documents.activeTravellerId = travKeys[0] || null;
+      }
+      const activeTravKey = state.documents.activeTravellerId;
+
       const _docAppType = (applicationData.deal.applicationType || "").toLowerCase();
       const _docConsentGated = _docAppType === "corporate" || _docAppType === "friends";
       const _docTravMap = {};
@@ -363,7 +374,8 @@ export function switchDocumentUnit(familyId) {
       const _docUnits = deriveQuestionnaireUnits();
       const _portalFamilyId = getPortalUserFamilyId();
 
-      const travellerBlocks = Object.entries(byTraveller).map(([travKey, group]) => {
+      const travellerBlockMap = {};
+      Object.entries(byTraveller).forEach(([travKey, group]) => {
         // Determine if this traveller block belongs to the portal user's own family
         const _blockTrav = _docTravMap[travKey];
         const _blockFamilyId = _blockTrav?.familyId || "family-1";
@@ -376,7 +388,7 @@ export function switchDocumentUnit(familyId) {
             const units = _docUnits;
             const consentOk = units.length <= 1 || !!((applicationData.questionnaire.unitConsents || {})[fid]);
             if (!consentOk) {
-              return `<div class="person-block">
+              travellerBlockMap[travKey] = `<div class="person-block">
                 <div class="person-block-hd">
                   <div class="pb-av pb-av-pa" style="filter:grayscale(1);opacity:0.6">${escapeHtml((group.name||"T")[0]||"T")}</div>
                   <div class="pb-info"><div class="pb-name">${escapeHtml(group.name)}</div>
@@ -386,10 +398,11 @@ export function switchDocumentUnit(familyId) {
                   This traveller hasn't consented to sharing their data yet. Once they tick the consent checkbox in their questionnaire form, their documents will be visible here.
                 </div>
               </div>`;
+              return;
             }
           }
         }
-        return `
+        travellerBlockMap[travKey] = `
         <div class="person-block">
           <div class="person-block-hd">
             <div class="pb-av pb-av-pa">${escapeHtml((group.name||"T")[0]||"T")}</div>
@@ -472,7 +485,26 @@ export function switchDocumentUnit(familyId) {
             }).join("")}
           </div>
         </div>`;
-      }).join("");
+      });
+
+      const travTabs = travKeys.length > 1 ? `
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:18px">
+          ${travKeys.map(k => {
+            const g = byTraveller[k];
+            const active = k === activeTravKey;
+            const mandReady = g.docs.filter(d => isMandatoryDocument(d) && isDocumentReady(d)).length;
+            const mandTotal = g.docs.filter(isMandatoryDocument).length;
+            const allDone = mandReady === mandTotal && mandTotal > 0;
+            return `<button type="button" onclick="docSetActiveTraveller('${escapeHtml(String(k))}')"
+              style="padding:9px 18px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:${active ? "700" : "500"};
+              color:${active ? "var(--accent,#1d4ed8)" : "var(--muted,#64748b)"};
+              border-bottom:2.5px solid ${active ? "var(--accent,#1d4ed8)" : "transparent"};
+              margin-bottom:-2px;white-space:nowrap;transition:color .15s">
+              ${escapeHtml(g.name || k)}
+              <span style="margin-left:6px;font-size:11px;font-weight:700;color:${allDone ? "#077753" : "var(--muted,#64748b)"}">${mandReady}/${mandTotal}</span>
+            </button>`;
+          }).join("")}
+        </div>` : "";
 
       target.innerHTML = `
         <section class="wizard-panel">
@@ -488,7 +520,8 @@ export function switchDocumentUnit(familyId) {
               <div class="q-prog-top"><div class="q-prog-label">${mandatoryReadyCount} of ${mandatoryItems.length} mandatory documents ready${strengthItems.length ? ` · ${strengthItems.length} strength` : ""}${optionalItems.length ? ` · ${optionalItems.length} optional` : ""}</div><div class="q-prog-pct">${pct}%</div></div>
               <div class="q-prog-bg"><div class="q-prog-fill" style="width:${pct}%"></div></div>
             </div>
-            ${travellerBlocks}
+            ${travTabs}
+            ${activeTravKey ? (travellerBlockMap[activeTravKey] || "") : Object.values(travellerBlockMap).join("")}
           </div>
         </section>`;
     }

@@ -3,13 +3,14 @@ import * as Docs from "../../api/documents.js";
 import { loadDocumentChecklist, renderDocuments } from "../../api/documents.js";
 import { state } from "../../store/runtime.js";
 
-const DOC_HANDLERS = ["loadDocumentChecklist", "viewDocumentFile", "handleDocumentFileSelected", "switchDocumentUnit", "docGenerateLink", "docCopyLink", "docEmailLink", "docResetLink"];
+const DOC_HANDLERS = ["loadDocumentChecklist", "viewDocumentFile", "handleDocumentFileSelected", "switchDocumentUnit", "docGenerateLink", "docCopyLink", "docEmailLink", "docResetLink", "docSetActiveTraveller"];
 
 export default function Documents() {
   const ref = useRef(null);
   useEffect(() => {
     DOC_HANDLERS.forEach((n) => { window[n] = Docs[n]; });
     state.activeFamilyUnit = "all"; // always start on the "All travellers" view
+    state.documents.activeTravellerId = null; // reset tab selection on mount
     renderDocuments();
     loadDocumentChecklist();
   }, []);

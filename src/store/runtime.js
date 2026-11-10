@@ -141,7 +141,8 @@ export const state = {
         loaded: false,
         loadedForDealId: null,
         uploadingId: null,       // Document record ID currently mid-upload, for per-row spinner
-        viewingId: null          // Document record ID currently mid-view-fetch, for per-row spinner
+        viewingId: null,         // Document record ID currently mid-view-fetch, for per-row spinner
+        activeTravellerId: null  // which traveller tab is selected
       }
     };
 
