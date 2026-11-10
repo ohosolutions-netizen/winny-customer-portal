@@ -124,6 +124,19 @@ const requestEmail = isPortalReadRequest
 
       console.log(`[Winny] Submitting ${requestType} | DealID: ${recordData.CRM_Deal_ID || "new"}`);
 
+      // If the SDK hasn't initialised yet, wait up to 6s for it to appear
+      // (race condition: 300ms wait in initZoho() is sometimes not enough on slow connections)
+      if (!window.ZOHO?.CREATOR?.DATA?.addRecords && !window.ZOHO?.CREATOR?.API?.addRecord && !window.ZOHO?.CREATOR?.API?.invokeUrl) {
+        console.warn("[Winny] SDK not ready at submit time — waiting up to 6s...");
+        for (let i = 0; i < 12; i++) {
+          await new Promise(r => setTimeout(r, 500));
+          if (window.ZOHO?.CREATOR?.DATA?.addRecords || window.ZOHO?.CREATOR?.API?.addRecord || window.ZOHO?.CREATOR?.API?.invokeUrl) {
+            console.log(`[Winny] SDK became available after ${(i + 1) * 500}ms`);
+            break;
+          }
+        }
+      }
+
       // ── Transport 1: CREATOR.DATA.addRecords (SDK v2 — correct for portal) ─
       if (window.ZOHO?.CREATOR?.DATA?.addRecords) {
         console.log("[Winny] Transport 1: CREATOR.DATA.addRecords (SDK v2)");

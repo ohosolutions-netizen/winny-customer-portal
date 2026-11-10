@@ -52,8 +52,8 @@ import { showLoader, hideLoader } from "../lib/ui.js";
         if (window.ZOHO?.CREATOR?.init) {
           await withTimeout(ZOHO.CREATOR.init(), 3500, "Zoho Creator SDK init timed out.").catch(() => {});
         }
-        // Wait a tick for SDK v2 to self-initialise DATA namespace
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait for SDK v2 to self-initialise DATA namespace (300ms was sometimes not enough on slow connections)
+        await new Promise(resolve => setTimeout(resolve, 1500));
       } catch (error) {
         console.warn("Zoho SDK init failed", error);
       } finally {
