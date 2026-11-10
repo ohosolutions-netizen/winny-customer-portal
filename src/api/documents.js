@@ -128,7 +128,8 @@ export async function docEmailLink(travellerId) {
     saveDraft(false);
     toast(`Document link sent to ${traveller.email}`);
   } catch (err) {
-    toast(`Failed to send email — copy the link manually.`);
+    console.error("[Winny:DocEmail] send failed:", err);
+    toast(`Email failed: ${err?.message || String(err)}`);
   }
   renderDocuments();
 }
