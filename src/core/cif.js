@@ -360,7 +360,7 @@ const CIF_UK_SECTIONS = [
     ["Sponsor's Annual Income (INR)","f1","Sponsor_Annual_Income","number",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"}]}],
     ["Sponsor's Savings (INR)","f1","Sponsor_Savings","number",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"}]}],
     ["Inviter's Immigration Status in UK","f1","Inviter_Immigration_Status_UK","select",["British Citizen","Settled (ILR/ILE)","Pre-settled (EU Settlement Scheme)","Work Visa","Student Visa","Visit Visa","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"}]}],
-    ["Who will bear the expenses?","f1","Expenses_Bearing","multiselect",["Accommodation","Food & meals","Local transport","Flights","Pocket Money","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"}]}],
+    ["Who will bear the expenses?","f1","Expenses_Bearing","multiselect",["Accommodation","Food & meals","Local transport","Flights","Pocket Money","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Both / Combined"},{allOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",form:"f1",equals:"Inviter"},{not:{key:"Sponsor_Is_Parent",form:"f1",equals:"Yes"}}]}]}],
   ]},
   { id:"tripdetails", title:"Trip Details", icon:"&#x1F4C5;", fields:[
     ["Purpose of Visit","f1","What_is_the_main_reason_for_your_visit_to_the_UK","select",["To meet Family Member / Relative","To attend family function","Tourism (customized itinerary)","Tourism (Group itinerary)","Business visit (Conference/Seminar/Meeting/Exhibition/Trade Fair/Site Visits/Receiving Training)","To meet Friend","To attend convocation","Transit","Medical Treatment","Other (Please Specify)"],false],
@@ -691,6 +691,8 @@ const CIF_UK_SECTIONS = [
       const addShowIf = (showIf) => {
         if (!showIf) return;
         if (showIf.anyOf) { showIf.anyOf.forEach(addShowIf); return; }
+        if (showIf.allOf) { showIf.allOf.forEach(addShowIf); return; }
+        if (showIf.not)   { addShowIf(showIf.not); return; }
         keys.add(`${showIf.form}.${showIf.key}`);
       };
       CIF_UK_SECTIONS.forEach(section => {
@@ -705,6 +707,8 @@ const CIF_UK_SECTIONS = [
     function cifShowIfMet(travId, showIf, instanceId) {
       if (!showIf) return true;
       if (showIf.anyOf) return showIf.anyOf.some(c => cifShowIfMet(travId, c, instanceId));
+      if (showIf.allOf) return showIf.allOf.every(c => cifShowIfMet(travId, c, instanceId));
+      if (showIf.not)   return !cifShowIfMet(travId, showIf.not, instanceId);
       const value = getByPath(applicationData, cifPath(travId, showIf.form, showIf.key, instanceId));
       if (showIf.equals !== undefined) return value === showIf.equals;
       if (showIf.notEquals !== undefined) return value !== showIf.notEquals && value !== undefined && value !== null && value !== "";
@@ -1480,6 +1484,9 @@ if (finance) {
       ),
       ukPayerTypeMap[finance.sponsorType]
     );
+    if (finance.sponsorType === "parent") {
+      setIfEmpty(cifPath(travId, "f1", "Sponsor_Is_Parent"), "Yes");
+    }
   }
 }
       if (finance && finance.multiAnswers) {
