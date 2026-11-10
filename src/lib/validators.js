@@ -25,8 +25,10 @@ export function classifyFieldValidation(path) {
   if (/passport_issue_date|date_of_issue|issue_date_passport/i.test(path)) return "pastDate";
   // Passport / document expiry date — must be in the future
   if (/passport_expiry_date|date_of_expiry|expiration_date|expiry_date/i.test(path)) return "expiryDate";
-  // Previous visit dates — must be in the past
-  if (/most_recent_visit|second_recent_visit|visit_start_date|visit_end_date|date_you_arrived_in_the_uk/i.test(path)) return "pastDate";
+  // Previous visit dates — must be in the past.
+  // Pattern is intentionally specific: "most_recent_visit" alone would also match the text
+  // fields "What_was_the_reason_for_your_most/second_recent_visit", causing a false date error.
+  if (/(?:date_of_your_|end_date_of_your_)(?:most|second)_recent_visit|visit_start_date|visit_end_date|date_you_arrived_in_the_uk/i.test(path)) return "pastDate";
   return null;
 }
 
