@@ -1459,34 +1459,34 @@ if (finance) {
     ? finance.funding.filter(Boolean)
     : (finance.funding ? [finance.funding] : []);
 
-  const externalFunding = selectedFunding.filter(
-    value => value === "inviter" || value === "sponsor"
-  );
+  const hasSelf    = selectedFunding.includes("self");
+  const hasInviter = selectedFunding.includes("inviter");
+  const hasSponsor = selectedFunding.includes("sponsor");
 
-  if (
-    externalFunding.length === 1 &&
-    externalFunding[0] === "sponsor"
-  ) {
-    const ukPayerTypeMap = {
-      parent: "Inviter",
-      spouse: "Inviter",
-      sibling: "Inviter",
-      extended: "Inviter",
-      employer: "Sponsor",
-      event: "Sponsor"
-    };
+  const sponsorFamilyTypes = ["parent", "spouse", "sibling", "extended"];
+  const sponsorMapsToInviter = hasSponsor && sponsorFamilyTypes.includes(finance.sponsorType);
+  const sponsorMapsToSponsor = hasSponsor && !sponsorFamilyTypes.includes(finance.sponsorType);
 
-    setIfEmpty(
-      cifPath(
-        travId,
-        "f1",
-        "Who_is_paying_towards_the_cost_of_your_visit"
-      ),
-      ukPayerTypeMap[finance.sponsorType]
-    );
-    if (finance.sponsorType === "parent") {
-      setIfEmpty(cifPath(travId, "f1", "Sponsor_Is_Parent"), "Yes");
-    }
+  // Resolve what the CIF "Who is paying?" value should be
+  const externalCount = (hasInviter ? 1 : 0) + (hasSponsor ? 1 : 0);
+  let whoIsPaying = null;
+  if (hasSelf && externalCount === 0) {
+    whoIsPaying = "Self-funded";
+  } else if (!hasSelf && externalCount === 1) {
+    if (hasInviter)              whoIsPaying = "Inviter";
+    else if (sponsorMapsToInviter) whoIsPaying = "Inviter";
+    else if (sponsorMapsToSponsor) whoIsPaying = "Sponsor";
+  } else if (externalCount >= 1) {
+    whoIsPaying = "Both / Combined";
+  }
+
+  if (whoIsPaying) {
+    setIfEmpty(cifPath(travId, "f1", "Who_is_paying_towards_the_cost_of_your_visit"), whoIsPaying);
+  }
+
+  // Synthetic marker — drives Expenses_Bearing showIf (parent-type sponsor hides it)
+  if (sponsorMapsToInviter && finance.sponsorType === "parent") {
+    setIfEmpty(cifPath(travId, "f1", "Sponsor_Is_Parent"), "Yes");
   }
 }
       if (finance && finance.multiAnswers) {
