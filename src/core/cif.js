@@ -1488,6 +1488,21 @@ if (finance) {
   if (sponsorMapsToInviter && finance.sponsorType === "parent") {
     setIfEmpty(cifPath(travId, "f1", "Sponsor_Is_Parent"), "Yes");
   }
+
+  // Auto-fill inviter's UK immigration status from questionnaire
+  if (hasInviter || sponsorMapsToInviter) {
+    const inviterStatusMap = {
+      citizen: "British Citizen",
+      pr:      "Settled (ILR/ILE)",
+      work:    "Work Visa",
+      student: "Student Visa",
+    };
+    const q = applicationData.questionnaire || {};
+    const mappedStatus = inviterStatusMap[q.inviterStatus];
+    if (mappedStatus) {
+      setIfEmpty(cifPath(travId, "f1", "Inviter_Immigration_Status_UK"), mappedStatus);
+    }
+  }
 }
       if (finance && finance.multiAnswers) {
         const occMap = [
