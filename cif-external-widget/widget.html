@@ -1065,10 +1065,11 @@ function submitCIF() {
     subforms: subforms
   };
   addBridgeRecord({
-    Request_Type: "Submit CIF External",
-    Status:       "Pending",
-    CRM_Deal_ID:  params.CRM_Deal_ID || "",
-    Payload:      JSON.stringify(payload)
+    Request_Type:      "Submit CIF External",
+    Status:            "Pending",
+    CRM_Deal_ID:       params.CRM_Deal_ID || "",
+    CRM_Traveller_ID:  params.Traveller_ID || "",
+    Payload:           JSON.stringify(payload)
   }).then(function(recordId) {
     return pollRecord(recordId, 20, 2000);
   }).then(function(result) {
@@ -1137,10 +1138,11 @@ document.addEventListener("DOMContentLoaded", function() {
       loadDraft();
       // Fetch prefill data
       return addBridgeRecord({
-        Request_Type: "Get CIF Prefill Data",
-        Status:       "Pending",
-        CRM_Deal_ID:  params.CRM_Deal_ID || "",
-        Payload:      JSON.stringify({ Traveller_ID: params.Traveller_ID || "", CIF_Type: params.CIF_Type || "uk" })
+        Request_Type:     "Get CIF Prefill Data",
+        Status:           "Pending",
+        CRM_Deal_ID:      params.CRM_Deal_ID || "",
+        CRM_Traveller_ID: params.Traveller_ID || "",
+        Payload:          JSON.stringify({ Traveller_ID: params.Traveller_ID || "", CIF_Type: params.CIF_Type || "uk" })
       }).then(function(recordId) {
         return pollRecord(recordId, 15, 1500);
       }).then(function(result) {

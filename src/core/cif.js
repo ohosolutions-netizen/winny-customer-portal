@@ -1647,6 +1647,9 @@ if (finance) {
             const pct = instance?.type === "uk" ? cifOverallProgress(t.id) : cifGenericProgress(t.id, instance);
             const isActive = t.id === state.activeCifTraveller;
             const saved = cifIsInstanceSaved(t.id, instance?.id);
+            const cifExtUrl = t.crmId && applicationData.deal.crmDealId
+              ? `https://creatorapp.zoho.in/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/#Widget:CIF_External?CRM_Deal_ID=${encodeURIComponent(applicationData.deal.crmDealId)}&Traveller_ID=${encodeURIComponent(t.crmId)}`
+              : "";
             return `<div class="cifx-mc ${isActive ? "on" : ""}" onclick="cifSwitchTraveller('${t.id}')">
               <div class="cifx-mc-top">
                 <div class="cifx-mc-av ${avClass}">${escapeHtml(initials)}</div>
@@ -1655,6 +1658,9 @@ if (finance) {
               </div>
               <div class="cifx-mc-bar-bg"><div class="cifx-mc-bar-fill" style="width:${pct}%"></div></div>
               <div class="cifx-mc-pct">${pct}% complete</div>
+              ${cifExtUrl
+                ? `<button type="button" class="btn" style="margin-top:8px;font-size:12px;padding:5px 10px" onclick="event.stopPropagation();cifCopySendLink('${escapeHtml(cifExtUrl)}',event)">&#x1F517; Copy CIF Link</button>`
+                : `<span style="font-size:11px;color:var(--cx-muted);margin-top:6px;display:block">CRM sync needed to generate link</span>`}
             </div>`;
           }).join("")}
         </div>`;
@@ -6186,6 +6192,17 @@ if (instance?.type === "schengen") {
     function removeCountryTag(path, country) { cmsRemove(path, country); }
     function refreshCountryTags() {}
 
+function cifCopySendLink(url) {
+  if (!url) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() { toast("CIF link copied to clipboard"); }).catch(function() {
+      prompt("Copy this CIF link:", url);
+    });
+  } else {
+    prompt("Copy this CIF link:", url);
+  }
+}
+
 export {
   cifMarkInstanceDirtyFromPath, completeCIF, renderCIF,
   cifDestinationInstances, cifIsInstanceSaved, cifInstanceData, cifSwitchTraveller,
@@ -6194,5 +6211,5 @@ export {
   cifAddSubformRow, cifRemoveSubformRow, cifGenericAddRow, cifGenericRemoveRow,
   cifRetryMetadata, cifSaveTraveller, cifValidateUsForm1, cifValidateGeneric,
   saveCIFData, cmsToggle, cmsSelect, cmsRemove, cmsClear, cmsFilter, closeAllCmsDropdowns,
-  cifAISuggestDesignations, cifAddRole, cifRemoveRole
+  cifAISuggestDesignations, cifAddRole, cifRemoveRole, cifCopySendLink
 };

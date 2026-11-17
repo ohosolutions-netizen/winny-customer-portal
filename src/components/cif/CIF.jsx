@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import * as CifMod from "../../core/cif.js";
-import { renderCIF, closeAllCmsDropdowns } from "../../core/cif.js";
+import { renderCIF, closeAllCmsDropdowns, cifCopySendLink } from "../../core/cif.js";
 import { applicationData } from "../../store/runtime.js";
 import { setByPath } from "../../lib/utils.js";
 import { markAutoSavePending, toast } from "../../lib/ui.js";
@@ -21,6 +21,7 @@ const CIF_HANDLERS = [
   "cifGenericRemoveRow", "cifRetryMetadata", "cifSaveTraveller",
   "cmsToggle", "cmsSelect", "cmsRemove", "cmsClear", "cmsFilter",
   "cifSwitchFamilyUnit", "cifAISuggestDesignations", "cifAddRole", "cifRemoveRole",
+  "cifCopySendLink",
 ];
 
 // Tracks the last toast message shown to deduplicate rapid-fire identical toasts
