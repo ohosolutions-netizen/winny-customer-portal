@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Information Form — Winny Global</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<script>
+  // Capture URL / referrer BEFORE the Zoho SDK hijacks window.location
+  window.__INITIAL_HREF__   = window.location.href;
+  window.__INITIAL_SEARCH__ = window.location.search;
+  window.__REFERRER__       = document.referrer || "";
+  window.__MSG_PARAMS__     = null;
+  window.addEventListener("message", function(e) {
+    try {
+      var d = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      if (d && (d.CRM_Deal_ID || d.Traveller_ID || d.CIF_Token)) {
+        window.__MSG_PARAMS__ = d;
+      }
+    } catch(e) { /* ignore */ }
+  }, false);
+</script>
+<script src="https://static.zohocdn.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
+<style>
+:root {
+  --blue:      #0561f4;
+  --teal:      #06c9b5;
+  --navy:      #1e1841;
+  --ink:       #222947;
+  --muted:     #79839b;
+  --line:      #e7ebf3;
+  --bg:        #f6f8fc;
+  --card:      #ffffff;
+  --soft-blue: #eef4ff;
+  --soft-teal: #edfaf8;
+  --green:     #0faa82;
+  --amber:     #d99200;
+  --red:       #d94f68;
+  --shadow:    0 14px 42px rgba(30,24,65,.09);
+  --r:         14px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.55 "DM Sans", system-ui, -apple-system, sans-serif;
+}
+button, input, label, select, textarea { font: inherit; }
+
+/* Nav */
+.top-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 16px rgba(30,24,65,.05);
+  position: sticky; top: 0; z-index: 100;
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.wmark {
+  width: 42px; height: 36px; border-radius: 11px;
+  background: linear-gradient(135deg,rgba(5,97,244,.14),rgba(6,201,181,.16)),#fff;
+  border: 1px solid #d9e5fb;
+  display: grid; place-items: center;
+  font-size: 22px; font-weight: 900; color: var(--navy);
+}
+.brand-name { margin: 0; font-size: 18px; font-weight: 900; color: var(--navy); }
+.brand-sub  { margin: 2px 0 0; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .3px; }
+.nav-pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 99px;
+  background: var(--soft-blue); color: var(--blue);
+  font-size: 13px; font-weight: 800;
+}
+
+/* Buttons */
+.btn {
+  min-height: 38px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #fff; color: var(--ink);
+  font-weight: 800; cursor: pointer;
+  transition: transform .18s, box-shadow .18s, border-color .18s, background .18s;
+  text-decoration: none;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(30,24,65,.08); border-color: #c9d7ec; }
+.btn:disabled { opacity: .46; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.primary { background: linear-gradient(135deg,var(--blue),var(--teal)); color:#fff; border-color: transparent; }
+.btn.ghost   { background: var(--soft-blue); color: var(--blue); border-color: #cddcf5; }
+.btn.sm      { min-height: 32px; padding: 5px 12px; font-size: 12.5px; }
+
+/* Spinner */
+.spin {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid #dce6f8; border-top-color: var(--teal);
+  animation: spin .8s linear infinite; display: inline-block;
+}
+.spin.sm { width: 18px; height: 18px; border-width: 2.5px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Center screen */
+.center-screen {
+  min-height: 72vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 32px 20px;
+}
+.center-screen .big-icon { font-size: 48px; margin-bottom: 16px; }
+.center-screen h2 { margin: 0 0 10px; font-size: 21px; color: var(--navy); }
+.center-screen p  { margin: 0; color: var(--muted); max-width: 380px; line-height: 1.65; }
+
+/* Page body */
+.page-body { max-width: 820px; margin: 0 auto; padding: 28px 20px 60px; }
+
+/* Step wizard nav */
+.step-nav {
+  display: flex; gap: 6px; overflow-x: auto;
+  padding-bottom: 4px; margin-bottom: 24px;
+  scrollbar-width: none;
+}
+.step-nav::-webkit-scrollbar { display: none; }
+.step-btn {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: #fff; color: var(--muted);
+  font-size: 12.5px; font-weight: 800; cursor: pointer;
+  transition: all .18s;
+}
+.step-btn.active { background: var(--soft-blue); color: var(--blue); border-color: #c0d4f5; }
+.step-btn.done   { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+
+/* Panel */
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+.panel-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
+  padding: 22px 24px 0;
+}
+.panel-head h3 { margin: 0; font-size: 19px; color: var(--navy); }
+.panel-head p  { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.panel-body    { padding: 20px 24px 24px; }
+
+/* Section card */
+.section-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.section-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  background: #fafbff;
+  cursor: pointer;
+  font-size: 14px; font-weight: 800; color: var(--navy);
+  border-bottom: 1px solid transparent;
+  transition: background .15s;
+}
+.section-head:hover { background: var(--soft-blue); }
+.section-head.open  { border-bottom-color: var(--line); }
+.section-toggle { margin-left: auto; font-size: 12px; color: var(--muted); }
+.section-body   { padding: 18px; display: none; }
+.section-body.open { display: block; }
+
+/* Field row */
+.field-row {
+  margin-bottom: 16px;
+}
+.field-row label {
+  display: block; font-size: 12.5px; font-weight: 700; color: var(--ink);
+  margin-bottom: 5px;
+}
+.field-row label .req { color: var(--red); margin-left: 3px; }
+.field-row label .hint-label { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.field-row input[type=text],
+.field-row input[type=email],
+.field-row input[type=tel],
+.field-row input[type=number],
+.field-row input[type=date],
+.field-row select,
+.field-row textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 9px;
+  background: #fff; color: var(--ink);
+  font-size: 13.5px;
+  transition: border-color .18s;
+  outline: none;
+}
+.field-row input:focus,
+.field-row select:focus,
+.field-row textarea:focus { border-color: var(--blue); }
+.field-row textarea { resize: vertical; min-height: 80px; }
+.field-row select   { -webkit-appearance: auto; }
+
+/* Yes/No pills */
+.yesno-group { display: flex; gap: 8px; }
+.yesno-pill {
+  flex: 1; min-height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--line);
+  border-radius: 9px; background: #fff; color: var(--muted);
+  font-size: 13px; font-weight: 800; cursor: pointer;
+  transition: all .18s;
+}
+.yesno-pill.sel-yes { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+.yesno-pill.sel-no  { background: #fff1f2; color: #be123c; border-color: #fda4af; }
+
+/* Multiselect checkboxes */
+.multi-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.multi-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 9px;
+  border: 1.5px solid var(--line); background: #fff; color: var(--muted);
+  font-size: 12.5px; font-weight: 700; cursor: pointer;
+  transition: all .15s;
+}
+.multi-pill.sel { background: var(--soft-blue); color: var(--blue); border-color: #c0d4f5; }
+
+/* Note */
+.field-note {
+  padding: 10px 14px; border-radius: 9px;
+  background: #fefce8; border: 1px solid #fde68a;
+  color: #92400e; font-size: 12.5px; margin-bottom: 16px;
+}
+
+/* Address composite */
+.addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:600px){ .addr-grid { grid-template-columns: 1fr; } }
+
+/* Subform repeating rows */
+.subform-row {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px; margin-bottom: 10px;
+  position: relative;
+}
+.subform-row-remove {
+  position: absolute; top: 10px; right: 10px;
+  background: #fff1f2; color: #be123c; border: 1px solid #fda4af;
+  border-radius: 7px; padding: 3px 8px; font-size: 12px; font-weight: 800; cursor: pointer;
+}
+.subform-row-remove:hover { background: #ffe4e6; }
+.subform-row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:600px){ .subform-row-grid { grid-template-columns: 1fr; } }
+
+/* Nav buttons bar */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 24px; gap: 10px;
+}
+.nav-bar .save-draft {
+  font-size: 12px; color: var(--muted); cursor: pointer;
+  text-decoration: underline; background: none; border: none; padding: 0;
+}
+
+/* Notice */
+.notice {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; line-height: 1.55; margin-bottom: 16px;
+}
+.notice.blue   { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+.notice.green  { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.notice.amber  { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.notice strong { display: block; margin-bottom: 2px; font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <div class="brand">
+    <div class="wmark">W</div>
+    <div>
+      <p class="brand-name">Winny Global</p>
+      <p class="brand-sub">Customer Information Form</p>
+    </div>
+  </div>
+  <div id="navPill" class="nav-pill" style="display:none"></div>
+</nav>
+
+<div id="phaseLoading" class="center-screen">
+  <div class="spin" style="margin-bottom:16px"></div>
+  <p style="color:var(--muted)">Loading your form…</p>
+</div>
+
+<div id="phaseInvalid" class="center-screen" style="display:none">
+  <div class="big-icon">🔒</div>
+  <h2>Link invalid or expired</h2>
+  <p>This link is no longer valid. Please contact your case officer to receive a new link.</p>
+</div>
+
+<div id="phaseError" class="center-screen" style="display:none">
+  <div class="big-icon">⚠️</div>
+  <h2>Something went wrong</h2>
+  <p id="errorMsg" style="color:var(--red)"></p>
+</div>
+
+<div id="phaseSuccess" class="center-screen" style="display:none">
+  <div class="big-icon">✅</div>
+  <h2>Form submitted successfully!</h2>
+  <p>Thank you. Your information has been received. Your case officer will be in touch shortly.</p>
+</div>
+
+<div id="phaseReady" class="page-body" style="display:none">
+  <div id="stepNavContainer">
+    <div class="step-nav" id="stepNav"></div>
+  </div>
+  <div id="formContent"></div>
+  <div class="nav-bar">
+    <button class="btn" id="btnPrev" onclick="goStep(-1)" style="display:none">← Previous</button>
+    <button class="save-draft btn sm" onclick="saveDraft()">Save draft</button>
+    <button class="btn primary" id="btnNext" onclick="goStep(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+var APP_NAME          = "hiren-patel";
+var FORM_NAME         = "Portal_CRM_Request";
+var REPORT_NAME       = "Portal_CRM_Request_Report";
+var FORM_PRIVATE_LINK   = "Y7KwzCY2aVOmmEfT3MnN5CvZPfBhH60DY6Jym7FjFsZrhaYjuEVG6WE9NUOpz44EnCGpydpfR9978quFOrwtrfCRp6FFMbtdh7vn";
+var REPORT_PRIVATE_LINK = "Fx1bJdXaj3rayUJAqtAKRn3yWXYaBuyZE7b6P8gzrVJjuYadPQ8tptrCeMdk1nRTRgazTGuJBGhkd48SrdKhQmm5v3bPbV9A2Rqz";
+
+// ── Country list ──────────────────────────────────────────────────────────
+var COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
+// ── CIF steps definition ──────────────────────────────────────────────────
+var STEPS = [
+  { id:"personal",  title:"Personal & Contact", icon:"👤", sections:["personal","contact","address"] },
+  { id:"passport",  title:"Passport",           icon:"📘", sections:["passport","prevPassports"] },
+  { id:"finance",   title:"Employment & Finance", icon:"💼", sections:["employment","income","largeCreditEntries","tripcost"] },
+  { id:"trip",      title:"Trip & Purpose",     icon:"📅", sections:["tripdetails","ukaccommodation","ukdeclarations"] },
+  { id:"family",    title:"Family",             icon:"👪", sections:["family","parents","siblings","childrenNonApplicant","familyDeclarations"] },
+  { id:"history",   title:"Travel History",     icon:"🌍", sections:["ukHistory","ukVisits","ukMedical","ukMedicalDetails","ukMisc","publicFunds","visaHistory","worldTravel","intlTravelHistory","intlTravelEntries","immigrationHist","immigrationProblems","breachHist","breachDetails","convictionsHist","convictionsDetails"] },
+  { id:"character", title:"Character & Security", icon:"🛡️", sections:["character"] }
+];
+
+// ── CIF sections schema ───────────────────────────────────────────────────
+// Format: [label, form, key, type, options, required, showIf, placeholder]
+// subform format: { id, title, icon, subform:true, form, key, showIf, rowFields: [label, key, type, options, required, showIf] }
+var SECTIONS = {
+  personal: { title:"Personal Information", icon:"👤", form:"f1", fields:[
+    ["First Name (as in passport)","Your_name_as_printed_in_your_passport.first_name","text",null,true,null,"e.g. Rahul"],
+    ["Last Name (as in passport)","Your_name_as_printed_in_your_passport.last_name","text",null,true,null,"e.g. Shah"],
+    ["Gender","Gender","select",["Male","Female"],true],
+    ["Marital / Relationship Status","What_is_your_relationship_status","select",["Single","Married or civil partner","Unmarried partner","Divorced or partnership dissolved","Separated","Widowed or a surviving civil partner"],true],
+    ["Date of Birth","Date_of_Birth","date",null,true],
+    ["Place of Birth","Place_of_Birth","text",null,true,null,"City, State (e.g. Ahmedabad, Gujarat)"],
+    ["Country of Birth","Country_of_Birth","select",COUNTRIES,true],
+    ["Country of Nationality","Country_of_Nationality","select",COUNTRIES,true],
+    ["Date of Marriage","Date_of_Marriage","date",null,false,{anyOf:[{key:"What_is_your_relationship_status",equals:"Married or civil partner"},{key:"What_is_your_relationship_status",equals:"Divorced or partnership dissolved"},{key:"What_is_your_relationship_status",equals:"Widowed or a surviving civil partner"}]}],
+    ["Place of Marriage","Place_of_Marriage","text",null,false,{anyOf:[{key:"What_is_your_relationship_status",equals:"Married or civil partner"},{key:"What_is_your_relationship_status",equals:"Divorced or partnership dissolved"},{key:"What_is_your_relationship_status",equals:"Widowed or a surviving civil partner"}]},"e.g. Ahmedabad, India"],
+    ["Previous Spouse Full Name","Previous_Spouse_Name","text",null,false,{anyOf:[{key:"What_is_your_relationship_status",equals:"Divorced or partnership dissolved"},{key:"What_is_your_relationship_status",equals:"Widowed or a surviving civil partner"}]},"Full name as per records"],
+    ["Previous Spouse Nationality","Previous_Spouse_Nationality","select",COUNTRIES,false,{anyOf:[{key:"What_is_your_relationship_status",equals:"Divorced or partnership dissolved"},{key:"What_is_your_relationship_status",equals:"Widowed or a surviving civil partner"}]}],
+    ["Date of Divorce / Dissolution","Date_of_Divorce","date",null,false,{key:"What_is_your_relationship_status",equals:"Divorced or partnership dissolved"}],
+    ["Country of Divorce","Country_of_Divorce","select",COUNTRIES,false,{key:"What_is_your_relationship_status",equals:"Divorced or partnership dissolved"}],
+    ["Date of Spouse's Passing","Date_of_Spouse_Passing","date",null,false,{key:"What_is_your_relationship_status",equals:"Widowed or a surviving civil partner"}],
+  ]},
+  contact: { title:"Contact Details", icon:"☎️", form:"f1", fields:[
+    ["Email address","Provide_Email_address","text",null,true,null,"e.g. rahul@example.com"],
+    ["Telephone number","Provide_your_telephone_number","phone",null,true],
+  ]},
+  address: { title:"Address", icon:"🏠", form:"f1", fields:[
+    ["Current residence address","Your_current_residence_address","address",null,true],
+  ]},
+  passport: { title:"Passport & Nationality", icon:"📘", form:"f1", fields:[
+    ["Passport Type","Passport_Type","select",["Regular","Official","Diplomatic"],false],
+    ["Passport number","Passport_number_or_travel_document_reference_number","text",null,true,null,"e.g. A1234567"],
+    ["Country of Issue","Country_of_Issue","select",COUNTRIES,false],
+    ["Issuing authority","Issuing_authority_Your_passport","text",null,true,null,"e.g. Ahmedabad RPO"],
+    ["Issue date","Passport_issue_date_Your_passport","date",null,true],
+    ["Expiry date","Passport_expiry_date_Your_passport","date",null,true],
+    ["National ID / Aadhaar Number","National_ID_Aadhaar_Number","text",null,false,null,"e.g. 1234 5678 9012"],
+    ["Do you have any previous passports?","Have_Previous_Passports","yesno",null,false],
+  ]},
+  prevPassports: { title:"Previous Passports", icon:"📗", subform:true, form:"f1", key:"Previous_Passports",
+    showIf:{key:"Have_Previous_Passports",equals:"Yes"}, rowFields:[
+    ["Passport Number","Prev_Passport_Number","text"],
+    ["Issue Date","Prev_Passport_Issue_Date","date"],
+    ["Expiry Date","Prev_Passport_Expiry_Date","date"],
+    ["Country of Issue","Prev_Passport_Country_of_Issue","select",COUNTRIES],
+    ["Issuing Authority (RPO)","Prev_Passport_Issuing_Authority","text"],
+    ["Status","Prev_Passport_Status","select",["Expired","Cancelled / Surrendered","Lost / Stolen"]],
+  ]},
+  employment: { title:"Employment", icon:"💼", form:"f1", fields:[
+    ["Employment status","What_is_your_employment_status","select",["Employed (Job)","Self-Employed (Freelancer)","Business Owner","Homemaker","Retired with Pension","Retired without Pension","Student","Unemployed","Other — Please Specify"],true],
+    ["Employer / Organisation Name","Employer_s_name","text",null,true,{key:"What_is_your_employment_status",includes:"Employed (Job)"},"Company name"],
+    ["Job Title / Designation","Your_job_title","text",null,true,{key:"What_is_your_employment_status",includes:"Employed (Job)"},"e.g. Senior Manager"],
+    ["Employment Start Date","Date_you_started_working","date",null,true,{key:"What_is_your_employment_status",includes:"Employed (Job)"}],
+    ["City","Employer_City","text",null,false,{key:"What_is_your_employment_status",includes:"Employed (Job)"},"City"],
+    ["Country","Employer_Country","select",COUNTRIES,false,{key:"What_is_your_employment_status",includes:"Employed (Job)"}],
+    ["Annual Salary (Gross INR)","Amount_earning_Employed","number",null,false,{key:"What_is_your_employment_status",includes:"Employed (Job)"},"Amount in INR"],
+    ["Key Roles & Responsibilities","Describe_your_job","textarea",null,false,{key:"What_is_your_employment_status",includes:"Employed (Job)"},"Describe your key responsibilities"],
+    ["Nature of Business / Services","What_is_your_job","textarea",null,false,{key:"What_is_your_employment_status",includes:"Self-Employed (Freelancer)"},"What you do for clients"],
+    ["Business Start Date","Self_Employed_Start_Date","date",null,false,{key:"What_is_your_employment_status",includes:"Self-Employed (Freelancer)"}],
+    ["Annual Income (INR)","Amount_earning_Self_Employed","number",null,false,{key:"What_is_your_employment_status",includes:"Self-Employed (Freelancer)"}],
+    ["Type of Business","Type_of_Business","select",["Sole Proprietorship","Partnership","Private Limited Company","Public Limited Company","LLP","Other"],false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Your Designation","Designation_Business","select",["Director","Managing Director","Proprietor","Partner","CEO / Managing Partner","Chairman","Other"],false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Annual Turnover (INR)","Annual_Turnover","number",null,false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Annual Income from Business (INR)","Annual_Income_Business","number",null,false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Business Start Date","Business_Start_Date","date",null,false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Business City","Business_City","text",null,false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Business Country","Business_Country","select",COUNTRIES,false,{key:"What_is_your_employment_status",includes:"Business Owner"}],
+    ["Homemaker since (date)","Homemaker_Since","date",null,false,{key:"What_is_your_employment_status",includes:"Homemaker"}],
+    ["Previous Employer / Organisation","Retired_Prev_Employer","text",null,false,{anyOf:[{key:"What_is_your_employment_status",includes:"Retired with Pension"},{key:"What_is_your_employment_status",includes:"Retired without Pension"}]}],
+    ["Last Designation","Retired_Last_Designation","text",null,false,{anyOf:[{key:"What_is_your_employment_status",includes:"Retired with Pension"},{key:"What_is_your_employment_status",includes:"Retired without Pension"}]}],
+    ["Date of Retirement","Retired_Date","date",null,false,{anyOf:[{key:"What_is_your_employment_status",includes:"Retired with Pension"},{key:"What_is_your_employment_status",includes:"Retired without Pension"}]}],
+    ["Annual Pension (INR)","Retired_Annual_Pension","number",null,false,{key:"What_is_your_employment_status",includes:"Retired with Pension"}],
+    ["Institution Name","Student_Institution","text",null,false,{key:"What_is_your_employment_status",includes:"Student"},"School / College / University"],
+    ["Programme / Course","Student_Course","text",null,false,{key:"What_is_your_employment_status",includes:"Student"},"e.g. B.Tech 3rd Year"],
+    ["Country","Student_Country","select",COUNTRIES,false,{key:"What_is_your_employment_status",includes:"Student"}],
+    ["Reason not currently employed","Unemployed_Reason","select",["Resigned / Quit","Made Redundant / Laid Off","Health Reasons","Family Responsibilities","Studying","Career Break","Never Employed","Other"],false,{key:"What_is_your_employment_status",includes:"Unemployed"}],
+    ["Please specify your occupation","Other_Occupation_Description","text",null,false,{key:"What_is_your_employment_status",includes:"Other — Please Specify"}],
+    ["Annual Income (INR)","Other_Occupation_Income","number",null,false,{key:"What_is_your_employment_status",includes:"Other — Please Specify"}],
+  ]},
+  income: { title:"Income & Savings", icon:"💰", form:"f1", fields:[
+    ["Any other income or savings?","Do_you_have_another_income_or_any_savings","yesno",null,true],
+    ["Total savings (INR)","How_much_money_do_you_have_in_savings_in_GBP","number",null,false,{key:"Do_you_have_another_income_or_any_savings",equals:"Yes"}],
+    ["Total additional income (INR)","Your_total_additional_income","number",null,false,{key:"Do_you_have_another_income_or_any_savings",equals:"Yes"}],
+    ["Total Net Worth (INR)","Total_Net_Worth","number",null,false],
+    ["Number of Properties Owned","Properties_Owned_Number","number",null,false],
+    ["Description of properties","Properties_Owned_Description","textarea",null,false,{key:"Properties_Owned_Number",greaterThan:"0"},"e.g. 2BHK flat in Ahmedabad"],
+    ["Any large credit entries to explain?","Has_Large_Credit_Entries","yesno",null,false],
+  ]},
+  largeCreditEntries: { title:"Large Credit Entry Justifications", icon:"📄", subform:true, form:"f1", key:"Large_Credit_Entries",
+    showIf:{key:"Has_Large_Credit_Entries",equals:"Yes"}, rowFields:[
+    ["Amount (INR)","Credit_Amount","number"],
+    ["Date","Credit_Date","date"],
+    ["Source","Credit_Source","text"],
+    ["Explanation","Credit_Explanation","textarea"],
+  ]},
+  tripcost: { title:"Cost of Trip", icon:"💵", form:"f1", fields:[
+    ["Total amount spent each month (INR)","Total_amount_you_spent_each_month","number",null,true],
+    ["Will anyone pay towards your visit?","Will_anyone_be_paying_towards_the_cost_of_your_visit","yesno",null,false],
+    ["Who is paying?","Who_is_paying_towards_the_cost_of_your_visit","select",["Self-funded","Sponsor","Inviter","Both / Combined"],false,{key:"Will_anyone_be_paying_towards_the_cost_of_your_visit",equals:"Yes"}],
+    ["Why are they helping to pay?","Why_are_they_helping_to_pay_for_your_visit","textarea",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Sponsor's Full Name","Sponsor_Full_Name","text",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Sponsor's Relationship to Applicant","Sponsor_Relationship","select",["Parent (Father / Mother)","Spouse (Husband / Wife)","Sibling (Brother / Sister)","Extended Relative","Employer / Company","Event Organizer","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Sponsor's Occupation","Sponsor_Occupation","text",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Sponsor's Annual Income (INR)","Sponsor_Annual_Income","number",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Sponsor's Savings (INR)","Sponsor_Savings","number",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Sponsor"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Inviter's Full Name","Inviter_Full_Name","text",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Inviter's Relationship to Applicant","Inviter_Relationship","select",["Father","Mother","Brother","Sister","Son","Daughter","Husband","Wife","Uncle","Aunt","Cousin","Grandparent","Friend","Colleague / Business Associate","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Inviter's Immigration Status in UK","Inviter_Immigration_Status_UK","select",["British Citizen","Settled (ILR/ILE)","Pre-settled (EU Settlement Scheme)","Work Visa","Student Visa","Visit Visa","Other"],false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Inviter's Occupation","Inviter_Occupation","text",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+    ["Inviter's Savings (INR)","Inviter_Savings","number",null,false,{anyOf:[{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Inviter"},{key:"Who_is_paying_towards_the_cost_of_your_visit",equals:"Both / Combined"}]}],
+  ]},
+  tripdetails: { title:"Trip Details", icon:"📅", form:"f1", fields:[
+    ["Purpose of Visit","What_is_the_main_reason_for_your_visit_to_the_UK","select",["To meet Family Member / Relative","To attend family function","Tourism (customized itinerary)","Tourism (Group itinerary)","Business visit","To meet Friend","To attend convocation","Transit","Medical Treatment","Other (Please Specify)"],false],
+    ["Brief reason for visit","Brief_Reason_for_Visit","text",null,false,null,"e.g. Tourism and sightseeing with family"],
+    ["Date you plan to arrive in the UK","Date_you_plan_to_arrive_in_the_UK","date",null,true],
+    ["Date you plan to leave the UK","Date_you_plan_to_leave_the_UK","date",null,true],
+    ["Port of Arrival","Port_of_Arrival","text",null,false,null,"e.g. Heathrow (LHR)"],
+    ["Next destination after UK","Next_Destination_After_UK","text",null,false,null,"e.g. France (Schengen)"],
+    ["Planned Activities during your visit","Planned_Activities","textarea",null,false,null,"e.g. Visiting London, Oxford"],
+  ]},
+  ukaccommodation: { title:"Accommodation in UK", icon:"🏨", form:"f1", fields:[
+    ["Type of accommodation","Accommodation_Type","select",["Hotel","Staying with Inviter / Host","Airbnb / Private Rental","Transit only"],false],
+    ["Hotel name","Hotel_Name","text",null,false,{key:"Accommodation_Type",equals:"Hotel"}],
+    ["Hotel city","Hotel_City","text",null,false,{key:"Accommodation_Type",equals:"Hotel"},"e.g. London"],
+    ["Hotel check-in date","Hotel_Check_In_Date","date",null,false,{key:"Accommodation_Type",equals:"Hotel"}],
+    ["Hotel check-out date","Hotel_Check_Out_Date","date",null,false,{key:"Accommodation_Type",equals:"Hotel"}],
+    ["Inviter / host city","Inviter_Host_City","text",null,false,{key:"Accommodation_Type",equals:"Staying with Inviter / Host"},"e.g. Birmingham"],
+    ["Inviter / host phone / email","Inviter_Host_Contact","text",null,false,{key:"Accommodation_Type",equals:"Staying with Inviter / Host"}],
+    ["Airbnb / rental city","Airbnb_City","text",null,false,{key:"Accommodation_Type",equals:"Airbnb / Private Rental"},"e.g. Edinburgh"],
+    ["Airbnb / rental booking reference","Airbnb_Booking_Reference","text",null,false,{key:"Accommodation_Type",equals:"Airbnb / Private Rental"}],
+    ["Is return ticket confirmed?","Return_Ticket_Confirmed","yesno",null,false],
+    ["Preferred language for UK officials","UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use","select",["English","Hindi","Gujarati","Other"],true],
+    ["Which language?","Which_language_would_you_prefer_to_use","text",null,false,{key:"UK_officials_may_have_to_talk_to_you_about_your_application_Which_language_would_you_prefer_to_use",equals:"Other"},"e.g. Punjabi"],
+  ]},
+  ukdeclarations: { title:"UK Declarations & History", icon:"📜", form:"f1", fields:[
+    ["UK visa refused or cancelled in the past?","UK_Visa_Refused_Cancelled","yesno",null,false],
+    ["UK refusal details","UK_Visa_Refused_Details","textarea",null,false,{key:"UK_Visa_Refused_Cancelled",equals:"Yes"},"e.g. Reference GWF012345678; refused Jan 2022"],
+    ["Refused a visa by any other country?","Other_Country_Visa_Refused","yesno",null,false],
+    ["Other refusal details","Other_Country_Visa_Refused_Details","textarea",null,false,{key:"Other_Country_Visa_Refused",equals:"Yes"}],
+    ["UK visa issued in the past 10 years?","UK_Visa_Issued_Past_10_Years","yesno",null,false],
+    ["Date of most recent UK visa","UK_Visa_Last_Issued_Date","date",null,false,{key:"UK_Visa_Issued_Past_10_Years",equals:"Yes"}],
+    ["Visited UK in the past 10 years?","Visited_UK_Past_10_Years","yesno",null,false],
+    ["Most recent UK visit date","UK_Last_Visit_Date","date",null,false,{key:"Visited_UK_Past_10_Years",equals:"Yes"}],
+    ["Reason for most recent UK visit","UK_Last_Visit_Reason","text",null,false,{key:"Visited_UK_Past_10_Years",equals:"Yes"}],
+  ]},
+  family: { title:"Spouse / Partner", icon:"💑", form:"f2", fields:[
+    ["Current partner/spouse - First Name","Your_current_partner_Spouse.first_name","text",null,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+    ["Current partner/spouse - Last Name","Your_current_partner_Spouse.last_name","text",null,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+    ["Spouse's Date of Birth","Spouse_s_Date_of_Birth","date",null,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+    ["Spouse's Country of nationality","Spouse_s_Country_of_nationality","select",COUNTRIES,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+    ["Do they currently live with you?","Do_they_currently_live_with_you","yesno",null,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+    ["Will they travel with you to the UK?","Will_they_be_travelling_with_you_to_the_UK","yesno",null,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+    ["Spouse's passport number","Spouse_s_passport_number","text",null,false,{key:"What_is_your_relationship_status",form:"f1",equals:"Married or civil partner"}],
+  ]},
+  parents: { title:"Parents' Details", icon:"👨‍👩‍👧", form:"f2", fields:[
+    ["Father's full name","Your_father_s_name","text",null,true,null,"Full name as per records"],
+    ["Father's date of birth","Father_s_date_of_birth","date",null,true],
+    ["Father's status","Father_Status","select",["Alive","Deceased"],false],
+    ["Father's date of passing","Father_Date_of_Passing","date",null,false,{key:"Father_Status",equals:"Deceased"}],
+    ["Father's occupation","Father_Occupation","text",null,false,{key:"Father_Status",equals:"Alive"},"e.g. Retired Teacher"],
+    ["Father's city","Father_City","text",null,false,{key:"Father_Status",equals:"Alive"}],
+    ["Father's country","Father_Country","select",COUNTRIES,false,{key:"Father_Status",equals:"Alive"}],
+    ["Mother's full name","Your_mother_s_name","text",null,true,null,"Full name as per records"],
+    ["Mother's date of birth","Mother_s_date_of_birth","date",null,true],
+    ["Mother's status","Mother_Status","select",["Alive","Deceased"],false],
+    ["Mother's date of passing","Mother_Date_of_Passing","date",null,false,{key:"Mother_Status",equals:"Deceased"}],
+    ["Mother's occupation","Mother_Occupation","text",null,false,{key:"Mother_Status",equals:"Alive"}],
+    ["Mother's city","Mother_City","text",null,false,{key:"Mother_Status",equals:"Alive"}],
+    ["Mother's country","Mother_Country","select",COUNTRIES,false,{key:"Mother_Status",equals:"Alive"}],
+  ]},
+  siblings: { title:"Siblings", icon:"👫", subform:true, form:"f2", key:"Siblings", rowFields:[
+    ["Full Name","Sibling_Full_Name","text"],
+    ["Date of Birth","Sibling_DOB","date"],
+    ["Occupation","Sibling_Occupation","text"],
+    ["City","Sibling_City","text"],
+    ["Country","Sibling_Country","select",COUNTRIES],
+  ]},
+  childrenNonApplicant: { title:"Children (Not Applying)", icon:"🧒", subform:true, form:"f2", key:"Children_Non_Applicant", rowFields:[
+    ["Full Name","Child_Full_Name","text"],
+    ["Date of Birth","Child_DOB","date"],
+    ["Nationality","Child_Nationality","select",COUNTRIES],
+    ["City","Child_City","text"],
+    ["Country","Child_Country","select",COUNTRIES],
+  ]},
+  familyDeclarations: { title:"Family Declarations", icon:"📜", form:"f2", fields:[
+    ["Any family member ever refused a visa?","Family_Visa_Refusal","yesno",null,false],
+    ["Details of visa refusal","Family_Visa_Refusal_Details","textarea",null,false,{key:"Family_Visa_Refusal",equals:"Yes"},"Name, country, date, reason"],
+    ["Any family member ever convicted of a criminal offence?","Family_Criminal_Conviction","yesno",null,false],
+    ["Details of criminal conviction","Family_Criminal_Details","textarea",null,false,{key:"Family_Criminal_Conviction",equals:"Yes"},"Name, offence, country, date"],
+    ["Any family member ever deported or overstayed a visa?","Family_Deportation_Overstay","yesno",null,false],
+    ["Details of deportation / overstay","Family_Deportation_Details","textarea",null,false,{key:"Family_Deportation_Overstay",equals:"Yes"}],
+  ]},
+  ukHistory: { title:"Previous Travel to the UK", icon:"🇬🇧", form:"f3", fields:[
+    ["Been to the UK in the past 10 years?","Have_you_been_to_the_UK_in_the_past_10_years","yesno",null,false],
+    ["How many times in past 10 years?","How_many_times_have_you_been_to_the_UK_in_the_past_10_years","number",null,false,{key:"Have_you_been_to_the_UK_in_the_past_10_years",equals:"Yes"}],
+  ]},
+  ukVisits: { title:"UK Visit History", icon:"🇬🇧", subform:true, form:"f3", key:"Your_most_recent_time_in_the_UK",
+    showIf:{key:"Have_you_been_to_the_UK_in_the_past_10_years",equals:"Yes"}, rowFields:[
+    ["Reason for visit","Select_why_you_were_in_the_UK","select",["Tourism (including visiting family and friends)","Work","Study","Transit","Other"]],
+    ["Date arrived","Date_you_arrived_in_the_UK","date"],
+    ["How long (days)","How_long_were_you_in_the_UK_Number_of_Days","number"],
+  ]},
+  ukMedical: { title:"Previous Medical Treatment in UK", icon:"🏥", form:"f3", fields:[
+    ["Ever given medical treatment in the UK?","Have_you_ever_been_given_medical_treatment_in_the_UK","yesno",null,false],
+    ["Paid the full amount for treatment?","Have_you_paid_the_full_amount","yesno",null,false,{key:"Have_you_ever_been_given_medical_treatment_in_the_UK",equals:"Yes"}],
+  ]},
+  ukMedicalDetails: { title:"Medical Treatment Details", icon:"🏥", subform:true, form:"f3", key:"Medical_treatment_in_UK_Main_applicant",
+    showIf:{key:"Have_you_ever_been_given_medical_treatment_in_the_UK",equals:"Yes"}, rowFields:[
+    ["Where did you go?","Where_did_you_go_for_your_previous_medical_treatment_in_the_UK","select",["Accident and Emergency (A&E)","To a doctor, clinic or hospital for non-emergency treatment"]],
+    ["Name of hospital/clinic","Name_of_hospital_clinic_or_doctors_s_surgery","text"],
+    ["When did treatment start?","When_did_you_start_receiving_this_medical_treatment","date"],
+    ["Still receiving treatment?","Are_you_still_receiving_this_medical_treatment","yesno"],
+  ]},
+  ukMisc: { title:"UK National Insurance / Driving / Public Funds", icon:"📄", form:"f3", fields:[
+    ["Have a UK National Insurance number?","Do_you_have_a_UK_National_Insurance_number","yesno",null,false],
+    ["National Insurance number","What_is_your_National_Insurance_number","text",null,false,{key:"Do_you_have_a_UK_National_Insurance_number",equals:"Yes"}],
+    ["Have a UK driving licence?","Do_you_have_a_UK_driving_licence","yesno",null,false],
+    ["Received any public funds in the UK?","Have_you_received_any_public_funds_money_in_the_UK","yesno",null,false],
+  ]},
+  publicFunds: { title:"Public Funds Received", icon:"💷", subform:true, form:"f3", key:"Public_funds_Main_applicant",
+    showIf:{key:"Have_you_received_any_public_funds_money_in_the_UK",equals:"Yes"}, rowFields:[
+    ["Name of public fund","Name_of_public_fund","text"],
+    ["Frequency","Frequency_of_payment","select",["Weekly","Monthly"]],
+    ["Amount per payment (GBP)","Public_fund_amount_per_payment_GBP","text"],
+    ["When did you start receiving it?","When_did_you_start_receiving_this_public_fund","date"],
+    ["Still receiving it?","Are_you_still_receive_this_public_fund","yesno"],
+  ]},
+  visaHistory: { title:"UK Visa & Leave History", icon:"📋", form:"f3", fields:[
+    ["Issued a UK visa in past 10 years?","Have_you_been_issued_with_a_UK_visa_in_the_past_10_years","yesno",null,false],
+    ["Date of visa issue","Date_of_visa_issue","date",null,false,{key:"Have_you_been_issued_with_a_UK_visa_in_the_past_10_years",equals:"Yes"}],
+    ["Applied for leave to remain in past 10 years?","Have_you_applied_for_leave_to_remain_in_the_UK_in_the_past_10_years","yesno",null,false],
+    ["Date of leave application","Date_of_application","date",null,false,{key:"Have_you_applied_for_leave_to_remain_in_the_UK_in_the_past_10_years",equals:"Yes"}],
+    ["Result of leave application","What_was_the_result_of_your_application","select",["Approved","Refused"],false,{key:"Have_you_applied_for_leave_to_remain_in_the_UK_in_the_past_10_years",equals:"Yes"}],
+    ["Times visited Australia/Canada/NZ/USA/Switzerland/EEA in past 10 years","How_many_times_have_you_visited_Australia_Canada_New_Zealand_USA_Switzerland_or_the_European_Econo","select",["Zero","Once","2 to 5 times","6 or more times"],true],
+    ["Been to any OTHER countries in past 10 years?","Have_you_been_to_any_other_countries_in_the_past_10_years","yesno",null,true],
+  ]},
+  worldTravel: { title:"World Travel History", icon:"🌍", subform:true, form:"f3", key:"World_travel_history",
+    showIf:{key:"Have_you_been_to_any_other_countries_in_the_past_10_years",equals:"Yes"}, rowFields:[
+    ["Country visited","Which_country_did_you_visit","select",COUNTRIES],
+    ["Reason","What_was_the_reason_for_your_visit_Required","select",["Tourism","Work","Study","Transit","Other"]],
+    ["Date entered","When_did_you_enter_this_country","date"],
+    ["Date left","When_did_you_leave_this_country","date"],
+  ]},
+  intlTravelHistory: { title:"International Travel History", icon:"✈️", form:"f3", fields:[
+    ["Have you ever travelled internationally?","Has_Travelled_Internationally","yesno",null,false],
+  ]},
+  intlTravelEntries: { title:"International Trip Entries", icon:"✈️", subform:true, form:"f3", key:"International_Travel_Entries",
+    showIf:{key:"Has_Travelled_Internationally",equals:"Yes"}, rowFields:[
+    ["Country Visited","Intl_Trip_Country","select",COUNTRIES],
+    ["Purpose of Visit","Intl_Trip_Purpose","select",["Tourism","Business","Study","Medical","Transit","Other"]],
+    ["Date of Arrival","Intl_Trip_Arrival","date"],
+    ["Date of Departure","Intl_Trip_Departure","date"],
+    ["Visa Type / Status","Intl_Trip_Visa_Type","text"],
+  ]},
+  immigrationHist: { title:"Immigration History", icon:"⚠️", form:"f3", fields:[
+    ["Ever refused visa/entry/asylum, deported, removed, excluded?","Above_the_Immigration_history","yesno",null,true],
+  ]},
+  immigrationProblems: { title:"Details of Immigration Problem", icon:"⚠️", subform:true, form:"f3", key:"Details_of_an_immigration_problem",
+    showIf:{key:"Above_the_Immigration_history",equals:"Yes"}, rowFields:[
+    ["What happened?","Give_details_of_what_happened","select",["An application for a visa was refused","I was refused entry at the border","I was deported","I was removed","I was required to leave","I was excluded or banned from entry"]],
+    ["Which country?","In_which_country_immigration_problem_was_happen","select",COUNTRIES],
+    ["When did it happen?","When_did_this_immigration_problem_happen","date"],
+    ["More details","Give_more_details_of_what_happened","textarea"],
+  ]},
+  breachHist: { title:"Breach of UK Immigration Law", icon:"🚫", form:"f3", fields:[
+    ["Ever entered UK illegally / overstayed / breached conditions / given false info?","Above_the_Breach_of_UK_immigration_law","yesno",null,true],
+  ]},
+  breachDetails: { title:"Details of Breach", icon:"🚫", subform:true, form:"f3", key:"History_Breach_of_UK_immigration_law",
+    showIf:{key:"Above_the_Breach_of_UK_immigration_law",equals:"Yes"}, rowFields:[
+    ["What happened?","Give_details_of_what_happened","select",["I entered the UK illegally","I remained in the UK past my visa validity","I breached the conditions of my leave","I gave false information when applying"]],
+    ["When did it happen?","When_did_this_breach_of_UK_immigration_law_happen","date"],
+    ["More details","Give_more_details_of_what_happened","textarea"],
+  ]},
+  convictionsHist: { title:"Convictions & Other Penalties", icon:"⚖️", form:"f3", fields:[
+    ["Ever had convictions, offences, cautions, penalties, or court judgments?","Have_you_ever_had_any_convictions_offences_cautions_penalties_or_court_judgments_including_under_U","yesno",null,true],
+  ]},
+  convictionsDetails: { title:"Conviction / Penalty Details", icon:"⚖️", subform:true, form:"f3", key:"Convictions_and_other_penalties",
+    showIf:{key:"Have_you_ever_had_any_convictions_offences_cautions_penalties_or_court_judgments_including_under_U",equals:"Yes"}, rowFields:[
+    ["Type","Please_select_exact_Convictions_or_other_penalties","select",["A criminal conviction","A penalty for a driving offence","An arrest or charge currently awaiting trial","A caution, warning, reprimand or other out-of-court penalty","A civil court judgment","A civil penalty under UK immigration law"]],
+    ["Details","Give_details_about_your_sentence","textarea"],
+    ["Date","Date_you_were_sentenced","date"],
+    ["Country","Which_country_were_you_convicted_in","select",COUNTRIES],
+  ]},
+  character: { title:"Character & Security Declarations", icon:"🛡️", form:"f3", fields:[
+    ["Ever involved in/suspected of war crimes, crimes against humanity, or genocide?","War_crimes","yesno",null,true],
+    ["Please provide details","More_information_about_your_involvement","textarea",null,false,{key:"War_crimes",equals:"Yes"}],
+    ["Ever involved in, supported, or encouraged terrorist activities?","Have_you_ever_been_involved_in_supported_or_encouraged_terrorist_activities_in_any_country","yesno",null,true],
+    ["Please provide details","Give_more_information_about_your_terrorist_activities","textarea",null,false,{key:"Have_you_ever_been_involved_in_supported_or_encouraged_terrorist_activities_in_any_country",equals:"Yes"}],
+    ["Ever a member of / supported an organisation concerned in terrorism?","Have_you_ever_been_a_member_of_or_given_support_to_an_organisation_which_has_been_concerned_in_ter","yesno",null,true],
+    ["Please provide details","Give_more_information_about_the_terrorist_organisation_s","textarea",null,false,{key:"Have_you_ever_been_a_member_of_or_given_support_to_an_organisation_which_has_been_concerned_in_ter",equals:"Yes"}],
+    ["Ever expressed views justifying/glorifying terrorist violence?","Have_you_by_any_means_or_medium_expressed_views_that_justify_or_glorify_terrorist_violence_or_that","yesno",null,true],
+    ["Please provide details","Give_more_information_about_your_terrorist_views","textarea",null,false,{key:"Have_you_by_any_means_or_medium_expressed_views_that_justify_or_glorify_terrorist_violence_or_that",equals:"Yes"}],
+    ["Ever a member of / supported an organisation concerned with extremism?","Have_you_ever_been_a_member_of_or_given_support_to_an_organisation_which_is_or_has_been_concerned","yesno",null,true],
+    ["Please provide details","Give_more_information_about_the_extremist_organisation_s","textarea",null,false,{key:"Have_you_ever_been_a_member_of_or_given_support_to_an_organisation_which_is_or_has_been_concerned",equals:"Yes"}],
+    ["Ever expressed extremist views?","Have_you_by_any_means_or_medium_expressed_any_extremist_views","yesno",null,true],
+    ["Please provide details","Give_more_information_about_your_extremist_views","textarea",null,false,{key:"Have_you_by_any_means_or_medium_expressed_any_extremist_views",equals:"Yes"}],
+    ["Undertaken activity for a non-UK government dangerous to UK / allies' interests?","A_part_of_your_employment_or_otherwise_undertaken_paid_or_unpaid_activity_on_behalf_of_a_non_UK_go","yesno",null,true],
+    ["Please provide details","Give_further_details_about_dangerous_activity_against_UK","textarea",null,false,{key:"A_part_of_your_employment_or_otherwise_undertaken_paid_or_unpaid_activity_on_behalf_of_a_non_UK_go",equals:"Yes"}],
+    ["Engaged in other activities that might indicate you may not be of good character?","Have_you_ever_engaged_in_any_other_activities_which_might_indicate_that_you_may_not_be_considered","yesno",null,true],
+    ["Please provide details","Give_further_details_Ever_done_anything_showing_bad_character","textarea",null,false,{key:"Have_you_ever_engaged_in_any_other_activities_which_might_indicate_that_you_may_not_be_considered",equals:"Yes"}],
+    ["Any other information about your character / behaviour to disclose?","Is_there_any_other_information_about_your_character_or_behaviour_which_you_would_like_to_make_us_a","yesno",null,true],
+    ["Please provide details","Give_further_details_regarding_Any_past_actions_showing_bad_character","textarea",null,false,{key:"Is_there_any_other_information_about_your_character_or_behaviour_which_you_would_like_to_make_us_a",equals:"Yes"}],
+    ["Additional / other important information","Additional_Other_important_information_related_to_applicant","textarea",null,false,null,"Any other information relevant to your application"],
+  ]}
+};
+
+// ── State ─────────────────────────────────────────────────────────────────
+var params     = {};
+var cifData    = { f1:{}, f2:{}, f3:{} };  // flat storage per form
+var subforms   = {};  // subforms[sectionId] = [{key:val,...},...]
+var currentStep = 0;
+var travellerName = "";
+var submitting  = false;
+var draftKey    = "";
+
+// ── Phase helpers ─────────────────────────────────────────────────────────
+function showPhase(name) {
+  ["Loading","Invalid","Error","Success","Ready"].forEach(function(p) {
+    var el = document.getElementById("phase" + p);
+    if (el) el.style.display = p === name ? (p === "Loading" || p === "Ready" ? "" : "") : "none";
+    if (el && p === name) el.style.removeProperty("display");
+    if (el && p !== name) el.style.display = "none";
+  });
+}
+
+// ── Zoho PUBLISH bridge ───────────────────────────────────────────────────
+function addBridgeRecord(data) {
+  return ZOHO.CREATOR.PUBLISH.addRecords({
+    app_name:     APP_NAME,
+    form_name:    FORM_NAME,
+    private_link: FORM_PRIVATE_LINK,
+    payload:      { data: data }
+  }).then(function(res) {
+    if (res.code !== 3000) throw new Error("Bridge failed (" + res.code + "): " + (res.message || JSON.stringify(res)));
+    return res.data.ID || res.data.id;
+  });
+}
+function getRecord(id) {
+  return ZOHO.CREATOR.PUBLISH.getRecordById({
+    app_name: APP_NAME, report_name: REPORT_NAME,
+    private_link: REPORT_PRIVATE_LINK, id: id, field_config: "all"
+  }).then(function(res) {
+    if (res.code !== 3000) return null;
+    return res.data;
+  });
+}
+function pollRecord(id, attempts, intervalMs) {
+  attempts = attempts || 15; intervalMs = intervalMs || 1500;
+  return new Promise(function(resolve) {
+    var tries = 0;
+    function attempt() {
+      tries++;
+      getRecord(id).then(function(rec) {
+        if (rec && rec.Status !== "Pending") return resolve(rec);
+        if (tries >= attempts) return resolve({ _timedOut:true });
+        setTimeout(attempt, intervalMs);
+      }).catch(function() {
+        if (tries >= attempts) return resolve({ _timedOut:true });
+        setTimeout(attempt, intervalMs);
+      });
+    }
+    setTimeout(attempt, intervalMs);
+  });
+}
+
+// ── URL param parsing ─────────────────────────────────────────────────────
+function parseSearch(search) {
+  var p = {};
+  try { new URLSearchParams(search).forEach(function(v,k){ p[k]=v; }); }
+  catch(e) {
+    (search||"").replace(/^\?/,"").split("&").forEach(function(pair){
+      var kv=pair.split("="); if(kv[0]) p[decodeURIComponent(kv[0])]=decodeURIComponent((kv[1]||"").replace(/\+/g," "));
+    });
+  }
+  return p;
+}
+function parseURLParams() {
+  if (window.__MSG_PARAMS__ && (window.__MSG_PARAMS__.CRM_Deal_ID || window.__MSG_PARAMS__.Traveller_ID)) return window.__MSG_PARAMS__;
+  var initial = parseSearch(window.__INITIAL_SEARCH__ || "");
+  if (initial.CRM_Deal_ID || initial.Traveller_ID) return initial;
+  if (window.__REFERRER__) {
+    try {
+      var ref = window.__REFERRER__.split("?")[1] || "";
+      var rp  = parseSearch("?"+ref);
+      if (rp.CRM_Deal_ID || rp.Traveller_ID) return rp;
+    } catch(e) {}
+  }
+  try {
+    var pp = parseSearch(window.parent.location.search);
+    if (pp.CRM_Deal_ID || pp.Traveller_ID) return pp;
+  } catch(e) {}
+  return parseSearch(window.location.search);
+}
+
+// ── Load draft from localStorage ──────────────────────────────────────────
+function loadDraft() {
+  if (!draftKey) return;
+  try {
+    var raw = localStorage.getItem(draftKey);
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    if (d.cifData) cifData = d.cifData;
+    if (d.subforms) subforms = d.subforms;
+  } catch(e) {}
+}
+function saveDraft() {
+  if (!draftKey) return;
+  try { localStorage.setItem(draftKey, JSON.stringify({ cifData:cifData, subforms:subforms })); }
+  catch(e) {}
+  showToast("Draft saved");
+}
+
+function showToast(msg) {
+  var t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.style.cssText = "position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:10px;background:#222947;color:#fff;font-weight:800;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = "1";
+  clearTimeout(t._tid);
+  t._tid = setTimeout(function(){ t.style.opacity="0"; }, 2000);
+}
+
+// ── showIf evaluation ─────────────────────────────────────────────────────
+function getVal(key, form) {
+  var store = form ? cifData[form] : (cifData.f1 || {});
+  return store ? (store[key] || "") : "";
+}
+function evalShowIf(showIf) {
+  if (!showIf) return true;
+  if (showIf.anyOf) return showIf.anyOf.some(evalShowIf);
+  if (showIf.allOf) return showIf.allOf.every(evalShowIf);
+  if (showIf.not)   return !evalShowIf(showIf.not);
+  var v = getVal(showIf.key, showIf.form);
+  if (showIf.equals)      return v === showIf.equals;
+  if (showIf.notEquals)   return v !== showIf.notEquals;
+  if (showIf.includes)    return v.indexOf(showIf.includes) !== -1;
+  if (showIf.greaterThan) return parseFloat(v) > parseFloat(showIf.greaterThan);
+  return Boolean(v);
+}
+
+// ── Field value helpers ───────────────────────────────────────────────────
+function setFieldVal(form, key, val) {
+  if (!cifData[form]) cifData[form] = {};
+  cifData[form][key] = val;
+}
+function getFieldVal(form, key) {
+  return (cifData[form] && cifData[form][key]) ? cifData[form][key] : "";
+}
+
+// ── HTML escaping ─────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Render address field ──────────────────────────────────────────────────
+function renderAddress(form, key, fieldId) {
+  var v = getFieldVal(form, key) || {};
+  if (typeof v === "string") { try { v = JSON.parse(v); } catch(e) { v = {}; } }
+  return '<div class="addr-grid">' +
+    '<div><label>Line 1</label><input type="text" id="' + fieldId + '_line1" value="' + esc(v.line1||"") + '" onchange="setAddrPart(\'' + form + "','" + key + "','line1',this.value)" + '" placeholder="Street / Building"></div>' +
+    '<div><label>Line 2</label><input type="text" id="' + fieldId + '_line2" value="' + esc(v.line2||"") + '" onchange="setAddrPart(\'' + form + "','" + key + "','line2',this.value)" + '" placeholder="Area (optional)"></div>' +
+    '<div><label>City</label><input type="text" id="' + fieldId + '_city" value="' + esc(v.city||"") + '" onchange="setAddrPart(\'' + form + "','" + key + "','city',this.value)" + '"></div>' +
+    '<div><label>State / County</label><input type="text" id="' + fieldId + '_state" value="' + esc(v.state||"") + '" onchange="setAddrPart(\'' + form + "','" + key + "','state',this.value)" + '"></div>' +
+    '<div><label>Postcode / PIN</label><input type="text" id="' + fieldId + '_postcode" value="' + esc(v.postcode||"") + '" onchange="setAddrPart(\'' + form + "','" + key + "','postcode',this.value)" + '"></div>' +
+    '<div><label>Country</label><select id="' + fieldId + '_country" onchange="setAddrPart(\'' + form + "','" + key + "','country',this.value)" + '">' +
+      '<option value="">Select…</option>' +
+      COUNTRIES.map(function(c){ return '<option value="'+esc(c)+'"'+(v.country===c?' selected':'')+'>'+esc(c)+'</option>'; }).join("") +
+    '</select></div>' +
+  '</div>';
+}
+window.setAddrPart = function(form, key, part, val) {
+  var v = getFieldVal(form, key) || {};
+  if (typeof v === "string") { try { v = JSON.parse(v); } catch(e) { v = {}; } }
+  v[part] = val;
+  setFieldVal(form, key, v);
+};
+
+// ── Render a single field ─────────────────────────────────────────────────
+function renderField(form, def) {
+  // def for section field: [label, key, type, options, required, showIf, placeholder]
+  var label   = def[0];
+  var key     = def[1];
+  var type    = def[2];
+  var options = def[3];
+  var req     = def[4];
+  var showIf  = def[5];
+  var placeholder = def[6] || "";
+
+  if (!evalShowIf(showIf)) return "";
+  if (type === "note") return '<div class="field-note">' + esc(label) + '</div>';
+
+  var fieldId = "fld_" + form + "_" + key.replace(/\./g,"_");
+  var val     = getFieldVal(form, key);
+  var reqHtml = req ? '<span class="req">*</span>' : '';
+  var phHtml  = placeholder ? '<span class="hint-label">— ' + esc(placeholder) + '</span>' : '';
+  var inner   = "";
+
+  if (type === "yesno") {
+    var isYes = val === "Yes", isNo = val === "No";
+    inner = '<div class="yesno-group">' +
+      '<button type="button" class="yesno-pill ' + (isYes ? "sel-yes" : "") + '" onclick="setYN(\'' + form + "','" + key + "','Yes',this)" + '">Yes</button>' +
+      '<button type="button" class="yesno-pill ' + (isNo ? "sel-no" : "") + '" onclick="setYN(\'' + form + "','" + key + "','No',this)" + '">No</button>' +
+    '</div>';
+  } else if (type === "select") {
+    var opts = '<option value="">Select…</option>';
+    (options||[]).forEach(function(o){ opts += '<option value="'+esc(o)+'"'+(val===o?' selected':'')+'>'+esc(o)+'</option>'; });
+    inner = '<select id="'+fieldId+'" onchange="setF(\'' + form + "','" + key + "',this.value)" + '">' + opts + '</select>';
+  } else if (type === "multiselect") {
+    var selArr = val ? (Array.isArray(val) ? val : val.split(",")) : [];
+    var pills = (options||[]).map(function(o){
+      var sel = selArr.indexOf(o) !== -1;
+      return '<label class="multi-pill ' + (sel ? "sel" : "") + '">' +
+        '<input type="checkbox" style="display:none" ' + (sel?"checked":"") + ' onchange="toggleMulti(\'' + form + "','" + key + "','" + esc(o) + "',this.checked)" + '">' +
+        esc(o) + '</label>';
+    }).join("");
+    inner = '<div class="multi-group">' + pills + '</div>';
+  } else if (type === "textarea") {
+    inner = '<textarea id="'+fieldId+'" rows="3" placeholder="'+esc(placeholder)+'" onchange="setF(\''+form+"','"+key+"',this.value)\">" + esc(val) + '</textarea>';
+  } else if (type === "address") {
+    inner = renderAddress(form, key, fieldId);
+  } else {
+    var inputType = type === "phone" ? "tel" : (type === "number" ? "number" : (type === "date" ? "date" : "text"));
+    inner = '<input type="'+inputType+'" id="'+fieldId+'" value="'+esc(val)+'" placeholder="'+esc(placeholder)+'" onchange="setF(\''+form+"','"+key+"',this.value)\">";
+  }
+  return '<div class="field-row">' +
+    '<label>' + esc(label) + reqHtml + phHtml + '</label>' +
+    inner +
+  '</div>';
+}
+
+window.setF = function(form, key, val) { setFieldVal(form, key, val); updateVisibility(); };
+window.setYN = function(form, key, val, btn) {
+  setFieldVal(form, key, val);
+  var parent = btn.parentElement;
+  parent.querySelectorAll(".yesno-pill").forEach(function(p){
+    p.classList.remove("sel-yes","sel-no");
+  });
+  btn.classList.add(val === "Yes" ? "sel-yes" : "sel-no");
+  updateVisibility();
+};
+window.toggleMulti = function(form, key, opt, checked) {
+  var v   = getFieldVal(form, key) || "";
+  var arr = v ? v.split(",") : [];
+  if (checked && arr.indexOf(opt) === -1) arr.push(opt);
+  else arr = arr.filter(function(x){ return x !== opt; });
+  setFieldVal(form, key, arr.join(","));
+};
+
+// ── Subform rendering ─────────────────────────────────────────────────────
+function getSubform(sId) {
+  if (!subforms[sId]) subforms[sId] = [];
+  return subforms[sId];
+}
+function renderSubformRows(sId, sec) {
+  var rows = getSubform(sId);
+  if (!rows.length) {
+    return '<div class="field-note" style="margin-bottom:12px">No entries yet. Click \'Add Row\' to add one.</div>';
+  }
+  return rows.map(function(row, idx) {
+    var inner = '<div class="subform-row-grid">';
+    sec.rowFields.forEach(function(rf) {
+      var label   = rf[0], key = rf[1], type = rf[2], options = rf[3];
+      var val = row[key] || "";
+      var fieldHtml;
+      if (type === "select") {
+        var opts = '<option value="">Select…</option>';
+        (options||[]).forEach(function(o){ opts += '<option value="'+esc(o)+'"'+(val===o?' selected':'')+'>'+esc(o)+'</option>'; });
+        fieldHtml = '<select onchange="setSubrow(\''+sId+'\','+idx+',\''+key+'\',this.value)">'+opts+'</select>';
+      } else if (type === "textarea" || type === "yesno") {
+        fieldHtml = '<textarea rows="2" onchange="setSubrow(\''+sId+'\','+idx+',\''+key+'\',this.value)">'+esc(val)+'</textarea>';
+      } else {
+        var itype = type === "date" ? "date" : (type === "number" ? "number" : "text");
+        fieldHtml = '<input type="'+itype+'" value="'+esc(val)+'" onchange="setSubrow(\''+sId+'\','+idx+',\''+key+'\',this.value)">';
+      }
+      inner += '<div class="field-row"><label>'+esc(label)+'</label>'+fieldHtml+'</div>';
+    });
+    inner += '</div>';
+    return '<div class="subform-row">'+
+      '<button type="button" class="subform-row-remove" onclick="removeSubrow(\''+sId+'\','+idx+')">✕ Remove</button>'+
+      inner+
+    '</div>';
+  }).join("");
+}
+window.setSubrow = function(sId, idx, key, val) {
+  if (!subforms[sId]) subforms[sId] = [];
+  if (!subforms[sId][idx]) subforms[sId][idx] = {};
+  subforms[sId][idx][key] = val;
+};
+window.removeSubrow = function(sId, idx) {
+  if (subforms[sId]) subforms[sId].splice(idx, 1);
+  renderStep();
+};
+window.addSubrow = function(sId) {
+  if (!subforms[sId]) subforms[sId] = [];
+  subforms[sId].push({});
+  renderStep();
+};
+
+// ── Render a section ──────────────────────────────────────────────────────
+function renderSection(sId) {
+  var sec = SECTIONS[sId];
+  if (!sec) return "";
+  if (sec.showIf && !evalShowIf(sec.showIf)) return "";
+  var isOpen = true; // start sections open
+  var bodyHtml;
+  if (sec.subform) {
+    bodyHtml = renderSubformRows(sId, sec) +
+      '<button type="button" class="btn sm ghost" onclick="addSubrow(\''+sId+'\')">+ Add Row</button>';
+  } else {
+    bodyHtml = (sec.fields||[]).map(function(def){ return renderField(sec.form, def); }).join("");
+  }
+  return '<div class="section-card" id="sec_'+sId+'">' +
+    '<div class="section-head open" onclick="toggleSection(\''+sId+'\')">' +
+      esc(sec.icon||"") + " " + esc(sec.title) +
+      '<span class="section-toggle" id="secToggle_'+sId+'">▲</span>' +
+    '</div>' +
+    '<div class="section-body open" id="secBody_'+sId+'">' +
+      bodyHtml +
+    '</div>' +
+  '</div>';
+}
+window.toggleSection = function(sId) {
+  var head = document.querySelector("#sec_"+sId+" .section-head");
+  var body = document.getElementById("secBody_"+sId);
+  var tog  = document.getElementById("secToggle_"+sId);
+  if (!body) return;
+  var open = body.classList.contains("open");
+  body.classList.toggle("open", !open);
+  if (head) head.classList.toggle("open", !open);
+  if (tog)  tog.textContent = open ? "▼" : "▲";
+};
+
+// ── Update field visibility without re-render ─────────────────────────────
+function updateVisibility() {
+  var step = STEPS[currentStep];
+  if (!step) return;
+  step.sections.forEach(function(sId) {
+    var sec = SECTIONS[sId];
+    if (!sec) return;
+    // Show/hide section card
+    var card = document.getElementById("sec_"+sId);
+    if (card) {
+      var sectionVisible = !sec.showIf || evalShowIf(sec.showIf);
+      card.style.display = sectionVisible ? "" : "none";
+    }
+    // Show/hide individual fields
+    if (!sec.subform && sec.fields) {
+      sec.fields.forEach(function(def) {
+        var key = def[1], showIf = def[5];
+        var form = sec.form;
+        var fieldId = "fld_" + form + "_" + key.replace(/\./g,"_");
+        var el = document.getElementById(fieldId);
+        if (!el) return;
+        var row = el.closest(".field-row");
+        if (!row) return;
+        row.style.display = evalShowIf(showIf) ? "" : "none";
+      });
+    }
+  });
+}
+
+// ── Render step ───────────────────────────────────────────────────────────
+function renderStep() {
+  var step = STEPS[currentStep];
+  if (!step) return;
+  var html = '<div class="panel">' +
+    '<div class="panel-head"><div>' +
+      '<h3>' + esc(step.icon) + " " + esc(step.title) + '</h3>' +
+      '<p>Step ' + (currentStep+1) + ' of ' + STEPS.length + '</p>' +
+    '</div></div>' +
+    '<div class="panel-body">';
+  step.sections.forEach(function(sId) { html += renderSection(sId); });
+  html += '</div></div>';
+  document.getElementById("formContent").innerHTML = html;
+  updateVisibility();
+  renderStepNav();
+  document.getElementById("btnPrev").style.display = currentStep === 0 ? "none" : "";
+  document.getElementById("btnNext").textContent = currentStep === STEPS.length-1 ? "Review & Submit" : "Next →";
+}
+
+// ── Step navigation ───────────────────────────────────────────────────────
+function renderStepNav() {
+  var html = STEPS.map(function(s, i) {
+    var cls = i === currentStep ? "active" : (i < currentStep ? "done" : "");
+    return '<button class="step-btn '+cls+'" onclick="jumpStep('+i+')">' + esc(s.icon) + " " + esc(s.title) + '</button>';
+  }).join("");
+  document.getElementById("stepNav").innerHTML = html;
+}
+window.jumpStep = function(i) { currentStep = i; renderStep(); window.scrollTo(0,0); };
+window.goStep   = function(dir) {
+  if (dir > 0 && currentStep === STEPS.length-1) { submitCIF(); return; }
+  currentStep = Math.max(0, Math.min(STEPS.length-1, currentStep + dir));
+  renderStep();
+  window.scrollTo(0,0);
+};
+
+// ── Submit CIF ────────────────────────────────────────────────────────────
+function submitCIF() {
+  if (submitting) return;
+  if (!confirm("Submit your CIF to Winny Global? Make sure all information is complete and accurate.")) return;
+  submitting = true;
+  document.getElementById("btnNext").disabled = true;
+  document.getElementById("btnNext").textContent = "Submitting…";
+  var payload = {
+    Traveller_ID: params.Traveller_ID || "",
+    CIF_Type:     params.CIF_Type || "uk",
+    f1: cifData.f1 || {},
+    f2: cifData.f2 || {},
+    f3: cifData.f3 || {},
+    subforms: subforms
+  };
+  addBridgeRecord({
+    Request_Type: "Submit CIF External",
+    Status:       "Pending",
+    CRM_Deal_ID:  params.CRM_Deal_ID || "",
+    Payload:      JSON.stringify(payload)
+  }).then(function(recordId) {
+    return pollRecord(recordId, 20, 2000);
+  }).then(function(result) {
+    if (result._timedOut) throw new Error("Still processing — your data may have been saved. Please check with your case officer.");
+    if (result.Status === "Failed") throw new Error(result.Error_Message || "Submission failed. Please try again.");
+    showPhase("Success");
+    try { localStorage.removeItem(draftKey); } catch(e) {}
+  }).catch(function(err) {
+    document.getElementById("errorMsg").textContent = err.message || "An error occurred. Please try again.";
+    showPhase("Error");
+  }).finally(function() { submitting = false; });
+}
+
+// ── Prefill from bridge response ──────────────────────────────────────────
+function applyPrefill(prefillData) {
+  if (!prefillData) return;
+  ["f1","f2","f3"].forEach(function(form) {
+    if (prefillData[form] && typeof prefillData[form] === "object") {
+      Object.keys(prefillData[form]).forEach(function(key) {
+        if (!cifData[form][key]) {
+          cifData[form][key] = prefillData[form][key];
+        }
+      });
+    }
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", function() {
+  function tryInit() {
+    if (typeof ZOHO === "undefined" ||
+        typeof ZOHO.CREATOR === "undefined" ||
+        typeof ZOHO.CREATOR.PUBLISH === "undefined" ||
+        typeof ZOHO.CREATOR.PUBLISH.addRecords !== "function") {
+      return setTimeout(tryInit, 150);
+    }
+    run();
+  }
+  function run() {
+    var qpPromise;
+    try { qpPromise = ZOHO.CREATOR.UTIL.getQueryParams(); }
+    catch(e) { qpPromise = Promise.resolve({}); }
+    qpPromise.then(function(sdkParams) {
+      params = sdkParams || {};
+      if (!params.CRM_Deal_ID && !params.Traveller_ID) {
+        params = parseURLParams();
+      }
+      if (!params.CRM_Deal_ID && !params.Traveller_ID) {
+        // Wait 3s for postMessage
+        return new Promise(function(resolve) {
+          var waited = 0;
+          function check() {
+            if (window.__MSG_PARAMS__) { params = window.__MSG_PARAMS__; return resolve(); }
+            waited += 300;
+            if (waited >= 3000) return resolve();
+            setTimeout(check, 300);
+          }
+          check();
+        });
+      }
+    }).then(function() {
+      if (!params.CRM_Deal_ID && !params.Traveller_ID) {
+        showPhase("Invalid"); return;
+      }
+      draftKey = "cif_draft_" + (params.CRM_Deal_ID||"") + "_" + (params.Traveller_ID||"");
+      loadDraft();
+      // Fetch prefill data
+      return addBridgeRecord({
+        Request_Type: "Get CIF Prefill Data",
+        Status:       "Pending",
+        CRM_Deal_ID:  params.CRM_Deal_ID || "",
+        Payload:      JSON.stringify({ Traveller_ID: params.Traveller_ID || "", CIF_Type: params.CIF_Type || "uk" })
+      }).then(function(recordId) {
+        return pollRecord(recordId, 15, 1500);
+      }).then(function(result) {
+        if (result && result.Status === "Success" && result.CRM_Response) {
+          try {
+            var data = JSON.parse(result.CRM_Response);
+            if (data.travellerName) {
+              travellerName = data.travellerName;
+              var pill = document.getElementById("navPill");
+              if (pill) { pill.textContent = "👤 " + travellerName; pill.style.display=""; }
+            }
+            applyPrefill(data.prefill);
+          } catch(e) {}
+        }
+        showPhase("Ready");
+        renderStep();
+      });
+    }).catch(function(err) {
+      document.getElementById("errorMsg").textContent = err.message || "Failed to load your form. Please try again.";
+      showPhase("Error");
+    });
+  }
+  tryInit();
+});
+</script>
+</body>
+</html>

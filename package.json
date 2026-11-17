@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
 "preview": "vite preview",
-    "pack": "node scripts/pack-widget.mjs"
+    "pack": "node scripts/pack-widget.mjs",
+    "pack:cif": "node scripts/pack-cif-widget.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
