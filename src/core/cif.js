@@ -1647,8 +1647,9 @@ if (finance) {
             const pct = instance?.type === "uk" ? cifOverallProgress(t.id) : cifGenericProgress(t.id, instance);
             const isActive = t.id === state.activeCifTraveller;
             const saved = cifIsInstanceSaved(t.id, instance?.id);
+            const CIF_PAGE_PERMALINK = "https://creatorapp.zohopublic.in/hpatel_winnyedu/hiren-patel/page-perma/CIF_EXTERNAL/OMBMD4FZTZrHzX1aZajjZC8jjprymVWr0hsVnfQtSgOwXTpVvbssxKBzXXSOhGq9rkthjKCPFbqfGabDjUNkSS4mYjjwWqjCynQh";
             const cifExtUrl = t.crmId && applicationData.deal.crmDealId
-              ? `https://creatorapp.zoho.in/${CONFIG.creator.appOwner}/${CONFIG.creator.appLinkName}/#Widget:CIF_External?CRM_Deal_ID=${encodeURIComponent(applicationData.deal.crmDealId)}&Traveller_ID=${encodeURIComponent(t.crmId)}`
+              ? `${CIF_PAGE_PERMALINK}?CRM_Deal_ID=${encodeURIComponent(applicationData.deal.crmDealId)}&Traveller_ID=${encodeURIComponent(t.crmId)}&CIF_Type=uk`
               : "";
             return `<div class="cifx-mc ${isActive ? "on" : ""}" onclick="cifSwitchTraveller('${t.id}')">
               <div class="cifx-mc-top">
