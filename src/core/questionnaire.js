@@ -1145,7 +1145,15 @@ export function qBuildLink(token, traveller) {
     ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim()
     : `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
   const crmId = applicationData.deal?.crmDealId || "";
-  const travellerType = traveller?.type || "";
+  // Map internal traveller.type to the form's Traveller_Type dropdown options.
+  // Form choices: Primary Applicant | Spouse | Child | Friend | Colleague | Parent | Other
+  // Internal type "primary" → "Primary Applicant"; relationship types pass through;
+  // "Additional Traveller" (generic) is not a valid choice so we omit it.
+  const TYPE_MAP = { primary: "Primary Applicant", "Primary Applicant": "Primary Applicant",
+                     Spouse: "Spouse", spouse: "Spouse", Child: "Child", child: "Child",
+                     Friend: "Friend", friend: "Friend", Colleague: "Colleague", colleague: "Colleague",
+                     Parent: "Parent", parent: "Parent", Other: "Other", other: "Other" };
+  const travellerType = TYPE_MAP[traveller?.type] || "";
   // All countries as array — each appended as separate param for multi-select pre-fill
   const countryList = Array.isArray(traveller?.countries)
     ? traveller.countries.filter(Boolean)
