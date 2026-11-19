@@ -306,7 +306,7 @@ function renderUnitOverviewHTML(units) {
             const fillLabel = isAdult ? "&#x270F;&#xFE0F; I fill it" : "&#x270F;&#xFE0F; Fill on behalf of child";
             const sendBtn = (!isTravDone && isAdult)
               ? `<button class="btn ghost" type="button" style="font-size:12px;padding:3px 10px;white-space:nowrap"
-                   onclick="qSendLinkToTraveller('${fid}')"
+                   onclick="qSendLinkToTraveller('${fid}','${t.id}')"
                  >${tLinkSent ? "&#x21A9; Resend link" : "&#x1F517; Send link to traveller"}</button>`
               : "";
             const actionArea = isTravDone
@@ -733,25 +733,34 @@ export function qSetUnitFillMode(familyId, mode) {
   rerenderQuestionnaire();
 }
 
-export async function qSendLinkToTraveller(familyId) {
+export async function qSendLinkToTraveller(familyId, travellerId) {
   const travellers = applicationData.deal.travellers || [];
-  // Set mode to "link" and give each family member their own token
+  // If a specific travellerId is given, only process that traveller; otherwise all in family
   travellers.forEach((t) => {
     if ((t.familyId || "family-1") === familyId) {
-      t.qFillMode = "link";
-      t.qToken = qGenToken();  // unique per traveller
-      t.qLinkSent = false;
-      delete t.qCreatorRecordId;
+      if (!travellerId || t.id === travellerId) {
+        t.qFillMode = "link";
+        t.qToken = qGenToken();  // unique per traveller
+        t.qLinkSent = false;
+        delete t.qCreatorRecordId;
+      }
     }
   });
   markAutoSavePending();
   rerenderQuestionnaire();
-  // Auto-send email to every family member who has an email address
-  const familyMembers = travellers.filter(
-    (t) => (t.familyId || "family-1") === familyId
-  );
-  if (familyMembers.some(t => t.email)) {
-    await qEmailLink(familyId);
+  // Auto-send email — only to the specific traveller if one was targeted
+  if (travellerId) {
+    const target = travellers.find(t => t.id === travellerId);
+    if (target && target.email) {
+      await qEmailLink(familyId, travellerId);
+    }
+  } else {
+    const familyMembers = travellers.filter(
+      (t) => (t.familyId || "family-1") === familyId
+    );
+    if (familyMembers.some(t => t.email)) {
+      await qEmailLink(familyId);
+    }
   }
 }
 
@@ -1225,10 +1234,12 @@ export function qCopyLink(familyId) {
   }
 }
 
-export async function qEmailLink(familyId) {
-  // Send individual links to every family member who has an email and their own token
+export async function qEmailLink(familyId, travellerId) {
+  // Send individual links to family members who have an email and their own token.
+  // If travellerId is given, send only to that specific traveller.
   const recipients = (applicationData.deal.travellers || []).filter(
     (t) => (t.familyId || "family-1") === familyId && t.qToken && t.email
+          && (!travellerId || t.id === travellerId)
   );
   if (!recipients.length) {
     toast("No email address found for this traveller.", "error");
