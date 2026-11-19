@@ -1141,8 +1141,10 @@ function qGenToken() {
 
 export function qBuildLink(token, traveller) {
   const base = "https://creatorapp.zohopublic.in/hpatel_winnyedu/hiren-patel/form-perma/Visitor_Visa_Questionnaire_Sales1/DbxmEeJ6vGRwZ4hPGqgUYSwMqyfJAx5P7tG0rMuhKfrR1FKYFHMgqHjptzwzAqW0OfWyDjZVmhNzEUPw2x73Hb5faQszBmqfJ1m4";
-  const clientName = traveller
-    ? `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim()
+  // Use t.name (additional travellers) or fall back to firstName+lastName (primary)
+  const travellerName = traveller
+    ? (String(traveller.name || traveller.Name || "").trim() ||
+       `${traveller.firstName || ""} ${traveller.lastName || ""}`.trim())
     : `${applicationData.customer?.firstName || ""} ${applicationData.customer?.lastName || ""}`.trim();
   const crmId = applicationData.deal?.crmDealId || "";
   // Map internal traveller.type to the form's Traveller_Type dropdown options.
@@ -1173,7 +1175,7 @@ export function qBuildLink(token, traveller) {
   const params = new URLSearchParams({
     Q_Token: token,
     CRM_ID: crmId,
-    Client_Name: clientName,
+    Client_Name: travellerName,
     Traveller_Type: travellerType,
     ...(familyGroup ? { Family_Group: familyGroup } : {}),
     ...(traveller?.crmId ? { Primary_Traveller_ID: traveller.crmId } : {}),
