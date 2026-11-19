@@ -301,6 +301,10 @@ button, input, label, select, textarea { font: inherit; }
   <div class="big-icon">🔒</div>
   <h2>Link invalid or expired</h2>
   <p>This link is no longer valid. Please contact your case officer to receive a new link.</p>
+  <details style="margin-top:16px;text-align:left;font-size:12px;color:var(--muted);max-width:600px">
+    <summary style="cursor:pointer">Debug info (share with developer)</summary>
+    <pre id="debugInfo" style="margin-top:8px;background:var(--surface);padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:11px"></pre>
+  </details>
 </div>
 
 <div id="phaseError" class="center-screen" style="display:none">
@@ -1106,16 +1110,31 @@ document.addEventListener("DOMContentLoaded", function() {
         typeof ZOHO.CREATOR.PUBLISH.addRecords !== "function") {
       return setTimeout(tryInit, 150);
     }
-    run();
+    // Run ZOHO.CREATOR.init() so UTIL.getQueryParams() can bridge page params
+    var initP;
+    try { initP = (typeof ZOHO.CREATOR.init === "function") ? ZOHO.CREATOR.init() : Promise.resolve(); }
+    catch(e) { initP = Promise.resolve(); }
+    initP.then(run).catch(run);
   }
   function run() {
     var qpPromise;
-    try { qpPromise = ZOHO.CREATOR.UTIL.getQueryParams(); }
-    catch(e) { qpPromise = Promise.resolve({}); }
+    // UTIL.getQueryParams() asks the Creator page framework for the page-level
+    // URL params via postMessage — this is the only reliable mechanism when the
+    // widget runs in an iframe embedded in a page-perma-content URL.
+    try {
+      if (typeof ZOHO.CREATOR.UTIL !== "undefined" &&
+          typeof ZOHO.CREATOR.UTIL.getQueryParams === "function") {
+        qpPromise = ZOHO.CREATOR.UTIL.getQueryParams();
+      } else {
+        qpPromise = Promise.resolve({});
+      }
+    } catch(e) { qpPromise = Promise.resolve({}); }
     qpPromise.then(function(sdkParams) {
       params = sdkParams || {};
+      console.log("[CIF] UTIL.getQueryParams returned:", JSON.stringify(params));
       if (!params.CRM_Deal_ID && !params.Traveller_ID) {
         params = parseURLParams();
+        console.log("[CIF] parseURLParams returned:", JSON.stringify(params));
       }
       if (!params.CRM_Deal_ID && !params.Traveller_ID) {
         // Wait 3s for postMessage
@@ -1132,6 +1151,21 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     }).then(function() {
       if (!params.CRM_Deal_ID && !params.Traveller_ID) {
+        // Populate debug panel before showing Invalid
+        var dbg = document.getElementById("debugInfo");
+        if (dbg) {
+          dbg.textContent = [
+            "location.href: " + window.location.href,
+            "location.search: " + window.location.search,
+            "__INITIAL_SEARCH__: " + (window.__INITIAL_SEARCH__ || "(empty)"),
+            "__INITIAL_HREF__: " + (window.__INITIAL_HREF__ || "(empty)"),
+            "__REFERRER__: " + (window.__REFERRER__ || "(empty)"),
+            "__MSG_PARAMS__: " + JSON.stringify(window.__MSG_PARAMS__),
+            "UTIL.getQueryParams result: " + JSON.stringify(params),
+            "ZOHO.CREATOR.UTIL exists: " + (typeof ZOHO !== "undefined" && typeof ZOHO.CREATOR !== "undefined" && typeof ZOHO.CREATOR.UTIL !== "undefined"),
+            "ZOHO.CREATOR.PUBLISH exists: " + (typeof ZOHO !== "undefined" && typeof ZOHO.CREATOR !== "undefined" && typeof ZOHO.CREATOR.PUBLISH !== "undefined"),
+          ].join("\n");
+        }
         showPhase("Invalid"); return;
       }
       draftKey = "cif_draft_" + (params.CRM_Deal_ID||"") + "_" + (params.Traveller_ID||"");
