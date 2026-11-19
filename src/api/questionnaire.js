@@ -616,7 +616,18 @@ async function waitForCreatorApi(maxMs = 8000) {
 }
 
 async function checkExternalQuestionnaireSubmission(dealId) {
-  if (applicationData.stepStatus.questionnaireCompleted) return false;
+  if (applicationData.stepStatus.questionnaireCompleted) {
+    // Even when the overall flag is set, some travellers may still lack a
+    // per-traveller confirmation (e.g. one submitted via portal, the other via
+    // an external link).  Only skip the Creator query when every individual
+    // traveller slot is already confirmed.
+    const _units = deriveQuestionnaireUnits();
+    const _stMap = applicationData.questionnaire.submittedTravellers || {};
+    const _allConfirmed = _units.every(u =>
+      u.travellers.every((_, i) => !!(_stMap[u.familyId] || {})[i])
+    );
+    if (_allConfirmed) return false;
+  }
   if (!dealId) return false;
 
   // Wait for Creator SDK to initialise (widget SDK handshake can be slow)

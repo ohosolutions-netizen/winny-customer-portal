@@ -353,8 +353,10 @@ const contact = await findContactByEmail(loggedInEmail);
                       })
                       .catch(e => console.warn("[Winny] Traveller CRM sync failed:", e));
                   }
-                  // If traveller submitted via external link, detect and mark as completed
-                  if (!applicationData.stepStatus.questionnaireCompleted && applicationData.deal.crmDealId) {
+                  // If traveller submitted via external link, detect and mark as completed.
+                  // Always run even when questionnaireCompleted is set — the function itself
+                  // skips only when every per-traveller slot is individually confirmed.
+                  if (applicationData.deal.crmDealId) {
                     checkExternalQuestionnaireSubmission(applicationData.deal.crmDealId)
                       .then(changed => { if (changed) requestRender(); })
                       .catch(err => console.warn("[Winny] External questionnaire check failed:", err));
@@ -1036,8 +1038,10 @@ if (
 
 if (applicationDetails) {
   hydrateApplicationDetails(applicationDetails);
-  // Detect external questionnaire submissions (traveller used pre-fill link directly)
-  if (!applicationData.stepStatus.questionnaireCompleted && applicationData.deal.crmDealId) {
+  // Detect external questionnaire submissions (traveller used pre-fill link directly).
+  // Always run; checkExternalQuestionnaireSubmission skips internally only when every
+  // per-traveller slot is confirmed.
+  if (applicationData.deal.crmDealId) {
     checkExternalQuestionnaireSubmission(applicationData.deal.crmDealId)
       .then(changed => { if (changed) requestRender(); })
       .catch(err => console.warn("[Winny] External questionnaire check failed:", err));
