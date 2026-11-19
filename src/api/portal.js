@@ -27,6 +27,7 @@ import {
   loadHiddenApplicationKeys, saveHiddenApplicationKeys
 } from "../core/drafts.js";
 import { checkExternalQuestionnaireSubmission } from "./questionnaire.js";
+import { deriveQuestionnaireUnits } from "../core/questionnaire.js";
 
     // ── submit + poll (Portal_CRM_Request bridge) ──
     async function submitPortalCrmRequest(requestType, requestContext = {}) {
@@ -888,16 +889,36 @@ if (questionnaireSubmitted) {
     ? questionnaireStatus.submittedClients : [];
   if (submittedClients.length > 0) {
     if (!applicationData.questionnaire.submittedUnits) applicationData.questionnaire.submittedUnits = {};
+    if (!applicationData.questionnaire.submittedTravellers) applicationData.questionnaire.submittedTravellers = {};
     const allTravellers = applicationData.deal.travellers || [];
+    const allUnitsForMatch = deriveQuestionnaireUnits();
     submittedClients.forEach(clientName => {
       const nameLower = String(clientName || "").trim().toLowerCase();
       if (!nameLower) return;
       const matched = allTravellers.find(t => {
+        // Additional travellers store name in t.name/t.Name; primary uses firstName+lastName
+        const tFull = String(t.name || t.Name || "").trim().toLowerCase();
         const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
-        return tBuilt && (tBuilt === nameLower || nameLower.includes(tBuilt) || tBuilt.includes(nameLower));
+        const tName = tFull || tBuilt;
+        return tName && (tName === nameLower || nameLower.includes(tName) || tName.includes(nameLower));
       });
-      // Only mark the individual traveller's id — familyId is handled below.
-      if (matched?.id) applicationData.questionnaire.submittedUnits[matched.id] = true;
+      if (matched?.id) {
+        // Mark by traveller id for unit-level promotion below
+        applicationData.questionnaire.submittedUnits[matched.id] = true;
+        // Also set submittedTravellers[familyId][travIdx] for the per-row display
+        if (matched.familyId) {
+          const unit = allUnitsForMatch.find(u => u.familyId === matched.familyId);
+          if (unit) {
+            const travIdx = unit.travellers.findIndex(t => t.id === matched.id);
+            if (travIdx !== -1) {
+              if (!applicationData.questionnaire.submittedTravellers[matched.familyId]) {
+                applicationData.questionnaire.submittedTravellers[matched.familyId] = {};
+              }
+              applicationData.questionnaire.submittedTravellers[matched.familyId][travIdx] = true;
+            }
+          }
+        }
+      }
     });
   }
 
