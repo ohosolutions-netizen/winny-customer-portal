@@ -3017,7 +3017,9 @@ function cifSchengenFundingOptions(data) {
       // when Zoho Creator defines them as Number type — force text input.
       if ([5,6,7,8].includes(field.type)) {
         const isPassportField = /passport.*number|document.*number|visa.*number|reference.*number/i.test(field.link_name) || /passport.*number|document.*number/i.test(label);
-        return cifTextField(label, path, isPassportField ? "text" : "number", field.mandatory);
+        // Name fields must be text even when Creator defines them as Number type.
+        const isNameField = /name/i.test(field.link_name) && !/number/i.test(field.link_name);
+        return cifTextField(label, path, (isPassportField || isNameField) ? "text" : "number", field.mandatory);
       }
       if (field.type === 27) return cifTextField(label, path, "tel", field.mandatory);
       if ([14,15].includes(field.type)) {
