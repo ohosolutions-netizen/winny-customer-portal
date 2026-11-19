@@ -1808,7 +1808,7 @@ function empIndustrySectorOptions(selected) {
 }
 
 const finOccBlocks = primaryFinanceTravellers.map(t => {
-  const { fin, financeAnswers, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
+  const { fin, financeAnswers, isBusiness, isOtherOccupation, shouldShowItr } = buildFinDerived(t);
   return `<div class="person-block">
     <div class="person-block-hd">
       <div class="pb-av ${avClass(t)}">${escapeHtml(initials(t))}</div>
