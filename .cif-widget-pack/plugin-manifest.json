@@ -1,0 +1,11 @@
+{
+  "type": "widget",
+  "version": "1.0.0",
+  "name": "CIF External",
+  "resources": [
+    {
+      "name": "index.html",
+      "type": "html"
+    }
+  ]
+}
