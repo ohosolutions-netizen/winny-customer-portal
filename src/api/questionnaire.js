@@ -867,7 +867,8 @@ async function checkExternalQuestionnaireSubmission(dealId) {
   // Matches by Primary_Traveller_ID (CRM traveller ID) first, then Client_Name.
   function findRecordForTraveller(t, recs) {
     const tCrmId = String(t.crmId || "").trim();
-    const tName  = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+    const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim().toLowerCase();
+    const tName  = (String(t.name || t.Name || "").trim().toLowerCase()) || tBuilt;
     return recs.find(r => {
       if (tCrmId) {
         const rId = String(r.Primary_Traveller_ID || "").trim();
@@ -941,7 +942,8 @@ async function checkExternalQuestionnaireSubmission(dealId) {
       if (stMap[travIdx]) continue; // already confirmed from batch
       const t = unit.travellers[travIdx];
       const tCrmId = String(t.crmId || "").trim();
-      const tName  = `${t.firstName || ""} ${t.lastName || ""}`.trim();
+      const tBuilt = `${t.firstName || ""} ${t.lastName || ""}`.trim();
+      const tName  = String(t.name || t.Name || "").trim() || tBuilt;
       let rows = [];
       try {
         if (tCrmId) rows = await creatorQuery(`Primary_Traveller_ID == "${tCrmId}"`);
